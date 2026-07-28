@@ -20,6 +20,6 @@
   "vars": {
     "HOUSEHOLD_NAME": "芋炮之家",
     "AUTH_BYPASS": "false",
-    "ACCESS_TEAM_DOMAIN": "https://REPLACE_WITH_YOUR_TEAM.cloudflareaccess.com"
+    "PASSWORD_ITERATIONS": "120000"
   }
 }
