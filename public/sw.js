@@ -1,7 +1,7 @@
-const CACHE_NAME = 'yupao-shell-v2';
+const CACHE_NAME = 'yupao-shell-v3';
 const SHELL = [
-  '/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest',
-  '/vendor/preact.mjs', '/vendor/preact-bootstrap.mjs',
+  '/index.html', '/styles.css?v=0.2.2', '/app.js?v=0.2.2', '/manifest.webmanifest?v=0.2.2',
+  '/vendor/preact.mjs', '/vendor/preact-bootstrap.mjs?v=0.2.2',
   '/icons/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png'
 ];
 
@@ -16,20 +16,29 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+async function networkFirst(request, fallback) {
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(fallback || request, response.clone());
+    }
+    return response;
+  } catch {
+    return (await caches.match(fallback || request)) || Response.error();
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request).then((response) => {
-        if (response.ok && url.origin === self.location.origin) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      }).catch(() => cached || caches.match('/index.html'));
-      return cached || network;
-    })
-  );
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, '/index.html'));
+    return;
+  }
+
+  event.respondWith(networkFirst(request));
 });

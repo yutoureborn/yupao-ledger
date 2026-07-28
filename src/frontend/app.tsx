@@ -25,6 +25,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
+const APP_VERSION = '0.2.2';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -129,7 +130,7 @@ function transactionMeta(item: any): string {
 
 async function apiRequest<T = any>(path: string, options: any = {}): Promise<T> {
   const method = String(options.method || 'GET').toUpperCase();
-  const headers: Record<string, string> = {
+  const headers: Record<string, string> = { 'x-yupao-client-version': APP_VERSION,
     ...(options.body ? { 'content-type': 'application/json' } : {}),
     ...(options.headers || {}),
   };
@@ -166,13 +167,8 @@ function bytesToBase64Url(bytes: Uint8Array): string {
 function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(normalized + '='.repeat((4 - normalized.length % 4) % 4));
-
   const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
   return bytes;
 }
 
@@ -206,6 +202,12 @@ function passwordValidationMessage(password: string, email: string): string {
 
 function registerServiceWorker(onUpdate: () => void): void {
   if (!('serviceWorker' in navigator)) return;
+  let controllerChanged = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (controllerChanged) return;
+    controllerChanged = true;
+    onUpdate();
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((registration) => {
       registration.addEventListener('updatefound', () => {
@@ -726,7 +728,7 @@ class SetupPage extends React.Component<any, any> {
         createClientCredential(this.state.ownerPassword, iterations),
         createClientCredential(this.state.memberPassword, iterations),
       ]);
-      const result = await apiRequest('/api/auth/setup', { method: 'POST', body: JSON.stringify({ householdName: this.state.householdName, ownerName: this.state.ownerName, ownerEmail: this.state.ownerEmail, ownerCredential, memberName: this.state.memberName, memberEmail: this.state.memberEmail, memberCredential, setupToken: this.state.setupToken }) });
+      const result = await apiRequest('/api/auth/setup', { method: 'POST', body: JSON.stringify({ clientVersion: APP_VERSION, householdName: this.state.householdName, ownerName: this.state.ownerName, ownerEmail: this.state.ownerEmail, ownerCredential, memberName: this.state.memberName, memberEmail: this.state.memberEmail, memberCredential, setupToken: this.state.setupToken }) });
       this.setState({ saving: false, result, ownerPassword: '', ownerConfirm: '', memberPassword: '', memberConfirm: '', setupToken: '' });
     } catch (error: any) { this.setState({ saving: false, error: error.message || '初始化失败' }); }
   }

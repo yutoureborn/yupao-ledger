@@ -45,3 +45,14 @@ test('应用产物包含动态 API 调用而非纯静态页面', async () => {
   assert.match(app, /\/api\/transactions/);
   assert.match(app, /\/api\/stats\/overview/);
 });
+
+
+test('认证资源使用版本参数且 Service Worker 优先获取网络新版本', async () => {
+  const html = await readFile(path.join(dist, 'index.html'), 'utf8');
+  const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
+  const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.2/);
+  assert.match(bootstrap, /app\.js\?v=0\.2\.2/);
+  assert.match(worker, /yupao-shell-v3/);
+  assert.match(worker, /cache: ['"]no-store['"]/);
+});

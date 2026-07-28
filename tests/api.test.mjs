@@ -175,6 +175,22 @@ test('internal authentication setup creates exactly two accounts and recovery co
   assert.equal(repeated.response.status, 409);
 });
 
+
+test('旧版初始化页面会收到明确的刷新提示', async () => {
+  const { call } = await setup({ bypass: false });
+  const result = await call('/api/auth/setup', {
+    method: 'POST',
+    body: {
+      setupToken: 'test-setup-token-with-enough-entropy',
+      householdName: '测试之家',
+      ownerName: '阿芋', ownerEmail: 'owner@example.test', ownerPassword: 'OldClientPassword2026!',
+      memberName: '小炮', memberEmail: 'member@example.test', memberPassword: 'OldClientPassword2027!',
+    },
+  });
+  assert.equal(result.response.status, 409);
+  assert.equal(result.payload.error.code, 'CLIENT_UPDATE_REQUIRED');
+});
+
 test('login issues an HttpOnly session and protected APIs require CSRF for writes', async () => {
   const { call } = await setup({ bypass: false });
   await initializeAccounts(call);

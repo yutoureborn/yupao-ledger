@@ -1,3 +1,13 @@
+# Release Notes
+
+## v0.2.2
+
+- 修复旧 Service Worker 持续提供 v0.2.0 初始化页面的问题。
+- 核心前端资源增加版本参数。
+- 页面导航与静态资源改为网络优先，离线时回退缓存。
+- Worker 能识别旧初始化请求并返回明确的刷新提示。
+- 修复浏览器 Web Crypto 的 Uint8Array 类型兼容。
+
 # 版本说明
 
 ## 0.2.1 — Workers Free 认证修复

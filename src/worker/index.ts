@@ -1016,6 +1016,9 @@ async function handleAuthSetup(request: Request, env: Env): Promise<Response> {
   if (ownerEmail === memberEmail) throw new HttpError(400, 'VALIDATION_ERROR', '两个账号需要使用不同邮箱');
   const ownerName = assertString(body.ownerName, '管理员昵称', 24);
   const memberName = assertString(body.memberName, '家庭成员昵称', 24);
+  if (!body.ownerCredential || !body.memberCredential) {
+    throw new HttpError(409, 'CLIENT_UPDATE_REQUIRED', '页面仍在使用旧版本，请清除该网站缓存并重新打开后再创建账号');
+  }
   const ownerCredential = assertClientCredential(body.ownerCredential);
   const memberCredential = assertClientCredential(body.memberCredential);
   if (ownerCredential.iterations !== passwordIterations(env) || memberCredential.iterations !== passwordIterations(env)) {
