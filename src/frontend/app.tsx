@@ -19,6 +19,16 @@ type ToastState = {
   action?: () => void;
 } | null;
 
+type SetupStatus = { schemaReady: boolean; configured: boolean; secretsReady: boolean; setupTokenReady?: boolean; pepperReady?: boolean };
+type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
+
+let currentCsrfToken = '';
+let authExpiredHandler: (() => void) | null = null;
+
+function setClientAuth(csrfToken = ''): void {
+  currentCsrfToken = csrfToken;
+}
+
 const ROUTES: Array<{ key: RouteKey; label: string; icon: string; mobile: boolean }> = [
   { key: 'home', label: '首页', icon: 'home', mobile: true },
   { key: 'transactions', label: '明细', icon: 'list', mobile: true },
@@ -116,10 +126,17 @@ function transactionMeta(item: any): string {
 }
 
 async function apiRequest<T = any>(path: string, options: any = {}): Promise<T> {
+  const method = String(options.method || 'GET').toUpperCase();
+  const headers: Record<string, string> = {
+    ...(options.body ? { 'content-type': 'application/json' } : {}),
+    ...(options.headers || {}),
+  };
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && currentCsrfToken) headers['x-csrf-token'] = currentCsrfToken;
   const response = await fetch(path, {
     credentials: 'same-origin',
-    headers: { ...(options.body ? { 'content-type': 'application/json' } : {}), ...(options.headers || {}) },
     ...options,
+    method,
+    headers,
   });
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
@@ -132,6 +149,7 @@ async function apiRequest<T = any>(path: string, options: any = {}): Promise<T> 
     error.code = payload.error?.code;
     error.status = response.status;
     error.details = payload.error?.details;
+    if (response.status === 401 && error.code === 'AUTH_REQUIRED' && authExpiredHandler) authExpiredHandler();
     throw error;
   }
   return payload.data as T;
@@ -595,9 +613,81 @@ class CategoryManager extends React.Component<any, any> {
   render(): any { const items = this.props.bootstrap.categories.filter((item: any) => item.type === this.state.type && !item.is_archived); return <div><div className="type-switch" style={{ maxWidth: '360px' }}><button type="button" className={cn(this.state.type === 'expense' && 'active expense')} onClick={() => this.setState({ type: 'expense' })}>支出分类</button><button type="button" className={cn(this.state.type === 'income' && 'active income')} onClick={() => this.setState({ type: 'income' })}>收入分类</button><button type="button" disabled>共 {items.length} 个</button></div><div className="category-grid" style={{ margin: '14px 0 18px' }}>{items.map((item: any) => <div className="category-chip" key={item.id} style={{ position: 'relative' }}><span className="emoji">{CATEGORY_EMOJI[item.icon] || '✨'}</span><span>{item.name}</span><button type="button" onClick={() => this.archive(item)} title="归档分类" style={{ position: 'absolute', right: 2, top: 2, border: 0, background: 'transparent', color: '#9C95A8', cursor: 'pointer' }}>×</button></div>)}</div><div className="form-grid"><div className="field"><label>新分类名称</label><input className="input" maxLength={20} placeholder="例如：咖啡" value={this.state.name} onChange={(event: any) => this.setState({ name: event.target.value })}/></div><div className="field"><label>分类颜色</label><input className="input" type="color" value={this.state.color} onChange={(event: any) => this.setState({ color: event.target.value })}/></div></div><div className="form-actions"><button className="btn btn-primary" onClick={() => this.add()} disabled={this.state.saving || !this.state.name.trim()}>{this.state.saving ? '添加中…' : '添加分类'}</button></div></div>; }
 }
 
+
+function AuthFrame(props: any): any {
+  return <main className="auth-page">
+    <section className="auth-visual" aria-hidden="true">
+      <div className="auth-visual-copy"><span className="auth-kicker">芋炮小账本</span><h1>两个人的小日子，<br/>都认真记下来。</h1><p>数据只存进你自己的 Cloudflare D1，不使用第三方登录服务。</p></div>
+      <Mascot variant={props.variant || 'idle'} label="芋头和小炮台守护小账本"/>
+    </section>
+    <section className="auth-panel"><div className="auth-card"><div className="auth-brand"><LogoMark/><div><strong>芋炮小账本</strong><span>{props.subtitle || '两个人的小日子'}</span></div></div>{props.children}</div></section>
+  </main>;
+}
+
+class LoginPage extends React.Component<any, any> {
+  constructor(props: any) { super(props); this.state = { email: '', password: '', rememberMe: true, saving: false, error: '', showPassword: false }; }
+  async submit(event: any): Promise<void> {
+    event.preventDefault(); this.setState({ saving: true, error: '' });
+    try {
+      const result = await apiRequest<{ user: AuthUser; csrfToken: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: this.state.email, password: this.state.password, rememberMe: this.state.rememberMe }) });
+      this.setState({ saving: false }); this.props.onLogin(result);
+    } catch (error: any) { this.setState({ saving: false, error: error.message || '登录失败' }); }
+  }
+  render(): any { return <AuthFrame subtitle="欢迎回来" variant="idle"><div className="auth-heading"><h2>登录小账本</h2><p>使用初始化时设置的邮箱和密码。</p></div><form className="auth-form" onSubmit={(event: any) => this.submit(event)}><div className="field"><label>邮箱</label><input className="input" type="email" autoComplete="username" required maxLength={160} value={this.state.email} onChange={(event: any) => this.setState({ email: event.target.value })} placeholder="name@example.com"/></div><div className="field"><label>密码</label><div className="password-field"><input className="input" type={this.state.showPassword ? 'text' : 'password'} autoComplete="current-password" required value={this.state.password} onChange={(event: any) => this.setState({ password: event.target.value })} placeholder="请输入密码"/><button type="button" onClick={() => this.setState({ showPassword: !this.state.showPassword })}>{this.state.showPassword ? '隐藏' : '显示'}</button></div></div><label className="check-row"><input type="checkbox" checked={this.state.rememberMe} onChange={(event: any) => this.setState({ rememberMe: event.target.checked })}/><span>在这台私人设备上保持登录 30 天</span></label>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<button className="btn btn-primary auth-submit" type="submit" disabled={this.state.saving}>{this.state.saving ? '正在登录…' : '登录'}</button><button className="text-button" type="button" onClick={this.props.onRecover}>忘记密码？使用恢复码</button></form><p className="auth-footnote">连续输错 5 次会临时锁定 15 分钟。</p></AuthFrame>; }
+}
+
+class RecoverPage extends React.Component<any, any> {
+  constructor(props: any) { super(props); this.state = { email: '', recoveryCode: '', newPassword: '', confirmPassword: '', saving: false, error: '', success: false }; }
+  async submit(event: any): Promise<void> {
+    event.preventDefault();
+    if (this.state.newPassword !== this.state.confirmPassword) { this.setState({ error: '两次输入的新密码不一致' }); return; }
+    this.setState({ saving: true, error: '' });
+    try { await apiRequest('/api/auth/recover', { method: 'POST', body: JSON.stringify({ email: this.state.email, recoveryCode: this.state.recoveryCode, newPassword: this.state.newPassword }) }); this.setState({ saving: false, success: true }); }
+    catch (error: any) { this.setState({ saving: false, error: error.message || '恢复失败' }); }
+  }
+  render(): any { return <AuthFrame subtitle="账号恢复" variant={this.state.success ? 'success' : 'empty'}>{this.state.success ? <div className="auth-result"><h2>密码已经重设</h2><p>旧设备上的登录状态已全部失效。现在可以使用新密码登录。</p><button className="btn btn-primary auth-submit" onClick={this.props.onBack}>返回登录</button></div> : <><div className="auth-heading"><h2>使用恢复码</h2><p>恢复码只能使用一次，重设后其他设备会退出登录。</p></div><form className="auth-form" onSubmit={(event: any) => this.submit(event)}><div className="field"><label>邮箱</label><input className="input" type="email" required autoComplete="username" value={this.state.email} onChange={(event: any) => this.setState({ email: event.target.value })}/></div><div className="field"><label>恢复码</label><input className="input recovery-input" required autoCapitalize="characters" value={this.state.recoveryCode} onChange={(event: any) => this.setState({ recoveryCode: event.target.value })} placeholder="YP-XXXX-XXXX-XXXX-XXXX"/></div><div className="field"><label>新密码</label><input className="input" type="password" required autoComplete="new-password" value={this.state.newPassword} onChange={(event: any) => this.setState({ newPassword: event.target.value })} placeholder="至少 12 位，包含字母和数字"/></div><div className="field"><label>确认新密码</label><input className="input" type="password" required autoComplete="new-password" value={this.state.confirmPassword} onChange={(event: any) => this.setState({ confirmPassword: event.target.value })}/></div>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<button className="btn btn-primary auth-submit" type="submit" disabled={this.state.saving}>{this.state.saving ? '正在重设…' : '重设密码'}</button><button className="text-button" type="button" onClick={this.props.onBack}>返回登录</button></form></>}</AuthFrame>; }
+}
+
+function downloadRecoveryCodes(result: any): void {
+  const lines = [`芋炮小账本恢复码`, `生成时间：${new Date().toLocaleString('zh-CN')}`, '', ...result.accounts.flatMap((account: any) => [`${account.displayName}（${account.email} / ${account.role === 'owner' ? '管理员' : '家庭成员'}）`, ...account.recoveryCodes, '']), '每个恢复码只能使用一次，请离线保存。'];
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = '芋炮小账本-恢复码.txt'; link.click(); URL.revokeObjectURL(link.href);
+}
+
+class SetupPage extends React.Component<any, any> {
+  constructor(props: any) { super(props); this.state = { householdName: '芋炮之家', ownerName: '', ownerEmail: '', ownerPassword: '', ownerConfirm: '', memberName: '', memberEmail: '', memberPassword: '', memberConfirm: '', setupToken: '', saving: false, error: '', result: null }; }
+  async submit(event: any): Promise<void> {
+    event.preventDefault();
+    if (this.state.ownerPassword !== this.state.ownerConfirm || this.state.memberPassword !== this.state.memberConfirm) { this.setState({ error: '请确认两个账号的密码输入一致' }); return; }
+    this.setState({ saving: true, error: '' });
+    try {
+      const result = await apiRequest('/api/auth/setup', { method: 'POST', body: JSON.stringify({ householdName: this.state.householdName, ownerName: this.state.ownerName, ownerEmail: this.state.ownerEmail, ownerPassword: this.state.ownerPassword, memberName: this.state.memberName, memberEmail: this.state.memberEmail, memberPassword: this.state.memberPassword, setupToken: this.state.setupToken }) });
+      this.setState({ saving: false, result });
+    } catch (error: any) { this.setState({ saving: false, error: error.message || '初始化失败' }); }
+  }
+  render(): any {
+    if (this.state.result) return <AuthFrame subtitle="初始化完成" variant="success"><div className="auth-heading"><h2>两个账号已经准备好</h2><p>恢复码只显示这一次。请下载后分别安全保存。</p></div><div className="recovery-accounts">{this.state.result.accounts.map((account: any) => <section className="recovery-card" key={account.email}><strong>{account.displayName}</strong><span>{account.email} · {account.role === 'owner' ? '管理员' : '家庭成员'}</span><code>{account.recoveryCodes.join('\n')}</code></section>)}</div><button className="btn btn-secondary auth-submit" onClick={() => downloadRecoveryCodes(this.state.result)}><Icon name="download" size={17}/>下载恢复码</button><button className="btn btn-primary auth-submit" onClick={this.props.onComplete}>我已保存，去登录</button></AuthFrame>;
+    return <AuthFrame subtitle="首次初始化" variant="idle"><div className="auth-heading"><h2>创建你们的两个账号</h2><p>此页面只在首次初始化时开放。密码不会以明文保存。</p></div><form className="auth-form setup-form" onSubmit={(event: any) => this.submit(event)}><div className="field"><label>家庭名称</label><input className="input" maxLength={40} required value={this.state.householdName} onChange={(event: any) => this.setState({ householdName: event.target.value })}/></div><div className="setup-columns"><fieldset><legend>管理员账号</legend><div className="field"><label>昵称</label><input className="input" required maxLength={24} value={this.state.ownerName} onChange={(event: any) => this.setState({ ownerName: event.target.value })}/></div><div className="field"><label>邮箱</label><input className="input" type="email" required value={this.state.ownerEmail} onChange={(event: any) => this.setState({ ownerEmail: event.target.value })}/></div><div className="field"><label>密码</label><input className="input" type="password" required autoComplete="new-password" value={this.state.ownerPassword} onChange={(event: any) => this.setState({ ownerPassword: event.target.value })} placeholder="至少 12 位，包含字母和数字"/></div><div className="field"><label>确认密码</label><input className="input" type="password" required value={this.state.ownerConfirm} onChange={(event: any) => this.setState({ ownerConfirm: event.target.value })}/></div></fieldset><fieldset><legend>家庭成员账号</legend><div className="field"><label>昵称</label><input className="input" required maxLength={24} value={this.state.memberName} onChange={(event: any) => this.setState({ memberName: event.target.value })}/></div><div className="field"><label>邮箱</label><input className="input" type="email" required value={this.state.memberEmail} onChange={(event: any) => this.setState({ memberEmail: event.target.value })}/></div><div className="field"><label>密码</label><input className="input" type="password" required autoComplete="new-password" value={this.state.memberPassword} onChange={(event: any) => this.setState({ memberPassword: event.target.value })} placeholder="至少 12 位，包含字母和数字"/></div><div className="field"><label>确认密码</label><input className="input" type="password" required value={this.state.memberConfirm} onChange={(event: any) => this.setState({ memberConfirm: event.target.value })}/></div></fieldset></div><div className="field"><label>初始化密钥</label><input className="input" type="password" required autoComplete="off" value={this.state.setupToken} onChange={(event: any) => this.setState({ setupToken: event.target.value })} placeholder="Cloudflare 中设置的 SETUP_TOKEN"/><small>这是部署后台的初始化密钥，不是登录密码。</small></div>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<button className="btn btn-primary auth-submit" type="submit" disabled={this.state.saving}>{this.state.saving ? '正在创建账号…' : '创建两个账号'}</button></form></AuthFrame>;
+  }
+}
+
+function AuthConfigurationPage(props: any): any {
+  const status = props.status || {};
+  return <AuthFrame subtitle="还差一步配置" variant="empty"><div className="auth-heading"><h2>认证模块尚未准备好</h2><p>业务数据没有受到影响，按下面提示完成配置后刷新页面。</p></div><div className="config-steps">{!status.schemaReady ? <div><strong>初始化认证数据表</strong><p>在 D1 Console 中执行 <code>migrations/0002_internal_auth.sql</code>。</p></div> : null}{status.pepperReady === false ? <div><strong>设置 PASSWORD_PEPPER</strong><p>在 Settings → Variables and Secrets 中添加长期保存的 <code>PASSWORD_PEPPER</code> Secret。</p></div> : null}{!status.configured && status.setupTokenReady === false ? <div><strong>设置 SETUP_TOKEN</strong><p>添加仅用于首次初始化的 <code>SETUP_TOKEN</code> Secret。</p></div> : null}</div><button className="btn btn-primary auth-submit" onClick={props.onRetry}>我已完成，重新检查</button></AuthFrame>;
+}
+
+class SecuritySettings extends React.Component<any, any> {
+  constructor(props: any) { super(props); this.state = { mode: '', currentPassword: '', newPassword: '', confirmPassword: '', saving: false, error: '', codes: null }; }
+  close(): void { this.setState({ mode: '', currentPassword: '', newPassword: '', confirmPassword: '', saving: false, error: '', codes: null }); }
+  async changePassword(event: any): Promise<void> { event.preventDefault(); if (this.state.newPassword !== this.state.confirmPassword) { this.setState({ error: '两次输入的新密码不一致' }); return; } this.setState({ saving: true, error: '' }); try { await apiRequest('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: this.state.currentPassword, newPassword: this.state.newPassword }) }); this.close(); this.props.onToast('密码已经修改，其他设备已退出', 'success'); } catch (error: any) { this.setState({ saving: false, error: error.message }); } }
+  async regenerate(event: any): Promise<void> { event.preventDefault(); this.setState({ saving: true, error: '' }); try { const result = await apiRequest('/api/auth/recovery-codes', { method: 'POST', body: JSON.stringify({ currentPassword: this.state.currentPassword }) }); this.setState({ saving: false, codes: result.recoveryCodes }); } catch (error: any) { this.setState({ saving: false, error: error.message }); } }
+  async revoke(): Promise<void> { if (!window.confirm('退出这个账号在其他设备上的登录？当前设备会继续保持登录。')) return; try { await apiRequest('/api/auth/revoke-other-sessions', { method: 'POST', body: '{}' }); this.props.onToast('其他设备已经退出登录', 'success'); } catch (error: any) { this.props.onToast(error.message, 'error'); } }
+  render(): any { return <><div className="settings-list"><div className="setting-row"><div><h4>修改密码</h4><p>修改后会退出这个账号在其他设备上的登录</p></div><button className="btn btn-secondary btn-sm" onClick={() => this.setState({ mode: 'password' })}>修改</button></div><div className="setting-row"><div><h4>重新生成恢复码</h4><p>旧的未使用恢复码会立即失效</p></div><button className="btn btn-secondary btn-sm" onClick={() => this.setState({ mode: 'codes' })}>生成</button></div><div className="setting-row"><div><h4>退出其他设备</h4><p>适用于设备遗失或忘记退出的情况</p></div><button className="btn btn-secondary btn-sm" onClick={() => this.revoke()}>退出</button></div><div className="setting-row"><div><h4>退出当前账号</h4><p>{this.props.email}</p></div><button className="btn btn-danger btn-sm" onClick={this.props.onLogout}>退出登录</button></div></div><Modal open={this.state.mode === 'password'} title="修改密码" onClose={() => this.close()}><form className="auth-form" onSubmit={(event: any) => this.changePassword(event)}><div className="field"><label>当前密码</label><input className="input" type="password" required value={this.state.currentPassword} onChange={(event: any) => this.setState({ currentPassword: event.target.value })}/></div><div className="field"><label>新密码</label><input className="input" type="password" required value={this.state.newPassword} onChange={(event: any) => this.setState({ newPassword: event.target.value })} placeholder="至少 12 位，包含字母和数字"/></div><div className="field"><label>确认新密码</label><input className="input" type="password" required value={this.state.confirmPassword} onChange={(event: any) => this.setState({ confirmPassword: event.target.value })}/></div>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<div className="form-actions"><button className="btn btn-secondary" type="button" onClick={() => this.close()}>取消</button><button className="btn btn-primary" type="submit" disabled={this.state.saving}>{this.state.saving ? '修改中…' : '确认修改'}</button></div></form></Modal><Modal open={this.state.mode === 'codes'} title="重新生成恢复码" onClose={() => this.close()}>{this.state.codes ? <div><p className="modal-note">这些恢复码只显示这一次，请立即保存。</p><code className="codes-block">{this.state.codes.join('\n')}</code><button className="btn btn-primary auth-submit" onClick={() => { navigator.clipboard?.writeText(this.state.codes.join('\n')); this.props.onToast('恢复码已复制', 'success'); }}>复制恢复码</button></div> : <form className="auth-form" onSubmit={(event: any) => this.regenerate(event)}><div className="field"><label>当前密码</label><input className="input" type="password" required value={this.state.currentPassword} onChange={(event: any) => this.setState({ currentPassword: event.target.value })}/></div>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<button className="btn btn-primary auth-submit" type="submit" disabled={this.state.saving}>{this.state.saving ? '生成中…' : '确认并生成'}</button></form>}</Modal></>; }
+}
+
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.1.0 · 动态全栈 PWA</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>一个只给两个人使用的小账本。没有广告，不接第三方行为追踪，也不会把完整账本长期留在浏览器本地。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="idle"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.0 · 内置双账号认证</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码采用 PBKDF2、独立盐值与服务端 Pepper 处理，登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="idle"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {
@@ -606,62 +696,62 @@ class App extends React.Component<any, any> {
     super(props);
     const route = this.routeFromHash();
     const reduceMotion = localStorage.getItem('yupao-reduce-motion') === 'true';
-    this.state = { route, bootstrap: null, loading: true, error: '', online: navigator.onLine, toast: null, month: currentMonth(), refreshToken: 0, reduceMotion };
-    this.onHashChange = this.onHashChange.bind(this);
-    this.onOnline = this.onOnline.bind(this);
-    this.onOffline = this.onOffline.bind(this);
+    this.state = { route, authPhase: 'checking', setupStatus: null, bootstrap: null, loading: true, error: '', online: navigator.onLine, toast: null, month: currentMonth(), refreshToken: 0, reduceMotion };
+    this.onHashChange = this.onHashChange.bind(this); this.onOnline = this.onOnline.bind(this); this.onOffline = this.onOffline.bind(this);
   }
-  routeFromHash(): RouteKey {
-    const value = location.hash.replace(/^#\/?/, '').split('/')[0] as RouteKey;
-    return ROUTES.some((route) => route.key === value) ? value : 'home';
-  }
+  routeFromHash(): RouteKey { const value = location.hash.replace(/^#\/?/, '').split('/')[0] as RouteKey; return ROUTES.some((route) => route.key === value) ? value : 'home'; }
   componentDidMount(): void {
-    window.addEventListener('hashchange', this.onHashChange);
-    window.addEventListener('online', this.onOnline);
-    window.addEventListener('offline', this.onOffline);
+    window.addEventListener('hashchange', this.onHashChange); window.addEventListener('online', this.onOnline); window.addEventListener('offline', this.onOffline);
     this.applyMotion(this.state.reduceMotion);
-    this.loadBootstrap();
+    authExpiredHandler = () => this.endSession('登录已失效，请重新登录');
+    this.initializeAuth();
     registerServiceWorker(() => this.showToast('小账本有新版本，刷新页面即可更新', 'default'));
   }
-  componentWillUnmount(): void {
-    window.removeEventListener('hashchange', this.onHashChange);
-    window.removeEventListener('online', this.onOnline);
-    window.removeEventListener('offline', this.onOffline);
-  }
+  componentWillUnmount(): void { window.removeEventListener('hashchange', this.onHashChange); window.removeEventListener('online', this.onOnline); window.removeEventListener('offline', this.onOffline); authExpiredHandler = null; }
   onHashChange(): void { this.setState({ route: this.routeFromHash() }); window.scrollTo(0, 0); }
   onOnline(): void { this.setState({ online: true }); this.showToast('网络已经恢复', 'success'); }
   onOffline(): void { this.setState({ online: false }); }
   navigate(route: RouteKey): void { location.hash = `#/${route}`; }
-  async loadBootstrap(): Promise<void> {
+  async initializeAuth(): Promise<void> {
+    this.setState({ authPhase: 'checking', error: '', loading: true });
+    try {
+      const status = await apiRequest<SetupStatus>('/api/auth/setup-status');
+      if (!status.schemaReady || !status.secretsReady) { this.setState({ authPhase: 'config', setupStatus: status, loading: false }); return; }
+      if (!status.configured) { this.setState({ authPhase: 'setup', setupStatus: status, loading: false }); return; }
+      try {
+        const session = await apiRequest<{ user: AuthUser; csrfToken: string }>('/api/auth/session'); setClientAuth(session.csrfToken); await this.loadBootstrap(true);
+      } catch (error: any) {
+        if (error.status === 401) { setClientAuth(''); this.setState({ authPhase: 'login', loading: false, bootstrap: null }); return; }
+        throw error;
+      }
+    } catch (error: any) { this.setState({ authPhase: 'error', error: error.message || '小账本暂时打不开', loading: false }); }
+  }
+  async loadBootstrap(initial = false): Promise<void> {
     this.setState({ loading: true, error: '' });
-    try { const bootstrap = await apiRequest<Bootstrap>(`/api/bootstrap?month=${this.state.month}`); this.setState({ bootstrap, loading: false }); }
-    catch (error: any) { this.setState({ loading: false, error: error.message || '小账本暂时打不开' }); }
+    try { const bootstrap = await apiRequest<Bootstrap>(`/api/bootstrap?month=${this.state.month}`); this.setState({ bootstrap, loading: false, authPhase: 'app' }); }
+    catch (error: any) { if (error.status === 401) return; this.setState({ loading: false, error: error.message || '小账本暂时打不开', authPhase: initial ? 'error' : this.state.authPhase }); }
   }
+  async handleLogin(result: { user: AuthUser; csrfToken: string }): Promise<void> { setClientAuth(result.csrfToken); await this.loadBootstrap(true); }
+  endSession(message = ''): void { setClientAuth(''); this.setState({ authPhase: 'login', bootstrap: null, loading: false, error: '' }); if (message) this.showToast(message, 'error'); }
+  async logout(): Promise<void> { try { await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }); } catch {} this.endSession(); }
   changed(): void { this.setState({ refreshToken: this.state.refreshToken + 1 }, () => this.loadBootstrap()); }
-  showToast(message: string, kind: 'default' | 'success' | 'error' = 'default', actionLabel?: string, action?: () => void): void {
-    if (this.toastTimer) window.clearTimeout(this.toastTimer);
-    this.setState({ toast: { message, kind, actionLabel, action } });
-    this.toastTimer = window.setTimeout(() => this.setState({ toast: null }), action ? 6500 : 3200);
-  }
+  showToast(message: string, kind: 'default' | 'success' | 'error' = 'default', actionLabel?: string, action?: () => void): void { if (this.toastTimer) window.clearTimeout(this.toastTimer); this.setState({ toast: { message, kind, actionLabel, action } }); this.toastTimer = window.setTimeout(() => this.setState({ toast: null }), action ? 6500 : 3200); }
   applyMotion(reduce: boolean): void { document.body.classList.toggle('reduce-motion', reduce); }
   changeMotion(reduce: boolean): void { localStorage.setItem('yupao-reduce-motion', String(reduce)); this.applyMotion(reduce); this.setState({ reduceMotion: reduce }); }
   renderPage(): any {
     const common = { bootstrap: this.state.bootstrap, month: this.state.month, refreshToken: this.state.refreshToken, navigate: (route: RouteKey) => this.navigate(route), onChanged: () => this.changed(), onError: (message: string) => this.showToast(message, 'error'), onToast: (message: string, kind?: any, actionLabel?: string, action?: () => void) => this.showToast(message, kind, actionLabel, action) };
-    switch (this.state.route) {
-      case 'transactions': return <TransactionsPage {...common}/>;
-      case 'add': return <AddPage {...common}/>;
-      case 'stats': return <StatsPage {...common}/>;
-      case 'accounts': return <AccountsPage {...common}/>;
-      case 'budgets': return <BudgetsPage {...common}/>;
-      case 'settings': return <SettingsPage {...common} reduceMotion={this.state.reduceMotion} onMotionChange={(value: boolean) => this.changeMotion(value)}/>;
-      default: return <DashboardPage {...common} onMonthChange={(month: string) => this.setState({ month }, () => this.changed())}/>;
-    }
+    switch (this.state.route) { case 'transactions': return <TransactionsPage {...common}/>; case 'add': return <AddPage {...common}/>; case 'stats': return <StatsPage {...common}/>; case 'accounts': return <AccountsPage {...common}/>; case 'budgets': return <BudgetsPage {...common}/>; case 'settings': return <SettingsPage {...common} reduceMotion={this.state.reduceMotion} onMotionChange={(value: boolean) => this.changeMotion(value)} onLogout={() => this.logout()}/>; default: return <DashboardPage {...common} onMonthChange={(month: string) => this.setState({ month }, () => this.changed())}/>; }
   }
   render(): any {
+    const phase = this.state.authPhase;
+    if (phase === 'checking') return <LoadingPage/>;
+    if (phase === 'config') return <AuthConfigurationPage status={this.state.setupStatus} onRetry={() => this.initializeAuth()}/>;
+    if (phase === 'setup') return <SetupPage onComplete={() => this.setState({ authPhase: 'login' })}/>;
+    if (phase === 'recover') return <RecoverPage onBack={() => this.setState({ authPhase: 'login' })}/>;
+    if (phase === 'login') return <LoginPage onLogin={(result: any) => this.handleLogin(result)} onRecover={() => this.setState({ authPhase: 'recover' })}/>;
+    if (phase === 'error' || (this.state.error && !this.state.bootstrap)) return <div className="loading-page"><div><div style={{ width: '240px' }}><Mascot variant="empty"/></div><h2>小账本暂时打不开</h2><p style={{ color: 'var(--text-2)' }}>{this.state.error}</p><button className="btn btn-primary" onClick={() => this.initializeAuth()}>再试一次</button></div></div>;
     if (this.state.loading && !this.state.bootstrap) return <LoadingPage/>;
-    if (this.state.error && !this.state.bootstrap) return <div className="loading-page"><div><div style={{ width: '240px' }}><Mascot variant="empty"/></div><h2>小账本暂时打不开</h2><p style={{ color: 'var(--text-2)' }}>{this.state.error}</p><button className="btn btn-primary" onClick={() => this.loadBootstrap()}>再试一次</button></div></div>;
-    const bootstrap = this.state.bootstrap as Bootstrap;
-    const toast = this.state.toast as ToastState;
+    const bootstrap = this.state.bootstrap as Bootstrap; const toast = this.state.toast as ToastState;
     return <div className="app-shell">{!this.state.online ? <div className="offline-banner">现在没有网络，连上后再记账吧。</div> : null}<aside className="sidebar"><a className="brand" href="#/home"><span className="brand-mark"><LogoMark/></span><span className="brand-copy"><strong>芋炮小账本</strong><span>两个人的小日子</span></span></a><nav className="nav-list">{ROUTES.map((route) => <button key={route.key} className={cn('nav-item', this.state.route === route.key && 'active')} onClick={() => this.navigate(route.key)}><Icon name={route.icon}/><span>{route.label}</span></button>)}</nav><div className="sidebar-bottom"><div className="member-pill"><div className="avatar">{bootstrap.user.displayName.slice(0, 1)}</div><div><strong>{bootstrap.user.displayName}</strong><small>{bootstrap.household.name}</small></div></div></div></aside><header className="mobile-topbar"><div className="mobile-brand"><LogoMark/><span>芋炮小账本</span></div><div className="avatar">{bootstrap.user.displayName.slice(0, 1)}</div></header><main className="main">{this.renderPage()}</main><nav className="bottom-nav">{ROUTES.filter((route) => route.mobile).map((route) => <button key={route.key} className={cn(this.state.route === route.key && 'active', route.key === 'add' && 'center')} onClick={() => this.navigate(route.key)}>{route.key === 'add' ? <span className="nav-icon-wrap"><Icon name={route.icon}/></span> : <Icon name={route.icon}/>}<span>{route.label}</span></button>)}</nav>{toast ? <div className={cn('toast', toast.kind)}><span>{toast.message}</span>{toast.action ? <button onClick={() => { toast.action && toast.action(); this.setState({ toast: null }); }}>{toast.actionLabel || '操作'}</button> : null}</div> : null}</div>;
   }
 }

@@ -1,14 +1,12 @@
-# 芋炮小账本 v0.1.2
+# Release Notes
 
-## 部署流程更新
+## 0.2.0 — 内置双账号认证
 
-- 默认推荐 GitHub 网页上传项目源码。
-- 使用 Cloudflare Workers Builds 连接私有 GitHub 仓库。
-- `main` 分支提交后自动构建、测试和发布。
-- 新增 `.nvmrc`，固定 Workers Builds 使用 Node.js 22。
-- 新增 `docs/GITHUB-WEB-WORKERS-BUILDS.md` 完整部署指引。
-- 不需要 GitHub Desktop、自定义域名或日常本机命令行操作。
-
-## 应用代码
-
-本版本未修改账本业务逻辑。动态记账、双人家庭空间、图表、PWA、Access 验证、D1 数据库及备份工具保持不变。
+- 移除 Cloudflare Access JWT 依赖。
+- 新增芋炮风格登录页、首次初始化页和恢复密码页。
+- 新增 PBKDF2 密码哈希、服务端 Pepper、HttpOnly Session Cookie。
+- 新增 CSRF 防护、登录限流、设备会话撤销和单次恢复码。
+- 新增 `migrations/0002_internal_auth.sql`。
+- 设置页增加修改密码、重新生成恢复码、退出其他设备和退出登录。
+- 更新 GitHub 网页上传 + Workers Builds 部署流程。
+- 保留原有账户、账目、预算、图表、PWA 和 D1 数据模型。

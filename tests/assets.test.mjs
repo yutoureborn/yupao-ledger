@@ -39,6 +39,8 @@ test('Service Worker 不缓存财务 API', async () => {
 
 test('应用产物包含动态 API 调用而非纯静态页面', async () => {
   const app = await readFile(path.join(dist, 'app.js'), 'utf8');
+  assert.match(app, /\/api\/auth\/login/);
+  assert.match(app, /\/api\/auth\/setup/);
   assert.match(app, /\/api\/bootstrap/);
   assert.match(app, /\/api\/transactions/);
   assert.match(app, /\/api\/stats\/overview/);

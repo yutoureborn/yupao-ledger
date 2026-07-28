@@ -12,8 +12,8 @@ const localDir = path.join(root, '.local');
 await mkdir(localDir, { recursive: true });
 const db = new DatabaseSync(path.join(localDir, 'yupao.db'));
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
-const migration = await readFile(path.join(root, 'migrations/0001_init.sql'), 'utf8');
-db.exec(migration);
+const migrations = ['0001_init.sql', '0002_internal_auth.sql'];
+for (const file of migrations) db.exec(await readFile(path.join(root, 'migrations', file), 'utf8'));
 
 function seedDemoData() {
   const emptyMode = process.argv.includes('--empty');
@@ -78,7 +78,14 @@ class LocalStatement {
   async all() { return { success: true, results: this.statement.all(...this.values) }; }
   async run() { const result = this.statement.run(...this.values); return { success: true, meta: { changes: Number(result.changes), last_row_id: Number(result.lastInsertRowid || 0) } }; }
 }
-const d1 = { prepare(sql) { return new LocalStatement(db.prepare(sql)); } };
+const d1 = {
+  prepare(sql) { return new LocalStatement(db.prepare(sql)); },
+  async batch(statements) {
+    db.exec('BEGIN');
+    try { const results = []; for (const statement of statements) results.push(await statement.run()); db.exec('COMMIT'); return results; }
+    catch (error) { db.exec('ROLLBACK'); throw error; }
+  }
+};
 
 const MIME = { '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.txt':'text/plain; charset=utf-8','.map':'application/json' };
 async function assetFetch(request) {
@@ -95,10 +102,12 @@ async function assetFetch(request) {
 const env = {
   DB: d1,
   ASSETS: { fetch: assetFetch },
-  AUTH_BYPASS: 'true',
+  AUTH_BYPASS: process.argv.includes('--auth') ? 'false' : 'true',
   DEV_USER_EMAIL: process.env.DEV_USER_EMAIL || 'dev1@yupao.local',
-  ALLOWED_EMAILS: 'dev1@yupao.local,dev2@yupao.local',
-  HOUSEHOLD_NAME: '芋炮之家'
+  HOUSEHOLD_NAME: '芋炮之家',
+  SETUP_TOKEN: 'local-setup-token-please-change',
+  PASSWORD_PEPPER: 'local-development-pepper-not-for-production',
+  PASSWORD_ITERATIONS: '100000'
 };
 
 const server = http.createServer(async (req, res) => {

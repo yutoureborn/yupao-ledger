@@ -25,10 +25,10 @@ export interface Env {
   ASSETS: AssetsBinding;
   AUTH_BYPASS?: string;
   DEV_USER_EMAIL?: string;
-  ALLOWED_EMAILS?: string;
-  ACCESS_TEAM_DOMAIN?: string;
-  ACCESS_AUD?: string;
   HOUSEHOLD_NAME?: string;
+  SETUP_TOKEN?: string;
+  PASSWORD_PEPPER?: string;
+  PASSWORD_ITERATIONS?: string;
 }
 
 type TransactionType = 'expense' | 'income' | 'transfer';
@@ -41,6 +41,8 @@ type UserContext = {
   householdId: string;
   householdName: string;
   role: 'owner' | 'member';
+  sessionId?: string;
+  csrfToken?: string;
 };
 
 class HttpError extends Error {
@@ -71,8 +73,6 @@ const SECURITY_HEADERS: Record<string, string> = {
   'cross-origin-opener-policy': 'same-origin',
 };
 
-let cachedJwks: { expiresAt: number; keys: JsonWebKey[] } | null = null;
-
 function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -80,11 +80,11 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
   });
 }
 
-function ok<T>(data: T, status = 200): Response {
-  return json({ ok: true, data }, status);
+function ok<T>(data: T, status = 200, extraHeaders: Record<string, string> = {}): Response {
+  return json({ ok: true, data }, status, extraHeaders);
 }
 
-function fail(error: HttpError): Response {
+function fail(error: HttpError, extraHeaders: Record<string, string> = {}): Response {
   return json(
     {
       ok: false,
@@ -95,6 +95,7 @@ function fail(error: HttpError): Response {
       },
     },
     error.status,
+    extraHeaders,
   );
 }
 
@@ -105,16 +106,16 @@ function applySecurityHeaders(response: Response): Response {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+const SESSION_COOKIE = '__Host-yupao_session';
+const SESSION_SECONDS = 12 * 60 * 60;
+const REMEMBER_SESSION_SECONDS = 30 * 24 * 60 * 60;
+const LOGIN_WINDOW_SECONDS = 15 * 60;
+const LOGIN_EMAIL_LIMIT = 5;
+const LOGIN_IP_LIMIT = 20;
+const RECOVERY_CODE_COUNT = 8;
+
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
-}
-
-function parseAllowedEmails(env: Env): string[] {
-  return (env.ALLOWED_EMAILS ?? '')
-    .split(',')
-    .map(normalizeEmail)
-    .filter(Boolean)
-    .filter((email) => !email.startsWith('replace_with'));
 }
 
 function base64UrlDecode(value: string): Uint8Array<ArrayBuffer> {
@@ -126,79 +127,244 @@ function base64UrlDecode(value: string): Uint8Array<ArrayBuffer> {
   return output;
 }
 
-function decodeJwtPart<T>(value: string): T {
-  return JSON.parse(new TextDecoder().decode(base64UrlDecode(value))) as T;
+function base64UrlEncode(value: ArrayBuffer | Uint8Array<ArrayBuffer>): string {
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
-async function loadAccessJwks(teamDomain: string): Promise<JsonWebKey[]> {
-  if (cachedJwks && cachedJwks.expiresAt > Date.now()) return cachedJwks.keys;
-  const endpoint = `${teamDomain.replace(/\/$/, '')}/cdn-cgi/access/certs`;
-  const response = await fetch(endpoint, { headers: { accept: 'application/json' } });
-  if (!response.ok) throw new HttpError(503, 'AUTH_KEYS_UNAVAILABLE', '暂时无法验证登录状态');
-  const payload = (await response.json()) as { keys?: JsonWebKey[] };
-  if (!payload.keys?.length) throw new HttpError(503, 'AUTH_KEYS_INVALID', '登录验证配置不完整');
-  cachedJwks = { keys: payload.keys, expiresAt: Date.now() + 60 * 60 * 1000 };
-  return payload.keys;
+function randomToken(byteLength = 32): string {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return base64UrlEncode(bytes);
 }
 
-async function verifyAccessJwt(token: string, env: Env): Promise<{ email: string }> {
-  const teamDomain = env.ACCESS_TEAM_DOMAIN?.replace(/\/$/, '');
-  const expectedAudience = env.ACCESS_AUD;
-  if (!teamDomain || !expectedAudience || teamDomain.includes('REPLACE_WITH') || expectedAudience.includes('REPLACE_WITH')) {
-    throw new HttpError(500, 'AUTH_NOT_CONFIGURED', 'Cloudflare Access 尚未完成配置');
+function parseCookies(request: Request): Map<string, string> {
+  const cookies = new Map<string, string>();
+  const raw = request.headers.get('cookie') || '';
+  for (const segment of raw.split(';')) {
+    const index = segment.indexOf('=');
+    if (index <= 0) continue;
+    cookies.set(segment.slice(0, index).trim(), decodeURIComponent(segment.slice(index + 1).trim()));
   }
+  return cookies;
+}
 
-  const parts = token.split('.');
-  if (parts.length !== 3) throw new HttpError(401, 'INVALID_TOKEN', '登录状态无效');
-  const header = decodeJwtPart<{ alg?: string; kid?: string }>(parts[0]);
-  const payload = decodeJwtPart<{
-    email?: string;
-    aud?: string | string[];
-    iss?: string;
-    exp?: number;
-    nbf?: number;
-  }>(parts[1]);
+function sessionCookie(token: string, maxAge: number): string {
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`;
+}
 
-  if (header.alg !== 'RS256' || !header.kid) throw new HttpError(401, 'INVALID_TOKEN', '登录状态无效');
-  const keys = await loadAccessJwks(teamDomain);
-  const jwk = keys.find((item) => (item as JsonWebKey & { kid?: string }).kid === header.kid);
-  if (!jwk) {
-    cachedJwks = null;
-    throw new HttpError(401, 'TOKEN_KEY_NOT_FOUND', '登录状态已更新，请重新进入');
+function clearSessionCookie(): string {
+  return `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`;
+}
+
+function secretIsReady(value: string | undefined): boolean {
+  const normalized = value?.trim();
+  return Boolean(normalized && !normalized.includes('REPLACE_WITH'));
+}
+
+function requiredSecret(value: string | undefined, name: string): string {
+  const normalized = value?.trim();
+  if (!normalized || normalized.includes('REPLACE_WITH')) {
+    throw new HttpError(500, 'AUTH_NOT_CONFIGURED', `认证密钥 ${name} 尚未配置`);
   }
+  return normalized;
+}
 
-  const key = await crypto.subtle.importKey(
-    'jwk',
-    jwk,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+function passwordIterations(env: Env): number {
+  const value = Number(env.PASSWORD_ITERATIONS || 120000);
+  if (!Number.isSafeInteger(value) || value < 100000 || value > 600000) return 120000;
+  return value;
+}
+
+async function sha256Bytes(value: string): Promise<Uint8Array<ArrayBuffer>> {
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+}
+
+async function secretHash(value: string, env: Env): Promise<string> {
+  const pepper = requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+  return base64UrlEncode(await sha256Bytes(`${value}\u0000${pepper}`));
+}
+
+function constantTimeEqual(a: Uint8Array<ArrayBuffer>, b: Uint8Array<ArrayBuffer>): boolean {
+  let difference = a.length ^ b.length;
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) difference |= (a[index] || 0) ^ (b[index] || 0);
+  return difference === 0;
+}
+
+async function constantTimeTextEqual(a: string, b: string): Promise<boolean> {
+  return constantTimeEqual(await sha256Bytes(a), await sha256Bytes(b));
+}
+
+async function derivePasswordHash(password: string, salt: string, iterations: number, env: Env): Promise<string> {
+  const pepper = requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(`${password}\u0000${pepper}`),
+    'PBKDF2',
     false,
-    ['verify'],
+    ['deriveBits'],
   );
-  const verified = await crypto.subtle.verify(
-    { name: 'RSASSA-PKCS1-v1_5' },
-    key,
-    base64UrlDecode(parts[2]),
-    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: base64UrlDecode(salt), iterations },
+    keyMaterial,
+    256,
   );
-  if (!verified) throw new HttpError(401, 'INVALID_TOKEN', '登录状态无效');
-
-  const now = Math.floor(Date.now() / 1000);
-  if (!payload.exp || payload.exp <= now) throw new HttpError(401, 'TOKEN_EXPIRED', '登录已过期，请重新进入');
-  if (payload.nbf && payload.nbf > now + 30) throw new HttpError(401, 'TOKEN_NOT_ACTIVE', '登录状态暂未生效');
-  const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud].filter(Boolean);
-  if (!audiences.includes(expectedAudience)) throw new HttpError(401, 'INVALID_AUDIENCE', '登录应用不匹配');
-  if (payload.iss?.replace(/\/$/, '') !== teamDomain) throw new HttpError(401, 'INVALID_ISSUER', '登录来源不匹配');
-  if (!payload.email) throw new HttpError(401, 'EMAIL_MISSING', '登录信息中缺少邮箱');
-  return { email: normalizeEmail(payload.email) };
+  return base64UrlEncode(bits);
 }
 
-async function getAuthenticatedEmail(request: Request, env: Env): Promise<string> {
-  if (env.AUTH_BYPASS === 'true') {
-    return normalizeEmail(request.headers.get('x-dev-user-email') || env.DEV_USER_EMAIL || 'dev1@yupao.local');
+function assertPassword(value: unknown, email?: string): string {
+  if (typeof value !== 'string') throw new HttpError(400, 'PASSWORD_INVALID', '密码格式不正确');
+  if (value.length < 12 || value.length > 128) throw new HttpError(400, 'PASSWORD_INVALID', '密码需要 12～128 个字符');
+  if (!/\p{L}/u.test(value) || !/\p{N}/u.test(value)) throw new HttpError(400, 'PASSWORD_INVALID', '密码至少需要包含字母和数字');
+  const emailPrefix = normalizeEmail(email || '').split('@')[0];
+  if (emailPrefix.length >= 4 && value.toLowerCase().includes(emailPrefix)) throw new HttpError(400, 'PASSWORD_INVALID', '密码不要包含邮箱名称');
+  return value;
+}
+
+function normalizeRecoveryCode(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function generateRecoveryCode(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let text = '';
+  for (let index = 0; index < 16; index += 1) text += alphabet[bytes[index] % alphabet.length];
+  return `YP-${text.slice(0, 4)}-${text.slice(4, 8)}-${text.slice(8, 12)}-${text.slice(12, 16)}`;
+}
+
+function clientIp(request: Request): string {
+  return request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+}
+
+async function clientIpHash(request: Request, env: Env): Promise<string> {
+  return secretHash(`ip:${clientIp(request)}`, env);
+}
+
+function currentEpoch(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+async function recordLoginAttempt(db: D1Database, email: string, ipHash: string, success: boolean): Promise<void> {
+  await run(db, 'INSERT INTO login_attempts (id, email, ip_hash, success, attempted_at) VALUES (?, ?, ?, ?, ?)', crypto.randomUUID(), email, ipHash, success ? 1 : 0, currentEpoch());
+}
+
+async function enforceLoginRateLimit(request: Request, env: Env, email: string): Promise<string> {
+  const now = currentEpoch();
+  const since = now - LOGIN_WINDOW_SECONDS;
+  const ipHash = await clientIpHash(request, env);
+  await run(env.DB, 'DELETE FROM login_attempts WHERE attempted_at < ?', now - 24 * 60 * 60);
+  const emailFailures = await queryFirst<{ count: number }>(env.DB, 'SELECT COUNT(*) AS count FROM login_attempts WHERE email = ? AND success = 0 AND attempted_at >= ?', email, since);
+  const ipFailures = await queryFirst<{ count: number }>(env.DB, 'SELECT COUNT(*) AS count FROM login_attempts WHERE ip_hash = ? AND success = 0 AND attempted_at >= ?', ipHash, since);
+  if ((emailFailures?.count ?? 0) >= LOGIN_EMAIL_LIMIT || (ipFailures?.count ?? 0) >= LOGIN_IP_LIMIT) {
+    throw new HttpError(429, 'LOGIN_LOCKED', '尝试次数太多，请 15 分钟后再试');
   }
-  const token = request.headers.get('cf-access-jwt-assertion');
-  if (!token) throw new HttpError(401, 'AUTH_REQUIRED', '请先完成身份验证');
-  return (await verifyAccessJwt(token, env)).email;
+  return ipHash;
+}
+
+async function verifyCredential(password: string, credential: { password_hash: string; password_salt: string; password_iterations: number } | null, env: Env): Promise<boolean> {
+  if (!credential) {
+    const dummySalt = base64UrlEncode((await sha256Bytes('yupao-dummy-password-salt')).slice(0, 16));
+    await derivePasswordHash(password || 'not-a-password', dummySalt, passwordIterations(env), env);
+    return false;
+  }
+  const derived = await derivePasswordHash(password, credential.password_salt, Number(credential.password_iterations), env);
+  return constantTimeEqual(base64UrlDecode(derived), base64UrlDecode(credential.password_hash));
+}
+
+async function newPasswordRecord(password: string, env: Env): Promise<{ hash: string; salt: string; iterations: number }> {
+  const salt = randomToken(16);
+  const iterations = passwordIterations(env);
+  return { hash: await derivePasswordHash(password, salt, iterations, env), salt, iterations };
+}
+
+async function createRecoveryCodes(userId: string, env: Env): Promise<string[]> {
+  const codes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
+  for (const code of codes) {
+    await run(env.DB, 'INSERT INTO recovery_codes (id, user_id, code_hash, created_at) VALUES (?, ?, ?, ?)', crypto.randomUUID(), userId, await secretHash(`recovery:${normalizeRecoveryCode(code)}`, env), currentEpoch());
+  }
+  return codes;
+}
+
+async function createSession(userId: string, request: Request, env: Env, rememberMe: boolean): Promise<{ token: string; csrfToken: string; maxAge: number }> {
+  const token = randomToken(32);
+  const csrfToken = randomToken(24);
+  const maxAge = rememberMe ? REMEMBER_SESSION_SECONDS : SESSION_SECONDS;
+  const now = currentEpoch();
+  await run(
+    env.DB,
+    `INSERT INTO auth_sessions (id, token_hash, user_id, csrf_token, expires_at, created_at, last_seen_at, ip_hash, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    crypto.randomUUID(), await secretHash(`session:${token}`, env), userId, csrfToken, now + maxAge, now, now,
+    await clientIpHash(request, env), (request.headers.get('user-agent') || '').slice(0, 240),
+  );
+  return { token, csrfToken, maxAge };
+}
+
+async function getSessionContext(request: Request, env: Env): Promise<UserContext> {
+  const token = parseCookies(request).get(SESSION_COOKIE);
+  if (!token) throw new HttpError(401, 'AUTH_REQUIRED', '请先登录芋炮小账本');
+  const tokenHash = await secretHash(`session:${token}`, env);
+  const now = currentEpoch();
+  const row = await queryFirst<{
+    session_id: string; csrf_token: string; expires_at: number; last_seen_at: number;
+    user_id: string; email: string; display_name: string; household_id: string; household_name: string; role: 'owner' | 'member';
+  }>(env.DB, `SELECT s.id AS session_id, s.csrf_token, s.expires_at, s.last_seen_at,
+      u.id AS user_id, u.email, u.display_name, h.id AS household_id, h.name AS household_name, hm.role
+    FROM auth_sessions s
+    JOIN users u ON u.id = s.user_id
+    JOIN household_members hm ON hm.user_id = u.id
+    JOIN households h ON h.id = hm.household_id
+    WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ?
+    LIMIT 1`, tokenHash, now);
+  if (!row) throw new HttpError(401, 'AUTH_REQUIRED', '登录已失效，请重新登录');
+  if (now - Number(row.last_seen_at || 0) > 600) await run(env.DB, 'UPDATE auth_sessions SET last_seen_at = ? WHERE id = ?', now, row.session_id);
+  return {
+    userId: row.user_id,
+    email: row.email,
+    displayName: row.display_name,
+    householdId: row.household_id,
+    householdName: row.household_name,
+    role: row.role,
+    sessionId: row.session_id,
+    csrfToken: row.csrf_token,
+  };
+}
+
+async function getDevelopmentContext(request: Request, env: Env): Promise<UserContext> {
+  const email = normalizeEmail(request.headers.get('x-dev-user-email') || env.DEV_USER_EMAIL || 'dev1@yupao.local');
+  let user = await queryFirst<{ id: string; display_name: string }>(env.DB, 'SELECT id, display_name FROM users WHERE email = ?', email);
+  if (!user) {
+    const userId = crypto.randomUUID();
+    const displayName = displayNameFromEmail(email);
+    await run(env.DB, 'INSERT INTO users (id, email, display_name) VALUES (?, ?, ?)', userId, email, displayName);
+    user = { id: userId, display_name: displayName };
+  }
+  const householdId = 'home';
+  const householdName = env.HOUSEHOLD_NAME || '芋炮之家';
+  await run(env.DB, 'INSERT OR IGNORE INTO households (id, name, base_currency, timezone) VALUES (?, ?, ?, ?)', householdId, householdName, 'CNY', 'Asia/Shanghai');
+  let membership = await queryFirst<{ role: 'owner' | 'member' }>(env.DB, 'SELECT role FROM household_members WHERE household_id = ? AND user_id = ?', householdId, user.id);
+  if (!membership) {
+    const count = await queryFirst<{ count: number }>(env.DB, 'SELECT COUNT(*) AS count FROM household_members WHERE household_id = ?', householdId);
+    const role = (count?.count ?? 0) === 0 ? 'owner' : 'member';
+    await run(env.DB, 'INSERT INTO household_members (id, household_id, user_id, role) VALUES (?, ?, ?, ?)', crypto.randomUUID(), householdId, user.id, role);
+    membership = { role };
+  }
+  await seedHousehold(env.DB, householdId);
+  return { userId: user.id, email, displayName: user.display_name, householdId, householdName, role: membership.role };
+}
+
+async function enforceCsrf(request: Request, context: UserContext): Promise<void> {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return;
+  if (!context.csrfToken) return;
+  const origin = request.headers.get('origin');
+  if (origin && origin !== new URL(request.url).origin) throw new HttpError(403, 'ORIGIN_MISMATCH', '请求来源不正确');
+  const submitted = request.headers.get('x-csrf-token') || '';
+  if (!(await constantTimeTextEqual(submitted, context.csrfToken))) throw new HttpError(403, 'CSRF_INVALID', '页面验证已失效，请刷新后再试');
 }
 
 function displayNameFromEmail(email: string): string {
@@ -257,45 +423,8 @@ async function seedHousehold(db: D1Database, householdId: string): Promise<void>
 }
 
 async function ensureUserContext(request: Request, env: Env): Promise<UserContext> {
-  const email = await getAuthenticatedEmail(request, env);
-  const allowed = parseAllowedEmails(env);
-  if (env.AUTH_BYPASS !== 'true' && allowed.length === 0) {
-    throw new HttpError(500, 'EMAIL_ALLOWLIST_NOT_CONFIGURED', '允许访问的邮箱尚未配置');
-  }
-  if (allowed.length > 0 && !allowed.includes(email)) {
-    throw new HttpError(403, 'EMAIL_NOT_ALLOWED', '这个账号没有芋炮小账本的访问权限');
-  }
-
-  let user = await queryFirst<{ id: string; display_name: string }>(env.DB, 'SELECT id, display_name FROM users WHERE email = ?', email);
-  if (!user) {
-    const userId = crypto.randomUUID();
-    const displayName = displayNameFromEmail(email);
-    await run(env.DB, 'INSERT INTO users (id, email, display_name) VALUES (?, ?, ?)', userId, email, displayName);
-    user = { id: userId, display_name: displayName };
-  }
-
-  const householdId = 'home';
-  const householdName = env.HOUSEHOLD_NAME || '芋炮之家';
-  await run(env.DB, 'INSERT OR IGNORE INTO households (id, name, base_currency, timezone) VALUES (?, ?, ?, ?)', householdId, householdName, 'CNY', 'Asia/Shanghai');
-
-  let membership = await queryFirst<{ role: 'owner' | 'member' }>(env.DB, 'SELECT role FROM household_members WHERE household_id = ? AND user_id = ?', householdId, user.id);
-  if (!membership) {
-    const count = await queryFirst<{ count: number }>(env.DB, 'SELECT COUNT(*) AS count FROM household_members WHERE household_id = ?', householdId);
-    const role = (count?.count ?? 0) === 0 ? 'owner' : 'member';
-    await run(env.DB, 'INSERT INTO household_members (id, household_id, user_id, role) VALUES (?, ?, ?, ?)', crypto.randomUUID(), householdId, user.id, role);
-    membership = { role };
-  }
-
-  await seedHousehold(env.DB, householdId);
-
-  return {
-    userId: user.id,
-    email,
-    displayName: user.display_name,
-    householdId,
-    householdName,
-    role: membership.role,
-  };
+  if (env.AUTH_BYPASS === 'true') return getDevelopmentContext(request, env);
+  return getSessionContext(request, env);
 }
 
 function assertString(value: unknown, field: string, maxLength = 120, required = true): string {
@@ -825,11 +954,228 @@ async function exportData(env: Env, context: UserContext, format: 'csv' | 'json'
   });
 }
 
+
+function assertEmail(value: unknown, field = '邮箱'): string {
+  const email = normalizeEmail(assertString(value, field, 160));
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'VALIDATION_ERROR', `${field}格式不正确`, { field });
+  return email;
+}
+
+async function authConfigured(env: Env): Promise<boolean> {
+  if (env.AUTH_BYPASS === 'true') return true;
+  const row = await queryFirst<{ count: number }>(env.DB, 'SELECT COUNT(*) AS count FROM auth_credentials');
+  return (row?.count ?? 0) >= 2;
+}
+
+async function executeBatch(db: D1Database, statements: D1PreparedStatement[]): Promise<void> {
+  if (db.batch) {
+    const results = await db.batch(statements);
+    if (results.some((result) => result.success === false)) throw new HttpError(500, 'DATABASE_ERROR', '账号初始化失败，请稍后再试');
+    return;
+  }
+  for (const statement of statements) await statement.run();
+}
+
+async function handleSetupStatus(env: Env): Promise<Response> {
+  let schemaReady = true;
+  let configured = false;
+  try {
+    configured = await authConfigured(env);
+  } catch {
+    schemaReady = false;
+  }
+  const pepperReady = secretIsReady(env.PASSWORD_PEPPER);
+  const setupTokenReady = secretIsReady(env.SETUP_TOKEN);
+  return ok({
+    schemaReady,
+    configured,
+    secretsReady: pepperReady && (configured || setupTokenReady),
+    setupTokenReady,
+    pepperReady,
+  });
+}
+
+async function handleAuthSetup(request: Request, env: Env): Promise<Response> {
+  if (await authConfigured(env)) throw new HttpError(409, 'SETUP_COMPLETE', '小账本已经完成初始化');
+  requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+  const configuredSetupToken = requiredSecret(env.SETUP_TOKEN, 'SETUP_TOKEN');
+  const body = await readJson(request);
+  const submittedToken = assertString(body.setupToken, '初始化密钥', 256);
+  if (!(await constantTimeTextEqual(submittedToken, configuredSetupToken))) throw new HttpError(403, 'SETUP_TOKEN_INVALID', '初始化密钥不正确');
+
+  const householdName = assertString(body.householdName || env.HOUSEHOLD_NAME || '芋炮之家', '家庭名称', 40);
+  const ownerEmail = assertEmail(body.ownerEmail, '管理员邮箱');
+  const memberEmail = assertEmail(body.memberEmail, '家庭成员邮箱');
+  if (ownerEmail === memberEmail) throw new HttpError(400, 'VALIDATION_ERROR', '两个账号需要使用不同邮箱');
+  const ownerName = assertString(body.ownerName, '管理员昵称', 24);
+  const memberName = assertString(body.memberName, '家庭成员昵称', 24);
+  const ownerPassword = assertPassword(body.ownerPassword, ownerEmail);
+  const memberPassword = assertPassword(body.memberPassword, memberEmail);
+
+  const existingOwner = await queryFirst<{ id: string }>(env.DB, 'SELECT id FROM users WHERE email = ?', ownerEmail);
+  const existingMember = await queryFirst<{ id: string }>(env.DB, 'SELECT id FROM users WHERE email = ?', memberEmail);
+  const ownerId = existingOwner?.id || crypto.randomUUID();
+  const memberId = existingMember?.id || crypto.randomUUID();
+  const householdId = 'home';
+  const ownerPasswordRecord = await newPasswordRecord(ownerPassword, env);
+  const memberPasswordRecord = await newPasswordRecord(memberPassword, env);
+  const ownerCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
+  const memberCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
+  const now = currentEpoch();
+  const statements: D1PreparedStatement[] = [
+    env.DB.prepare(`INSERT INTO users (id, email, display_name) VALUES (?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET display_name = excluded.display_name, updated_at = CURRENT_TIMESTAMP`).bind(ownerId, ownerEmail, ownerName),
+    env.DB.prepare(`INSERT INTO users (id, email, display_name) VALUES (?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET display_name = excluded.display_name, updated_at = CURRENT_TIMESTAMP`).bind(memberId, memberEmail, memberName),
+    env.DB.prepare(`INSERT INTO households (id, name, base_currency, timezone) VALUES (?, ?, 'CNY', 'Asia/Shanghai')
+      ON CONFLICT(id) DO UPDATE SET name = excluded.name, updated_at = CURRENT_TIMESTAMP`).bind(householdId, householdName),
+    env.DB.prepare(`INSERT INTO household_members (id, household_id, user_id, role) VALUES (?, ?, ?, 'owner')
+      ON CONFLICT(household_id, user_id) DO UPDATE SET role = 'owner'`).bind(crypto.randomUUID(), householdId, ownerId),
+    env.DB.prepare(`INSERT INTO household_members (id, household_id, user_id, role) VALUES (?, ?, ?, 'member')
+      ON CONFLICT(household_id, user_id) DO UPDATE SET role = 'member'`).bind(crypto.randomUUID(), householdId, memberId),
+    env.DB.prepare(`INSERT INTO auth_credentials (user_id, password_hash, password_salt, password_iterations, password_changed_at)
+      VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET password_hash = excluded.password_hash,
+      password_salt = excluded.password_salt, password_iterations = excluded.password_iterations, password_changed_at = excluded.password_changed_at`).bind(
+      ownerId, ownerPasswordRecord.hash, ownerPasswordRecord.salt, ownerPasswordRecord.iterations, now,
+    ),
+    env.DB.prepare(`INSERT INTO auth_credentials (user_id, password_hash, password_salt, password_iterations, password_changed_at)
+      VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET password_hash = excluded.password_hash,
+      password_salt = excluded.password_salt, password_iterations = excluded.password_iterations, password_changed_at = excluded.password_changed_at`).bind(
+      memberId, memberPasswordRecord.hash, memberPasswordRecord.salt, memberPasswordRecord.iterations, now,
+    ),
+    env.DB.prepare('DELETE FROM recovery_codes WHERE user_id IN (?, ?)').bind(ownerId, memberId),
+  ];
+  for (const [userId, codes] of [[ownerId, ownerCodes], [memberId, memberCodes]] as const) {
+    for (const code of codes) {
+      statements.push(env.DB.prepare('INSERT INTO recovery_codes (id, user_id, code_hash, created_at) VALUES (?, ?, ?, ?)').bind(
+        crypto.randomUUID(), userId, await secretHash(`recovery:${normalizeRecoveryCode(code)}`, env), now,
+      ));
+    }
+  }
+  await executeBatch(env.DB, statements);
+  await seedHousehold(env.DB, householdId);
+  return ok({
+    householdName,
+    accounts: [
+      { email: ownerEmail, displayName: ownerName, role: 'owner', recoveryCodes: ownerCodes },
+      { email: memberEmail, displayName: memberName, role: 'member', recoveryCodes: memberCodes },
+    ],
+  }, 201);
+}
+
+async function authUserSummary(env: Env, userId: string): Promise<{ id: string; email: string; displayName: string; role: string; householdName: string }> {
+  const row = await queryFirst<{ id: string; email: string; display_name: string; role: string; household_name: string }>(env.DB, `SELECT u.id, u.email, u.display_name, hm.role, h.name AS household_name
+    FROM users u JOIN household_members hm ON hm.user_id = u.id JOIN households h ON h.id = hm.household_id
+    WHERE u.id = ? LIMIT 1`, userId);
+  if (!row) throw new HttpError(401, 'AUTH_REQUIRED', '账号尚未加入家庭空间');
+  return { id: row.id, email: row.email, displayName: row.display_name, role: row.role, householdName: row.household_name };
+}
+
+async function handleLogin(request: Request, env: Env): Promise<Response> {
+  requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+  if (!(await authConfigured(env))) throw new HttpError(409, 'SETUP_REQUIRED', '请先完成小账本初始化');
+  const body = await readJson(request);
+  const email = assertEmail(body.email);
+  const password = typeof body.password === 'string' ? body.password : '';
+  const rememberMe = body.rememberMe === true;
+  const ipHash = await enforceLoginRateLimit(request, env, email);
+  const row = await queryFirst<{ user_id: string; password_hash: string; password_salt: string; password_iterations: number }>(env.DB, `SELECT u.id AS user_id, c.password_hash, c.password_salt, c.password_iterations
+    FROM users u JOIN auth_credentials c ON c.user_id = u.id WHERE u.email = ?`, email);
+  const valid = await verifyCredential(password, row || null, env);
+  await recordLoginAttempt(env.DB, email, ipHash, valid);
+  if (!valid || !row) throw new HttpError(401, 'LOGIN_FAILED', '邮箱或密码不正确');
+  await run(env.DB, 'DELETE FROM login_attempts WHERE email = ? AND success = 0', email);
+  const session = await createSession(row.user_id, request, env, rememberMe);
+  const user = await authUserSummary(env, row.user_id);
+  return ok({ user, csrfToken: session.csrfToken }, 200, { 'set-cookie': sessionCookie(session.token, session.maxAge) });
+}
+
+async function handleAuthSession(request: Request, env: Env): Promise<Response> {
+  if (env.AUTH_BYPASS === 'true') {
+    const context = await getDevelopmentContext(request, env);
+    return ok({ user: { id: context.userId, email: context.email, displayName: context.displayName, role: context.role, householdName: context.householdName }, csrfToken: '' });
+  }
+  const context = await getSessionContext(request, env);
+  return ok({ user: { id: context.userId, email: context.email, displayName: context.displayName, role: context.role, householdName: context.householdName }, csrfToken: context.csrfToken });
+}
+
+async function handleLogout(env: Env, context: UserContext): Promise<Response> {
+  if (context.sessionId) await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE id = ?', currentEpoch(), context.sessionId);
+  return ok({ loggedOut: true }, 200, { 'set-cookie': clearSessionCookie() });
+}
+
+async function handleChangePassword(request: Request, env: Env, context: UserContext): Promise<Response> {
+  const body = await readJson(request);
+  const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : '';
+  const newPassword = assertPassword(body.newPassword, context.email);
+  const credential = await queryFirst<{ password_hash: string; password_salt: string; password_iterations: number }>(env.DB, 'SELECT password_hash, password_salt, password_iterations FROM auth_credentials WHERE user_id = ?', context.userId);
+  if (!(await verifyCredential(currentPassword, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
+  const record = await newPasswordRecord(newPassword, env);
+  await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, currentEpoch(), context.userId);
+  await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', currentEpoch(), context.userId, context.sessionId || '');
+  return ok({ changed: true });
+}
+
+async function handleRevokeOtherSessions(env: Env, context: UserContext): Promise<Response> {
+  await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', currentEpoch(), context.userId, context.sessionId || '');
+  return ok({ revoked: true });
+}
+
+async function handleRegenerateRecoveryCodes(request: Request, env: Env, context: UserContext): Promise<Response> {
+  const body = await readJson(request);
+  const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : '';
+  const credential = await queryFirst<{ password_hash: string; password_salt: string; password_iterations: number }>(env.DB, 'SELECT password_hash, password_salt, password_iterations FROM auth_credentials WHERE user_id = ?', context.userId);
+  if (!(await verifyCredential(currentPassword, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
+  await run(env.DB, 'DELETE FROM recovery_codes WHERE user_id = ? AND used_at IS NULL', context.userId);
+  return ok({ recoveryCodes: await createRecoveryCodes(context.userId, env) });
+}
+
+async function handleRecover(request: Request, env: Env): Promise<Response> {
+  requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+  const body = await readJson(request);
+  const email = assertEmail(body.email);
+  const code = normalizeRecoveryCode(assertString(body.recoveryCode, '恢复码', 80));
+  const newPassword = assertPassword(body.newPassword, email);
+  const ipHash = await enforceLoginRateLimit(request, env, email);
+  const user = await queryFirst<{ id: string }>(env.DB, 'SELECT id FROM users WHERE email = ?', email);
+  let matchedId = '';
+  if (user) {
+    const expected = await secretHash(`recovery:${code}`, env);
+    const codes = await queryAll<{ id: string; code_hash: string }>(env.DB, 'SELECT id, code_hash FROM recovery_codes WHERE user_id = ? AND used_at IS NULL', user.id);
+    for (const item of codes) {
+      if (await constantTimeTextEqual(item.code_hash, expected)) { matchedId = item.id; break; }
+    }
+  }
+  const valid = Boolean(user && matchedId);
+  await recordLoginAttempt(env.DB, email, ipHash, valid);
+  if (!user || !matchedId) throw new HttpError(401, 'RECOVERY_FAILED', '邮箱或恢复码不正确');
+  const record = await newPasswordRecord(newPassword, env);
+  const now = currentEpoch();
+  await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, now, user.id);
+  await run(env.DB, 'UPDATE recovery_codes SET used_at = ? WHERE id = ?', now, matchedId);
+  await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL', now, user.id);
+  await run(env.DB, 'DELETE FROM login_attempts WHERE email = ?', email);
+  return ok({ recovered: true }, 200, { 'set-cookie': clearSessionCookie() });
+}
+
 async function routeApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: SECURITY_HEADERS });
-  if (url.pathname === '/api/health') return ok({ service: 'yupao-ledger', time: new Date().toISOString() });
+  if (url.pathname === '/api/health') return ok({ service: 'yupao-ledger', auth: 'internal-session', time: new Date().toISOString() });
+
+  if (url.pathname === '/api/auth/setup-status' && request.method === 'GET') return handleSetupStatus(env);
+  if (url.pathname === '/api/auth/setup' && request.method === 'POST') return handleAuthSetup(request, env);
+  if (url.pathname === '/api/auth/login' && request.method === 'POST') return handleLogin(request, env);
+  if (url.pathname === '/api/auth/recover' && request.method === 'POST') return handleRecover(request, env);
+  if (url.pathname === '/api/auth/session' && request.method === 'GET') return handleAuthSession(request, env);
+
   const context = await ensureUserContext(request, env);
+  await enforceCsrf(request, context);
+
+  if (url.pathname === '/api/auth/logout' && request.method === 'POST') return handleLogout(env, context);
+  if (url.pathname === '/api/auth/change-password' && request.method === 'POST') return handleChangePassword(request, env, context);
+  if (url.pathname === '/api/auth/revoke-other-sessions' && request.method === 'POST') return handleRevokeOtherSessions(env, context);
+  if (url.pathname === '/api/auth/recovery-codes' && request.method === 'POST') return handleRegenerateRecoveryCodes(request, env, context);
 
   if (url.pathname === '/api/me' && request.method === 'GET') return ok({ id: context.userId, email: context.email, displayName: context.displayName, role: context.role, householdName: context.householdName });
   if (url.pathname === '/api/bootstrap' && request.method === 'GET') return handleBootstrap(env, context, url);

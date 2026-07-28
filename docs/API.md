@@ -1,116 +1,73 @@
-# API 简表
+# API 概览
 
-所有接口除 `/api/health` 外都要求通过身份验证。
-
-统一成功响应：
+所有响应：
 
 ```json
 { "ok": true, "data": {} }
 ```
 
-统一错误响应：
+错误：
 
 ```json
-{
-  "ok": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "金额格式不正确",
-    "details": null
-  }
-}
+{ "ok": false, "error": { "code": "...", "message": "...", "details": null } }
 ```
 
-## 初始化
+## 无会话接口
 
 ```text
-GET /api/me
-GET /api/bootstrap?month=YYYY-MM
+GET  /api/health
+GET  /api/auth/setup-status
+POST /api/auth/setup
+POST /api/auth/login
+POST /api/auth/recover
+GET  /api/auth/session
 ```
 
-## 交易
+## 认证接口
 
 ```text
+POST /api/auth/logout
+POST /api/auth/change-password
+POST /api/auth/revoke-other-sessions
+POST /api/auth/recovery-codes
+```
+
+除 GET、HEAD、OPTIONS 外，已登录接口必须发送 `X-CSRF-Token`。
+
+## 业务接口
+
+```text
+GET    /api/bootstrap
 GET    /api/transactions
 POST   /api/transactions
 GET    /api/transactions/:id
 PATCH  /api/transactions/:id
 DELETE /api/transactions/:id
 POST   /api/transactions/:id/restore
-```
 
-交易提交示例：
+GET/POST/PATCH/DELETE /api/accounts
+GET/POST/PATCH/DELETE /api/categories
+GET/POST/PATCH/DELETE /api/budgets
 
-```json
-{
-  "type": "expense",
-  "amountCents": 12800,
-  "accountId": "account-id",
-  "categoryId": "category-id",
-  "occurredAt": "2026-07-28",
-  "merchant": "超市",
-  "note": "日用品"
-}
-```
+GET /api/stats/overview
+GET /api/stats/trend
+GET /api/stats/category-breakdown
+GET /api/stats/month-comparison
+GET /api/stats/budget-progress
 
-转账提交示例：
-
-```json
-{
-  "type": "transfer",
-  "amountCents": 50000,
-  "accountId": "source-account",
-  "targetAccountId": "target-account",
-  "occurredAt": "2026-07-28",
-  "note": "转入生活费"
-}
-```
-
-## 账户
-
-```text
-GET    /api/accounts
-POST   /api/accounts
-PATCH  /api/accounts/:id
-DELETE /api/accounts/:id
-```
-
-删除账户表示归档，不会删除历史交易。
-
-## 分类
-
-```text
-GET    /api/categories
-POST   /api/categories
-PATCH  /api/categories/:id
-DELETE /api/categories/:id
-```
-
-删除分类表示归档。
-
-## 预算
-
-```text
-GET    /api/budgets?period=YYYY-MM
-POST   /api/budgets
-DELETE /api/budgets/:id
-```
-
-`categoryId: null` 表示月度总预算。
-
-## 统计
-
-```text
-GET /api/stats/overview?month=YYYY-MM
-GET /api/stats/trend?month=YYYY-MM
-GET /api/stats/category-breakdown?month=YYYY-MM
-GET /api/stats/month-comparison?month=YYYY-MM
-GET /api/stats/budget-progress?month=YYYY-MM
-```
-
-## 导出
-
-```text
 GET /api/export/csv
 GET /api/export/json
 ```
+
+## 典型认证错误
+
+| Code | 含义 |
+|---|---|
+| `AUTH_REQUIRED` | 未登录或会话失效 |
+| `AUTH_NOT_CONFIGURED` | Pepper 或初始化密钥未配置 |
+| `SETUP_REQUIRED` | 尚未创建两个账号 |
+| `SETUP_COMPLETE` | 已完成初始化，禁止再次执行 |
+| `LOGIN_FAILED` | 邮箱或密码错误 |
+| `LOGIN_LOCKED` | 尝试次数过多 |
+| `CSRF_INVALID` | 页面验证已失效 |
+| `RECOVERY_FAILED` | 邮箱或恢复码错误 |
