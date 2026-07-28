@@ -1,0 +1,25 @@
+{
+  "name": "yupao-ledger",
+  "main": "build/worker/index.js",
+  "workers_dev": true,
+  "preview_urls": false,
+  "compatibility_date": "2026-07-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yupao-ledger-db",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "HOUSEHOLD_NAME": "芋炮之家",
+    "AUTH_BYPASS": "false",
+    "ACCESS_TEAM_DOMAIN": "https://REPLACE_WITH_YOUR_TEAM.cloudflareaccess.com"
+  }
+}

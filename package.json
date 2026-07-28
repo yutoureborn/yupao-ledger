@@ -1,0 +1,30 @@
+{
+  "name": "yupao-ledger",
+  "private": true,
+  "version": "0.1.2",
+  "description": "芋炮小账本：双人家庭动态在线记账 PWA",
+  "type": "module",
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build:frontend": "tsc -p tsconfig.frontend.json",
+    "build:worker": "tsc -p tsconfig.worker.json",
+    "build:assets": "node scripts/build.mjs",
+    "build": "npm run clean && npm run build:frontend && npm run build:worker && npm run build:assets",
+    "dev": "npm run build && node scripts/local-server.mjs",
+    "dev:empty": "npm run build && node scripts/local-server.mjs --empty",
+    "typecheck": "tsc -p tsconfig.frontend.json --noEmit && tsc -p tsconfig.worker.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "deploy": "npm run build && npx wrangler deploy",
+    "db:migrate:local": "npx wrangler d1 migrations apply yupao-ledger-db --local",
+    "db:migrate:remote": "npx wrangler d1 migrations apply yupao-ledger-db --remote",
+    "backup": "node scripts/backup.mjs",
+    "restore:backup": "node scripts/restore-backup.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "wrangler": "^4.0.0"
+  }
+}

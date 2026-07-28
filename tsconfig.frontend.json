@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "lib": ["DOM", "ES2020"],
+    "jsx": "react",
+    "module": "none",
+    "outFile": "build/frontend/app.js",
+    "strict": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "removeComments": false,
+    "sourceMap": true,
+    "noEmitOnError": true
+  },
+  "files": [
+    "src/frontend/globals.d.ts",
+    "src/frontend/app.tsx"
+  ]
+}
