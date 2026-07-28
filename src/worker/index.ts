@@ -198,30 +198,52 @@ async function constantTimeTextEqual(a: string, b: string): Promise<boolean> {
   return constantTimeEqual(await sha256Bytes(a), await sha256Bytes(b));
 }
 
-async function derivePasswordHash(password: string, salt: string, iterations: number, env: Env): Promise<string> {
-  const pepper = requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(`${password}\u0000${pepper}`),
-    'PBKDF2',
-    false,
-    ['deriveBits'],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', hash: 'SHA-256', salt: base64UrlDecode(salt), iterations },
-    keyMaterial,
-    256,
-  );
-  return base64UrlEncode(bits);
+type ClientCredential = { proof: string; salt: string; iterations: number };
+
+function assertBase64UrlBytes(value: unknown, field: string, expectedBytes: number): string {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/.test(value)) {
+    throw new HttpError(400, 'CREDENTIAL_INVALID', `${field}格式不正确`);
+  }
+  try {
+    if (base64UrlDecode(value).byteLength !== expectedBytes) throw new Error('length');
+  } catch {
+    throw new HttpError(400, 'CREDENTIAL_INVALID', `${field}格式不正确`);
+  }
+  return value;
 }
 
-function assertPassword(value: unknown, email?: string): string {
-  if (typeof value !== 'string') throw new HttpError(400, 'PASSWORD_INVALID', '密码格式不正确');
-  if (value.length < 12 || value.length > 128) throw new HttpError(400, 'PASSWORD_INVALID', '密码需要 12～128 个字符');
-  if (!/\p{L}/u.test(value) || !/\p{N}/u.test(value)) throw new HttpError(400, 'PASSWORD_INVALID', '密码至少需要包含字母和数字');
-  const emailPrefix = normalizeEmail(email || '').split('@')[0];
-  if (emailPrefix.length >= 4 && value.toLowerCase().includes(emailPrefix)) throw new HttpError(400, 'PASSWORD_INVALID', '密码不要包含邮箱名称');
-  return value;
+function assertClientCredential(value: unknown): ClientCredential {
+  if (!value || typeof value !== 'object') throw new HttpError(400, 'CREDENTIAL_INVALID', '密码凭据格式不正确');
+  const input = value as Record<string, unknown>;
+  const iterations = Number(input.iterations);
+  if (!Number.isSafeInteger(iterations) || iterations < 100000 || iterations > 600000) {
+    throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数不正确');
+  }
+  return {
+    proof: assertBase64UrlBytes(input.proof, '密码凭据', 32),
+    salt: assertBase64UrlBytes(input.salt, '密码盐值', 16),
+    iterations,
+  };
+}
+
+async function storedCredentialHash(proof: string, env: Env): Promise<string> {
+  return secretHash(`credential:${proof}`, env);
+}
+
+async function verifyCredentialProof(
+  proofValue: unknown,
+  credential: { password_hash: string } | null,
+  env: Env,
+): Promise<boolean> {
+  let proof = '';
+  try {
+    proof = assertBase64UrlBytes(proofValue, '密码凭据', 32);
+  } catch {
+    proof = base64UrlEncode(await sha256Bytes('invalid-yupao-password-proof'));
+  }
+  const actual = await storedCredentialHash(proof, env);
+  const expected = credential?.password_hash || await storedCredentialHash(base64UrlEncode(await sha256Bytes('missing-yupao-account-proof')), env);
+  return constantTimeTextEqual(actual, expected);
 }
 
 function normalizeRecoveryCode(value: string): string {
@@ -264,22 +286,6 @@ async function enforceLoginRateLimit(request: Request, env: Env, email: string):
     throw new HttpError(429, 'LOGIN_LOCKED', '尝试次数太多，请 15 分钟后再试');
   }
   return ipHash;
-}
-
-async function verifyCredential(password: string, credential: { password_hash: string; password_salt: string; password_iterations: number } | null, env: Env): Promise<boolean> {
-  if (!credential) {
-    const dummySalt = base64UrlEncode((await sha256Bytes('yupao-dummy-password-salt')).slice(0, 16));
-    await derivePasswordHash(password || 'not-a-password', dummySalt, passwordIterations(env), env);
-    return false;
-  }
-  const derived = await derivePasswordHash(password, credential.password_salt, Number(credential.password_iterations), env);
-  return constantTimeEqual(base64UrlDecode(derived), base64UrlDecode(credential.password_hash));
-}
-
-async function newPasswordRecord(password: string, env: Env): Promise<{ hash: string; salt: string; iterations: number }> {
-  const salt = randomToken(16);
-  const iterations = passwordIterations(env);
-  return { hash: await derivePasswordHash(password, salt, iterations, env), salt, iterations };
 }
 
 async function createRecoveryCodes(userId: string, env: Env): Promise<string[]> {
@@ -992,6 +998,7 @@ async function handleSetupStatus(env: Env): Promise<Response> {
     secretsReady: pepperReady && (configured || setupTokenReady),
     setupTokenReady,
     pepperReady,
+    passwordIterations: passwordIterations(env),
   });
 }
 
@@ -1009,16 +1016,19 @@ async function handleAuthSetup(request: Request, env: Env): Promise<Response> {
   if (ownerEmail === memberEmail) throw new HttpError(400, 'VALIDATION_ERROR', '两个账号需要使用不同邮箱');
   const ownerName = assertString(body.ownerName, '管理员昵称', 24);
   const memberName = assertString(body.memberName, '家庭成员昵称', 24);
-  const ownerPassword = assertPassword(body.ownerPassword, ownerEmail);
-  const memberPassword = assertPassword(body.memberPassword, memberEmail);
+  const ownerCredential = assertClientCredential(body.ownerCredential);
+  const memberCredential = assertClientCredential(body.memberCredential);
+  if (ownerCredential.iterations !== passwordIterations(env) || memberCredential.iterations !== passwordIterations(env)) {
+    throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数已变化，请刷新页面后重试');
+  }
 
   const existingOwner = await queryFirst<{ id: string }>(env.DB, 'SELECT id FROM users WHERE email = ?', ownerEmail);
   const existingMember = await queryFirst<{ id: string }>(env.DB, 'SELECT id FROM users WHERE email = ?', memberEmail);
   const ownerId = existingOwner?.id || crypto.randomUUID();
   const memberId = existingMember?.id || crypto.randomUUID();
   const householdId = 'home';
-  const ownerPasswordRecord = await newPasswordRecord(ownerPassword, env);
-  const memberPasswordRecord = await newPasswordRecord(memberPassword, env);
+  const ownerPasswordRecord = { hash: await storedCredentialHash(ownerCredential.proof, env), salt: ownerCredential.salt, iterations: ownerCredential.iterations };
+  const memberPasswordRecord = { hash: await storedCredentialHash(memberCredential.proof, env), salt: memberCredential.salt, iterations: memberCredential.iterations };
   const ownerCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
   const memberCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
   const now = currentEpoch();
@@ -1071,17 +1081,28 @@ async function authUserSummary(env: Env, userId: string): Promise<{ id: string; 
   return { id: row.id, email: row.email, displayName: row.display_name, role: row.role, householdName: row.household_name };
 }
 
+async function handlePasswordParams(request: Request, env: Env): Promise<Response> {
+  requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+  const body = await readJson(request);
+  const email = assertEmail(body.email);
+  const row = await queryFirst<{ password_salt: string; password_iterations: number }>(env.DB, `SELECT c.password_salt, c.password_iterations
+    FROM users u JOIN auth_credentials c ON c.user_id = u.id WHERE u.email = ?`, email);
+  if (row) return ok({ salt: row.password_salt, iterations: Number(row.password_iterations) });
+  const fakeBytes = base64UrlDecode(await secretHash(`password-params:${email}`, env)).slice(0, 16);
+  return ok({ salt: base64UrlEncode(fakeBytes), iterations: passwordIterations(env) });
+}
+
 async function handleLogin(request: Request, env: Env): Promise<Response> {
   requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
   if (!(await authConfigured(env))) throw new HttpError(409, 'SETUP_REQUIRED', '请先完成小账本初始化');
   const body = await readJson(request);
   const email = assertEmail(body.email);
-  const password = typeof body.password === 'string' ? body.password : '';
+  const passwordProof = body.passwordProof;
   const rememberMe = body.rememberMe === true;
   const ipHash = await enforceLoginRateLimit(request, env, email);
-  const row = await queryFirst<{ user_id: string; password_hash: string; password_salt: string; password_iterations: number }>(env.DB, `SELECT u.id AS user_id, c.password_hash, c.password_salt, c.password_iterations
+  const row = await queryFirst<{ user_id: string; password_hash: string }>(env.DB, `SELECT u.id AS user_id, c.password_hash
     FROM users u JOIN auth_credentials c ON c.user_id = u.id WHERE u.email = ?`, email);
-  const valid = await verifyCredential(password, row || null, env);
+  const valid = await verifyCredentialProof(passwordProof, row || null, env);
   await recordLoginAttempt(env.DB, email, ipHash, valid);
   if (!valid || !row) throw new HttpError(401, 'LOGIN_FAILED', '邮箱或密码不正确');
   await run(env.DB, 'DELETE FROM login_attempts WHERE email = ? AND success = 0', email);
@@ -1106,11 +1127,11 @@ async function handleLogout(env: Env, context: UserContext): Promise<Response> {
 
 async function handleChangePassword(request: Request, env: Env, context: UserContext): Promise<Response> {
   const body = await readJson(request);
-  const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : '';
-  const newPassword = assertPassword(body.newPassword, context.email);
-  const credential = await queryFirst<{ password_hash: string; password_salt: string; password_iterations: number }>(env.DB, 'SELECT password_hash, password_salt, password_iterations FROM auth_credentials WHERE user_id = ?', context.userId);
-  if (!(await verifyCredential(currentPassword, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
-  const record = await newPasswordRecord(newPassword, env);
+  const credential = await queryFirst<{ password_hash: string }>(env.DB, 'SELECT password_hash FROM auth_credentials WHERE user_id = ?', context.userId);
+  if (!(await verifyCredentialProof(body.currentPasswordProof, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
+  const next = assertClientCredential(body.newCredential);
+  if (next.iterations !== passwordIterations(env)) throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数已变化，请刷新页面后重试');
+  const record = { hash: await storedCredentialHash(next.proof, env), salt: next.salt, iterations: next.iterations };
   await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, currentEpoch(), context.userId);
   await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', currentEpoch(), context.userId, context.sessionId || '');
   return ok({ changed: true });
@@ -1123,9 +1144,8 @@ async function handleRevokeOtherSessions(env: Env, context: UserContext): Promis
 
 async function handleRegenerateRecoveryCodes(request: Request, env: Env, context: UserContext): Promise<Response> {
   const body = await readJson(request);
-  const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : '';
-  const credential = await queryFirst<{ password_hash: string; password_salt: string; password_iterations: number }>(env.DB, 'SELECT password_hash, password_salt, password_iterations FROM auth_credentials WHERE user_id = ?', context.userId);
-  if (!(await verifyCredential(currentPassword, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
+  const credential = await queryFirst<{ password_hash: string }>(env.DB, 'SELECT password_hash FROM auth_credentials WHERE user_id = ?', context.userId);
+  if (!(await verifyCredentialProof(body.currentPasswordProof, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
   await run(env.DB, 'DELETE FROM recovery_codes WHERE user_id = ? AND used_at IS NULL', context.userId);
   return ok({ recoveryCodes: await createRecoveryCodes(context.userId, env) });
 }
@@ -1135,7 +1155,8 @@ async function handleRecover(request: Request, env: Env): Promise<Response> {
   const body = await readJson(request);
   const email = assertEmail(body.email);
   const code = normalizeRecoveryCode(assertString(body.recoveryCode, '恢复码', 80));
-  const newPassword = assertPassword(body.newPassword, email);
+  const next = assertClientCredential(body.newCredential);
+  if (next.iterations !== passwordIterations(env)) throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数已变化，请刷新页面后重试');
   const ipHash = await enforceLoginRateLimit(request, env, email);
   const user = await queryFirst<{ id: string }>(env.DB, 'SELECT id FROM users WHERE email = ?', email);
   let matchedId = '';
@@ -1149,7 +1170,7 @@ async function handleRecover(request: Request, env: Env): Promise<Response> {
   const valid = Boolean(user && matchedId);
   await recordLoginAttempt(env.DB, email, ipHash, valid);
   if (!user || !matchedId) throw new HttpError(401, 'RECOVERY_FAILED', '邮箱或恢复码不正确');
-  const record = await newPasswordRecord(newPassword, env);
+  const record = { hash: await storedCredentialHash(next.proof, env), salt: next.salt, iterations: next.iterations };
   const now = currentEpoch();
   await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, now, user.id);
   await run(env.DB, 'UPDATE recovery_codes SET used_at = ? WHERE id = ?', now, matchedId);
@@ -1165,6 +1186,7 @@ async function routeApi(request: Request, env: Env): Promise<Response> {
 
   if (url.pathname === '/api/auth/setup-status' && request.method === 'GET') return handleSetupStatus(env);
   if (url.pathname === '/api/auth/setup' && request.method === 'POST') return handleAuthSetup(request, env);
+  if (url.pathname === '/api/auth/password-params' && request.method === 'POST') return handlePasswordParams(request, env);
   if (url.pathname === '/api/auth/login' && request.method === 'POST') return handleLogin(request, env);
   if (url.pathname === '/api/auth/recover' && request.method === 'POST') return handleRecover(request, env);
   if (url.pathname === '/api/auth/session' && request.method === 'GET') return handleAuthSession(request, env);

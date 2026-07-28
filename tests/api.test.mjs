@@ -8,6 +8,25 @@ import { handleRequest } from '../build/worker/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+function bytesToBase64Url(bytes) {
+  return Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function base64UrlToBytes(value) {
+  return new Uint8Array(Buffer.from(value.replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
+}
+
+async function deriveProof(password, salt, iterations) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: base64UrlToBytes(salt), iterations }, key, 256);
+  return bytesToBase64Url(new Uint8Array(bits));
+}
+
+async function newCredential(password, iterations = 100000) {
+  const salt = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
+  return { proof: await deriveProof(password, salt, iterations), salt, iterations };
+}
+
 class LocalStatement {
   constructor(statement, values = []) { this.statement = statement; this.values = values; }
   bind(...values) { return new LocalStatement(this.statement, values); }
@@ -53,13 +72,17 @@ async function setup({ bypass = true } = {}) {
 }
 
 async function initializeAccounts(call) {
+  const [ownerCredential, memberCredential] = await Promise.all([
+    newCredential('TaroLedger2026!'),
+    newCredential('CannonLedger2026!'),
+  ]);
   const setupResult = await call('/api/auth/setup', {
     method: 'POST',
     body: {
       setupToken: 'test-setup-token-with-enough-entropy',
       householdName: '测试之家',
-      ownerName: '阿芋', ownerEmail: 'owner@example.test', ownerPassword: 'TaroLedger2026!',
-      memberName: '小炮', memberEmail: 'member@example.test', memberPassword: 'CannonLedger2026!',
+      ownerName: '阿芋', ownerEmail: 'owner@example.test', ownerCredential,
+      memberName: '小炮', memberEmail: 'member@example.test', memberCredential,
     },
   });
   assert.equal(setupResult.response.status, 201);
@@ -67,7 +90,9 @@ async function initializeAccounts(call) {
 }
 
 async function login(call, email = 'owner@example.test', password = 'TaroLedger2026!') {
-  const result = await call('/api/auth/login', { method: 'POST', body: { email, password, rememberMe: true } });
+  const params = await call('/api/auth/password-params', { method: 'POST', body: { email } });
+  const passwordProof = await deriveProof(password, params.payload.data.salt, params.payload.data.iterations);
+  const result = await call('/api/auth/login', { method: 'POST', body: { email, passwordProof, rememberMe: true } });
   const cookie = result.response.headers.get('set-cookie')?.split(';')[0] || '';
   return { ...result, cookie, csrf: result.payload.data?.csrfToken || '' };
 }
@@ -175,13 +200,13 @@ test('recovery code resets the password once and revokes old sessions', async ()
   const setupData = await initializeAccounts(call);
   const oldLogin = await login(call);
   const recoveryCode = setupData.accounts[0].recoveryCodes[0];
-  const recovered = await call('/api/auth/recover', { method: 'POST', body: { email: 'owner@example.test', recoveryCode, newPassword: 'NewTaroLedger2026!' } });
+  const recovered = await call('/api/auth/recover', { method: 'POST', body: { email: 'owner@example.test', recoveryCode, newCredential: await newCredential('NewTaroLedger2026!') } });
   assert.equal(recovered.response.status, 200);
   const oldSession = await call('/api/auth/session', { headers: { cookie: oldLogin.cookie } });
   assert.equal(oldSession.response.status, 401);
   const newLogin = await login(call, 'owner@example.test', 'NewTaroLedger2026!');
   assert.equal(newLogin.response.status, 200);
-  const reused = await call('/api/auth/recover', { method: 'POST', body: { email: 'owner@example.test', recoveryCode, newPassword: 'AnotherTaroLedger2026!' } });
+  const reused = await call('/api/auth/recover', { method: 'POST', body: { email: 'owner@example.test', recoveryCode, newCredential: await newCredential('AnotherTaroLedger2026!') } });
   assert.equal(reused.response.status, 401);
 });
 

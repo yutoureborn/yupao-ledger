@@ -1,5 +1,7 @@
 # TODO
 
+> 0.2.1 已修复 Workers Free 下 PBKDF2 CPU 超限。
+
 ## 上线前
 
 - [ ] 执行 `migrations/0002_internal_auth.sql`

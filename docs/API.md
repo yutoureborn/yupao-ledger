@@ -18,6 +18,7 @@
 GET  /api/health
 GET  /api/auth/setup-status
 POST /api/auth/setup
+POST /api/auth/password-params
 POST /api/auth/login
 POST /api/auth/recover
 GET  /api/auth/session
@@ -71,3 +72,13 @@ GET /api/export/json
 | `LOGIN_LOCKED` | 尝试次数过多 |
 | `CSRF_INVALID` | 页面验证已失效 |
 | `RECOVERY_FAILED` | 邮箱或恢复码错误 |
+
+
+## 密码凭据流程（0.2.1）
+
+1. 浏览器调用 `POST /api/auth/password-params` 获取盐值和 PBKDF2 迭代次数。
+2. 浏览器本地执行 PBKDF2-SHA256。
+3. 浏览器只把 32 字节密码凭据发送给 Worker，不发送原始密码。
+4. Worker 使用 `PASSWORD_PEPPER` 对凭据二次处理后与 D1 中的验证值比较。
+
+首次初始化由浏览器生成独立盐值。该调整不改变 `auth_credentials` 表结构。

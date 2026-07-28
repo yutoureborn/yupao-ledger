@@ -1,0 +1,11 @@
+芋炮小账本 v0.2.1 修复补丁
+
+1. 打开 GitHub 仓库根目录。
+2. Add file → Upload files。
+3. 将本补丁解压后的全部文件和文件夹拖入，覆盖同名文件。
+4. 不要覆盖或修改现有 wrangler.jsonc。
+5. Commit directly to main。
+6. 等待 Cloudflare Workers Builds 自动部署。
+7. 强制刷新账本页面后重新初始化。
+
+详细说明：docs/FIX-SETUP-FETCH-FAILED.md

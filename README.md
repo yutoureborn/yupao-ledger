@@ -2,13 +2,13 @@
 
 > 两个人的小日子，都记在这里。
 
-芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.0 已改为**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
+芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.1 使用**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
 
 ## 已完成
 
 - 两个固定邮箱账号：Owner 与 Member
 - 首次网页初始化，不开放注册入口
-- PBKDF2-SHA256 密码哈希、独立盐值与服务端 Pepper
+- 浏览器端 PBKDF2-SHA256、独立盐值与服务端 Pepper 验证值
 - HttpOnly、Secure、SameSite=Strict 会话 Cookie
 - CSRF 防护、登录失败限流、设备会话撤销
 - 单次恢复码与密码重设
@@ -76,7 +76,7 @@ npm run dev:auth
 npm test
 ```
 
-测试覆盖业务交易、转账统计、首次双账号初始化、登录会话、CSRF、恢复码、PWA 缓存边界和部署配置。
+测试覆盖业务交易、转账统计、首次双账号初始化、浏览器端密码派生、登录会话、CSRF、恢复码、PWA 缓存边界和部署配置。
 
 ## 正式环境必须配置
 
@@ -101,7 +101,7 @@ migrations/0002_internal_auth.sql
 
 ## 安全边界
 
-- 密码、恢复码和会话令牌都不以明文写入 D1。
+- 原始密码不发送到 Worker，也不写入 D1；D1 只保存经浏览器 PBKDF2 和服务端 Pepper 二次处理后的验证值。
 - `PASSWORD_PEPPER` 只保存在 Cloudflare Secret 中。
 - 前端不能指定用户 ID 或家庭 ID。
 - 财务 API 使用 `Cache-Control: no-store`。
@@ -112,3 +112,8 @@ migrations/0002_internal_auth.sql
 ## 第三方许可
 
 见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+
+## 0.2.1 免费 Workers 兼容修复
+
+0.2.0 在 Worker 内执行 PBKDF2，可能超过 Workers Free 单次请求的 CPU 限额。0.2.1 将高成本的 PBKDF2 派生移动到浏览器，Worker 只执行轻量验证和 D1 操作。现有 D1 表结构不需要迁移。

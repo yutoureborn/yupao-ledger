@@ -19,7 +19,9 @@ type ToastState = {
   action?: () => void;
 } | null;
 
-type SetupStatus = { schemaReady: boolean; configured: boolean; secretsReady: boolean; setupTokenReady?: boolean; pepperReady?: boolean };
+type SetupStatus = { schemaReady: boolean; configured: boolean; secretsReady: boolean; setupTokenReady?: boolean; pepperReady?: boolean; passwordIterations?: number };
+type PasswordParams = { salt: string; iterations: number };
+type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
@@ -153,6 +155,46 @@ async function apiRequest<T = any>(path: string, options: any = {}): Promise<T> 
     throw error;
   }
   return payload.data as T;
+}
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function base64UrlToBytes(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(normalized + '='.repeat((4 - normalized.length % 4) % 4));
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function newPasswordSalt(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return bytesToBase64Url(bytes);
+}
+
+async function derivePasswordProof(password: string, salt: string, iterations: number): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: base64UrlToBytes(salt), iterations }, key, 256);
+  return bytesToBase64Url(new Uint8Array(bits));
+}
+
+async function fetchPasswordParams(email: string): Promise<PasswordParams> {
+  return apiRequest<PasswordParams>('/api/auth/password-params', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+async function createClientCredential(password: string, iterations: number, salt = newPasswordSalt()): Promise<ClientCredential> {
+  return { proof: await derivePasswordProof(password, salt, iterations), salt, iterations };
+}
+
+function passwordValidationMessage(password: string, email: string): string {
+  if (password.length < 12 || password.length > 128) return '密码需要 12～128 个字符';
+  if (!/\p{L}/u.test(password) || !/\p{N}/u.test(password)) return '密码至少需要包含字母和数字';
+  const prefix = email.trim().toLowerCase().split('@')[0] || '';
+  if (prefix.length >= 4 && password.toLowerCase().includes(prefix)) return '密码不要包含邮箱名称';
+  return '';
 }
 
 function registerServiceWorker(onUpdate: () => void): void {
@@ -629,8 +671,10 @@ class LoginPage extends React.Component<any, any> {
   async submit(event: any): Promise<void> {
     event.preventDefault(); this.setState({ saving: true, error: '' });
     try {
-      const result = await apiRequest<{ user: AuthUser; csrfToken: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: this.state.email, password: this.state.password, rememberMe: this.state.rememberMe }) });
-      this.setState({ saving: false }); this.props.onLogin(result);
+      const params = await fetchPasswordParams(this.state.email);
+      const passwordProof = await derivePasswordProof(this.state.password, params.salt, params.iterations);
+      const result = await apiRequest<{ user: AuthUser; csrfToken: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: this.state.email, passwordProof, rememberMe: this.state.rememberMe }) });
+      this.setState({ saving: false, password: '' }); this.props.onLogin(result);
     } catch (error: any) { this.setState({ saving: false, error: error.message || '登录失败' }); }
   }
   render(): any { return <AuthFrame subtitle="欢迎回来" variant="idle"><div className="auth-heading"><h2>登录小账本</h2><p>使用初始化时设置的邮箱和密码。</p></div><form className="auth-form" onSubmit={(event: any) => this.submit(event)}><div className="field"><label>邮箱</label><input className="input" type="email" autoComplete="username" required maxLength={160} value={this.state.email} onChange={(event: any) => this.setState({ email: event.target.value })} placeholder="name@example.com"/></div><div className="field"><label>密码</label><div className="password-field"><input className="input" type={this.state.showPassword ? 'text' : 'password'} autoComplete="current-password" required value={this.state.password} onChange={(event: any) => this.setState({ password: event.target.value })} placeholder="请输入密码"/><button type="button" onClick={() => this.setState({ showPassword: !this.state.showPassword })}>{this.state.showPassword ? '隐藏' : '显示'}</button></div></div><label className="check-row"><input type="checkbox" checked={this.state.rememberMe} onChange={(event: any) => this.setState({ rememberMe: event.target.checked })}/><span>在这台私人设备上保持登录 30 天</span></label>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<button className="btn btn-primary auth-submit" type="submit" disabled={this.state.saving}>{this.state.saving ? '正在登录…' : '登录'}</button><button className="text-button" type="button" onClick={this.props.onRecover}>忘记密码？使用恢复码</button></form><p className="auth-footnote">连续输错 5 次会临时锁定 15 分钟。</p></AuthFrame>; }
@@ -641,9 +685,15 @@ class RecoverPage extends React.Component<any, any> {
   async submit(event: any): Promise<void> {
     event.preventDefault();
     if (this.state.newPassword !== this.state.confirmPassword) { this.setState({ error: '两次输入的新密码不一致' }); return; }
+    const validation = passwordValidationMessage(this.state.newPassword, this.state.email);
+    if (validation) { this.setState({ error: validation }); return; }
     this.setState({ saving: true, error: '' });
-    try { await apiRequest('/api/auth/recover', { method: 'POST', body: JSON.stringify({ email: this.state.email, recoveryCode: this.state.recoveryCode, newPassword: this.state.newPassword }) }); this.setState({ saving: false, success: true }); }
-    catch (error: any) { this.setState({ saving: false, error: error.message || '恢复失败' }); }
+    try {
+      const params = await fetchPasswordParams(this.state.email);
+      const newCredential = await createClientCredential(this.state.newPassword, params.iterations);
+      await apiRequest('/api/auth/recover', { method: 'POST', body: JSON.stringify({ email: this.state.email, recoveryCode: this.state.recoveryCode, newCredential }) });
+      this.setState({ saving: false, success: true, newPassword: '', confirmPassword: '' });
+    } catch (error: any) { this.setState({ saving: false, error: error.message || '恢复失败' }); }
   }
   render(): any { return <AuthFrame subtitle="账号恢复" variant={this.state.success ? 'success' : 'empty'}>{this.state.success ? <div className="auth-result"><h2>密码已经重设</h2><p>旧设备上的登录状态已全部失效。现在可以使用新密码登录。</p><button className="btn btn-primary auth-submit" onClick={this.props.onBack}>返回登录</button></div> : <><div className="auth-heading"><h2>使用恢复码</h2><p>恢复码只能使用一次，重设后其他设备会退出登录。</p></div><form className="auth-form" onSubmit={(event: any) => this.submit(event)}><div className="field"><label>邮箱</label><input className="input" type="email" required autoComplete="username" value={this.state.email} onChange={(event: any) => this.setState({ email: event.target.value })}/></div><div className="field"><label>恢复码</label><input className="input recovery-input" required autoCapitalize="characters" value={this.state.recoveryCode} onChange={(event: any) => this.setState({ recoveryCode: event.target.value })} placeholder="YP-XXXX-XXXX-XXXX-XXXX"/></div><div className="field"><label>新密码</label><input className="input" type="password" required autoComplete="new-password" value={this.state.newPassword} onChange={(event: any) => this.setState({ newPassword: event.target.value })} placeholder="至少 12 位，包含字母和数字"/></div><div className="field"><label>确认新密码</label><input className="input" type="password" required autoComplete="new-password" value={this.state.confirmPassword} onChange={(event: any) => this.setState({ confirmPassword: event.target.value })}/></div>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<button className="btn btn-primary auth-submit" type="submit" disabled={this.state.saving}>{this.state.saving ? '正在重设…' : '重设密码'}</button><button className="text-button" type="button" onClick={this.props.onBack}>返回登录</button></form></>}</AuthFrame>; }
 }
@@ -659,10 +709,18 @@ class SetupPage extends React.Component<any, any> {
   async submit(event: any): Promise<void> {
     event.preventDefault();
     if (this.state.ownerPassword !== this.state.ownerConfirm || this.state.memberPassword !== this.state.memberConfirm) { this.setState({ error: '请确认两个账号的密码输入一致' }); return; }
+    const ownerValidation = passwordValidationMessage(this.state.ownerPassword, this.state.ownerEmail);
+    const memberValidation = passwordValidationMessage(this.state.memberPassword, this.state.memberEmail);
+    if (ownerValidation || memberValidation) { this.setState({ error: ownerValidation ? `管理员账号：${ownerValidation}` : `家庭成员账号：${memberValidation}` }); return; }
     this.setState({ saving: true, error: '' });
     try {
-      const result = await apiRequest('/api/auth/setup', { method: 'POST', body: JSON.stringify({ householdName: this.state.householdName, ownerName: this.state.ownerName, ownerEmail: this.state.ownerEmail, ownerPassword: this.state.ownerPassword, memberName: this.state.memberName, memberEmail: this.state.memberEmail, memberPassword: this.state.memberPassword, setupToken: this.state.setupToken }) });
-      this.setState({ saving: false, result });
+      const iterations = Number(this.props.passwordIterations || 120000);
+      const [ownerCredential, memberCredential] = await Promise.all([
+        createClientCredential(this.state.ownerPassword, iterations),
+        createClientCredential(this.state.memberPassword, iterations),
+      ]);
+      const result = await apiRequest('/api/auth/setup', { method: 'POST', body: JSON.stringify({ householdName: this.state.householdName, ownerName: this.state.ownerName, ownerEmail: this.state.ownerEmail, ownerCredential, memberName: this.state.memberName, memberEmail: this.state.memberEmail, memberCredential, setupToken: this.state.setupToken }) });
+      this.setState({ saving: false, result, ownerPassword: '', ownerConfirm: '', memberPassword: '', memberConfirm: '', setupToken: '' });
     } catch (error: any) { this.setState({ saving: false, error: error.message || '初始化失败' }); }
   }
   render(): any {
@@ -679,15 +737,38 @@ function AuthConfigurationPage(props: any): any {
 class SecuritySettings extends React.Component<any, any> {
   constructor(props: any) { super(props); this.state = { mode: '', currentPassword: '', newPassword: '', confirmPassword: '', saving: false, error: '', codes: null }; }
   close(): void { this.setState({ mode: '', currentPassword: '', newPassword: '', confirmPassword: '', saving: false, error: '', codes: null }); }
-  async changePassword(event: any): Promise<void> { event.preventDefault(); if (this.state.newPassword !== this.state.confirmPassword) { this.setState({ error: '两次输入的新密码不一致' }); return; } this.setState({ saving: true, error: '' }); try { await apiRequest('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: this.state.currentPassword, newPassword: this.state.newPassword }) }); this.close(); this.props.onToast('密码已经修改，其他设备已退出', 'success'); } catch (error: any) { this.setState({ saving: false, error: error.message }); } }
-  async regenerate(event: any): Promise<void> { event.preventDefault(); this.setState({ saving: true, error: '' }); try { const result = await apiRequest('/api/auth/recovery-codes', { method: 'POST', body: JSON.stringify({ currentPassword: this.state.currentPassword }) }); this.setState({ saving: false, codes: result.recoveryCodes }); } catch (error: any) { this.setState({ saving: false, error: error.message }); } }
+  async changePassword(event: any): Promise<void> {
+    event.preventDefault();
+    if (this.state.newPassword !== this.state.confirmPassword) { this.setState({ error: '两次输入的新密码不一致' }); return; }
+    const validation = passwordValidationMessage(this.state.newPassword, this.props.email);
+    if (validation) { this.setState({ error: validation }); return; }
+    this.setState({ saving: true, error: '' });
+    try {
+      const params = await fetchPasswordParams(this.props.email);
+      const [currentPasswordProof, newCredential] = await Promise.all([
+        derivePasswordProof(this.state.currentPassword, params.salt, params.iterations),
+        createClientCredential(this.state.newPassword, params.iterations),
+      ]);
+      await apiRequest('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPasswordProof, newCredential }) });
+      this.close(); this.props.onToast('密码已经修改，其他设备已退出', 'success');
+    } catch (error: any) { this.setState({ saving: false, error: error.message }); }
+  }
+  async regenerate(event: any): Promise<void> {
+    event.preventDefault(); this.setState({ saving: true, error: '' });
+    try {
+      const params = await fetchPasswordParams(this.props.email);
+      const currentPasswordProof = await derivePasswordProof(this.state.currentPassword, params.salt, params.iterations);
+      const result = await apiRequest('/api/auth/recovery-codes', { method: 'POST', body: JSON.stringify({ currentPasswordProof }) });
+      this.setState({ saving: false, currentPassword: '', codes: result.recoveryCodes });
+    } catch (error: any) { this.setState({ saving: false, error: error.message }); }
+  }
   async revoke(): Promise<void> { if (!window.confirm('退出这个账号在其他设备上的登录？当前设备会继续保持登录。')) return; try { await apiRequest('/api/auth/revoke-other-sessions', { method: 'POST', body: '{}' }); this.props.onToast('其他设备已经退出登录', 'success'); } catch (error: any) { this.props.onToast(error.message, 'error'); } }
   render(): any { return <><div className="settings-list"><div className="setting-row"><div><h4>修改密码</h4><p>修改后会退出这个账号在其他设备上的登录</p></div><button className="btn btn-secondary btn-sm" onClick={() => this.setState({ mode: 'password' })}>修改</button></div><div className="setting-row"><div><h4>重新生成恢复码</h4><p>旧的未使用恢复码会立即失效</p></div><button className="btn btn-secondary btn-sm" onClick={() => this.setState({ mode: 'codes' })}>生成</button></div><div className="setting-row"><div><h4>退出其他设备</h4><p>适用于设备遗失或忘记退出的情况</p></div><button className="btn btn-secondary btn-sm" onClick={() => this.revoke()}>退出</button></div><div className="setting-row"><div><h4>退出当前账号</h4><p>{this.props.email}</p></div><button className="btn btn-danger btn-sm" onClick={this.props.onLogout}>退出登录</button></div></div><Modal open={this.state.mode === 'password'} title="修改密码" onClose={() => this.close()}><form className="auth-form" onSubmit={(event: any) => this.changePassword(event)}><div className="field"><label>当前密码</label><input className="input" type="password" required value={this.state.currentPassword} onChange={(event: any) => this.setState({ currentPassword: event.target.value })}/></div><div className="field"><label>新密码</label><input className="input" type="password" required value={this.state.newPassword} onChange={(event: any) => this.setState({ newPassword: event.target.value })} placeholder="至少 12 位，包含字母和数字"/></div><div className="field"><label>确认新密码</label><input className="input" type="password" required value={this.state.confirmPassword} onChange={(event: any) => this.setState({ confirmPassword: event.target.value })}/></div>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<div className="form-actions"><button className="btn btn-secondary" type="button" onClick={() => this.close()}>取消</button><button className="btn btn-primary" type="submit" disabled={this.state.saving}>{this.state.saving ? '修改中…' : '确认修改'}</button></div></form></Modal><Modal open={this.state.mode === 'codes'} title="重新生成恢复码" onClose={() => this.close()}>{this.state.codes ? <div><p className="modal-note">这些恢复码只显示这一次，请立即保存。</p><code className="codes-block">{this.state.codes.join('\n')}</code><button className="btn btn-primary auth-submit" onClick={() => { navigator.clipboard?.writeText(this.state.codes.join('\n')); this.props.onToast('恢复码已复制', 'success'); }}>复制恢复码</button></div> : <form className="auth-form" onSubmit={(event: any) => this.regenerate(event)}><div className="field"><label>当前密码</label><input className="input" type="password" required value={this.state.currentPassword} onChange={(event: any) => this.setState({ currentPassword: event.target.value })}/></div>{this.state.error ? <div className="form-error">{this.state.error}</div> : null}<button className="btn btn-primary auth-submit" type="submit" disabled={this.state.saving}>{this.state.saving ? '生成中…' : '确认并生成'}</button></form>}</Modal></>; }
 }
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.0 · 内置双账号认证</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码采用 PBKDF2、独立盐值与服务端 Pepper 处理，登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="idle"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.1 · 免费 Workers 适配认证</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="idle"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {
@@ -746,7 +827,7 @@ class App extends React.Component<any, any> {
     const phase = this.state.authPhase;
     if (phase === 'checking') return <LoadingPage/>;
     if (phase === 'config') return <AuthConfigurationPage status={this.state.setupStatus} onRetry={() => this.initializeAuth()}/>;
-    if (phase === 'setup') return <SetupPage onComplete={() => this.setState({ authPhase: 'login' })}/>;
+    if (phase === 'setup') return <SetupPage passwordIterations={this.state.setupStatus?.passwordIterations || 120000} onComplete={() => this.setState({ authPhase: 'login' })}/>;
     if (phase === 'recover') return <RecoverPage onBack={() => this.setState({ authPhase: 'login' })}/>;
     if (phase === 'login') return <LoginPage onLogin={(result: any) => this.handleLogin(result)} onRecover={() => this.setState({ authPhase: 'recover' })}/>;
     if (phase === 'error' || (this.state.error && !this.state.bootstrap)) return <div className="loading-page"><div><div style={{ width: '240px' }}><Mascot variant="empty"/></div><h2>小账本暂时打不开</h2><p style={{ color: 'var(--text-2)' }}>{this.state.error}</p><button className="btn btn-primary" onClick={() => this.initializeAuth()}>再试一次</button></div></div>;

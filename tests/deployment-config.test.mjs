@@ -25,3 +25,12 @@ test('认证密钥只出现在示例文件，不写入正式配置', async () =>
   assert.match(example, /SETUP_TOKEN=/);
   assert.match(example, /PASSWORD_PEPPER=/);
 });
+
+
+test('高成本 PBKDF2 只在浏览器执行，不占用 Worker 免费 CPU', async () => {
+  const worker = await readFile(path.join(root, 'src/worker/index.ts'), 'utf8');
+  const frontend = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
+  assert.doesNotMatch(worker, /PBKDF2/);
+  assert.match(frontend, /PBKDF2/);
+  assert.match(worker, /\/api\/auth\/password-params/);
+});
