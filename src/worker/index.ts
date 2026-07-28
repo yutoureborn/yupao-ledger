@@ -117,7 +117,7 @@ function parseAllowedEmails(env: Env): string[] {
     .filter((email) => !email.startsWith('replace_with'));
 }
 
-function base64UrlDecode(value: string): Uint8Array {
+function base64UrlDecode(value: string): Uint8Array<ArrayBuffer> {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
   const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
   const binary = atob(padded);
