@@ -2,7 +2,7 @@
 
 > 两个人的小日子，都记在这里。
 
-芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.4 使用**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
+芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.5 使用**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
 
 ## 已完成
 
@@ -130,3 +130,11 @@ v0.2.4 将两个角色的职责正式互换：
 - PWA 图标、站点图标、SVG 角色和动画状态同步升级。
 
 本版本不修改 D1 表结构，不需要执行数据库 migration。完整角色规范见 `docs/MASCOT-DESIGN-v0.2.4.md`。
+
+
+## 0.2.5 角色重绘与图表修复
+
+- 芋头与炮台按拟人蔬菜插画方向重新绘制，不再使用简单几何形。
+- 芋头保持明显芋泥紫，负责快速记账；炮台保持绿黑玩具机械色，负责整理和统计。
+- 首页支出分类卡片改为“圆环 + 分类排行”完整结构，PC 侧栏和移动端均不会只剩圆环。
+- 本版本不修改 D1 表结构。升级步骤见 `docs/UPGRADE-v0.2.5.md`。

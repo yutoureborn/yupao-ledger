@@ -25,7 +25,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.2.4';
+const APP_VERSION = '0.2.5';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -246,17 +246,22 @@ function Icon(props: any): any {
 }
 
 function LogoMark(): any {
-  return <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
-    <rect width="64" height="64" rx="18" fill="#FFF8F1"/>
-    <ellipse cx="24" cy="35" rx="15" ry="18" fill="#A78BDA"/>
-    <path d="M19 18c3-8 9-9 12-4-5 0-8 2-12 4Z" fill="#6FA47D"/>
-    <circle cx="20" cy="34" r="2" fill="#302A39"/><circle cx="28" cy="34" r="2" fill="#302A39"/>
-    <path d="M21 41c2 2 5 2 7 0" stroke="#302A39" strokeWidth="2" fill="none" strokeLinecap="round"/>
-    <path d="M11 43h7v3h-7z" fill="#F5EEFF" transform="rotate(-10 11 43)"/>
-    <rect x="37" y="31" width="17" height="13" rx="6.5" fill="#4F7C64"/>
-    <rect x="48" y="25" width="11" height="8" rx="4" fill="#355646"/>
-    <circle cx="42" cy="47" r="4" fill="#252A28"/><circle cx="51" cy="47" r="4" fill="#252A28"/>
-    <circle cx="43" cy="37" r="1.5" fill="#9ED36A"/><circle cx="49" cy="37" r="1.5" fill="#9ED36A"/>
+  return <svg viewBox="0 0 72 72" width="44" height="44" aria-hidden="true">
+    <rect width="72" height="72" rx="21" fill="#FFF9F3"/>
+    <ellipse cx="27" cy="40" rx="17" ry="20" fill="#9B78CE"/>
+    <path d="M14 38c1-15 7-25 17-25 10 0 17 10 18 25-8-4-27-4-35 0Z" fill="#A98AE0"/>
+    <path d="M23 19c-6-10-1-16 5-17 5 6 5 12-5 17ZM30 18c2-11 10-14 15-9-1 7-6 11-15 9Z" fill="#6A9E63"/>
+    <circle cx="22" cy="38" r="5" fill="#FFF"/><circle cx="34" cy="38" r="5" fill="#FFF"/>
+    <circle cx="23" cy="39" r="2.7" fill="#35253E"/><circle cx="35" cy="39" r="2.7" fill="#35253E"/>
+    <circle cx="24" cy="37.8" r="1" fill="#FFF"/><circle cx="36" cy="37.8" r="1" fill="#FFF"/>
+    <path d="M24 47c3 4 7 4 10 0" fill="none" stroke="#35253E" strokeWidth="2.3" strokeLinecap="round"/>
+    <rect x="42" y="37" width="21" height="15" rx="7" fill="#55775B"/>
+    <path d="M48 35h13l6-8c2-3-1-6-4-5l-15 6Z" fill="#26302C"/>
+    <ellipse cx="64" cy="27" rx="4" ry="6" fill="#111714" transform="rotate(-19 64 27)"/>
+    <circle cx="48" cy="55" r="6" fill="#1F2623"/><circle cx="59" cy="55" r="6" fill="#1F2623"/>
+    <circle cx="48" cy="55" r="2.5" fill="#8AA28E"/><circle cx="59" cy="55" r="2.5" fill="#8AA28E"/>
+    <circle cx="49" cy="43" r="1.5" fill="#FFF"/><circle cx="56" cy="43" r="1.5" fill="#FFF"/>
+    <circle cx="49.5" cy="43.5" r=".7" fill="#1C2521"/><circle cx="56.5" cy="43.5" r=".7" fill="#1C2521"/>
   </svg>;
 }
 
@@ -268,110 +273,120 @@ function Mascot(props: any): any {
   const isSafe = variant === 'safe';
   const isSummary = variant === 'summary';
 
-  return <svg className={cn('mascot', variant)} viewBox="0 0 360 230" role="img" aria-label={props.label || '芋头记账小助手和绿黑玩具炮台小管家'}>
-    <ellipse cx="175" cy="207" rx="128" ry="13" fill="#DCD4E2" opacity=".5"/>
+  return <svg className={cn('mascot', variant)} viewBox="0 0 420 250" role="img" aria-label={props.label || '芋泥紫芋头记账助手和绿黑炮台整理管家'}>
+    <defs>
+      <linearGradient id="taro-main" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#B696E5"/><stop offset=".55" stopColor="#9B78CE"/><stop offset="1" stopColor="#7C5AAE"/>
+      </linearGradient>
+      <linearGradient id="cannon-main" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#78966F"/><stop offset=".55" stopColor="#55775B"/><stop offset="1" stopColor="#3F5F49"/>
+      </linearGradient>
+      <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="170%">
+        <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#46394E" floodOpacity=".16"/>
+      </filter>
+    </defs>
+    <ellipse cx="211" cy="226" rx="164" ry="14" fill="#D9D0DF" opacity=".48"/>
 
-    <g className="taro-body">
-      <path d="M105 65c-11 19-18 47-13 78 7 42 32 67 70 67 39 0 65-25 72-67 5-32-3-62-17-80-21-25-88-24-112 2Z" fill="#A78BDA"/>
-      <path d="M114 72c21-15 80-17 104 2" fill="none" stroke="#D9C8F2" strokeWidth="9" strokeLinecap="round" opacity=".88"/>
-      <path d="M103 124c8 10 11 28 8 45M220 122c-8 12-10 29-7 44" fill="none" stroke="#8061B5" strokeWidth="5" strokeLinecap="round" opacity=".65"/>
-      <g className="leaf">
-        <path d="M145 67c-18-27-11-48 6-52 11 15 12 33-6 52Z" fill="#5F956F"/>
-        <path d="M159 64c5-32 26-42 40-31-1 18-14 31-40 31Z" fill="#75AD82"/>
+    <g className="taro-body" filter="url(#soft-shadow)">
+      <path d="M93 54c16-21 42-33 70-31 31 2 55 18 67 45 12 26 12 63 2 95-11 34-36 57-70 57-36 0-65-21-76-56-12-39-9-82 7-110Z" fill="url(#taro-main)"/>
+      <path d="M101 69c28-21 90-25 119 0" fill="none" stroke="#DCCEF2" strokeWidth="7" strokeLinecap="round" opacity=".42"/>
+      <g className="taro-texture" fill="none" stroke="#7654A4" strokeWidth="3" strokeLinecap="round" opacity=".34">
+        <path d="M105 87c18-8 37-10 51-8M178 78c18 0 31 4 42 10"/>
+        <path d="M97 111c15-6 27-6 38-4M193 106c12 1 21 4 30 9"/>
+        <path d="M103 145c12 5 23 6 34 5M187 147c13-1 24-5 34-11"/>
+        <path d="M116 178c16 5 31 5 45 1M178 178c16-2 28-7 36-15"/>
       </g>
-      <g className="taro-brows" fill="none" stroke="#6D4FA2" strokeWidth="2.4" strokeLinecap="round"><path d="M132 113c4-3 9-3 13 0"/><path d="M180 113c4-3 9-3 13 0"/></g>
-      <g className="eye"><circle cx="139" cy="125" r="5" fill="#302A39"/><circle cx="187" cy="125" r="5" fill="#302A39"/><circle cx="137.5" cy="123.5" r="1.2" fill="white"/><circle cx="185.5" cy="123.5" r="1.2" fill="white"/></g>
+      <g className="leaf">
+        <path d="M142 43c-16-29-5-44 13-44 10 17 6 31-13 44Z" fill="#5F925F"/>
+        <path d="M158 39c4-28 25-39 41-26-2 17-16 27-41 26Z" fill="#79AD74"/>
+        <path d="M151 44c3-16 2-26-2-37M165 36c9-9 16-14 25-17" fill="none" stroke="#4D8050" strokeWidth="2" opacity=".65"/>
+      </g>
+
+      <g className="taro-brows" fill="none" stroke="#64458E" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M116 105c6-4 12-4 18 0"/><path d="M177 105c6-4 12-4 18 0"/>
+      </g>
+      <g className="eye taro-eye-left">
+        <ellipse cx="126" cy="122" rx="12" ry="14" fill="#FFF"/>
+        <ellipse cx="128" cy="124" rx="7" ry="9" fill="#392B44"/>
+        <circle cx="131" cy="120" r="2.7" fill="#FFF"/><circle cx="125" cy="129" r="1.3" fill="#FFF" opacity=".75"/>
+      </g>
+      <g className="eye taro-eye-right">
+        <ellipse cx="187" cy="122" rx="12" ry="14" fill="#FFF"/>
+        <ellipse cx="185" cy="124" rx="7" ry="9" fill="#392B44"/>
+        <circle cx="188" cy="120" r="2.7" fill="#FFF"/><circle cx="182" cy="129" r="1.3" fill="#FFF" opacity=".75"/>
+      </g>
+      <ellipse cx="104" cy="142" rx="13" ry="7" fill="#E8AFCF" opacity=".82"/>
+      <ellipse cx="207" cy="142" rx="13" ry="7" fill="#E8AFCF" opacity=".82"/>
       {isEmpty
-        ? <path d="M154 151c7-4 14-4 21 0" fill="none" stroke="#302A39" strokeWidth="3.5" strokeLinecap="round"/>
-        : <path d="M150 148c10 10 24 10 34 0" fill="none" stroke="#302A39" strokeWidth="4" strokeLinecap="round"/>}
-      <ellipse cx="121" cy="143" rx="11" ry="6" fill="#E9B7D4" opacity=".62"/>
-      <ellipse cx="204" cy="143" rx="11" ry="6" fill="#E9B7D4" opacity=".62"/>
+        ? <path d="M145 151c8-5 18-5 26 0" fill="none" stroke="#3A2B43" strokeWidth="3.5" strokeLinecap="round"/>
+        : <g><path d="M143 148c8 15 25 17 35 0" fill="#5A2E5D"/><path d="M151 156c7 5 14 5 20 0" fill="none" stroke="#F0AFC7" strokeWidth="3" strokeLinecap="round"/></g>}
 
       <g className="taro-arm taro-arm-left">
-        <path d="M114 163c-18 3-27 13-25 27" fill="none" stroke="#8061B5" strokeWidth="9" strokeLinecap="round"/>
-        <circle cx="90" cy="190" r="6" fill="#A78BDA"/>
+        <path d="M94 153c-20 3-29 17-29 31" fill="none" stroke="#3A2B43" strokeWidth="4" strokeLinecap="round"/>
+        <circle cx="65" cy="186" r="6" fill="#4A3554"/>
       </g>
       <g className="taro-arm taro-arm-right">
-        <path d="M214 162c18 2 28 11 29 24" fill="none" stroke="#8061B5" strokeWidth="9" strokeLinecap="round"/>
-        <circle cx="243" cy="186" r="6" fill="#A78BDA"/>
-        <g className="taro-pencil" transform="rotate(-18 247 176)">
-          <rect x="241" y="153" width="7" height="31" rx="3.5" fill="#F3C969"/>
-          <path d="m241 153 3.5-7 3.5 7Z" fill="#66513B"/>
-          <rect x="241" y="176" width="7" height="8" rx="2.5" fill="#E9B7D4"/>
+        <path d="M223 153c19 0 31 12 34 27" fill="none" stroke="#3A2B43" strokeWidth="4" strokeLinecap="round"/>
+        <circle cx="258" cy="181" r="6" fill="#4A3554"/>
+        <g className="taro-pencil" transform="rotate(-10 60 150)">
+          <rect x="55" y="126" width="10" height="46" rx="4" fill="#F4A12E"/>
+          <path d="m55 126 5-11 5 11Z" fill="#6B4A33"/>
+          <path d="m58 119 2-5 2 5Z" fill="#2E2730"/>
+          <rect x="55" y="162" width="10" height="10" rx="3" fill="#E894A7"/>
         </g>
+      </g>
+      <g className="taro-legs" fill="none" stroke="#3A2B43" strokeWidth="5" strokeLinecap="round">
+        <path d="M125 207c-4 9-11 13-19 12"/><path d="M190 207c4 9 11 13 19 12"/>
       </g>
 
       <g className="ledger-book">
-        <path d="M124 165c12-5 25-4 38 3v31c-13-7-26-8-38-3Z" fill="#F5EEFF" stroke="#6E667A" strokeWidth="2"/>
-        <path d="M162 168c13-7 27-8 40-3v31c-13-5-27-4-40 3Z" fill="#FFFDF8" stroke="#6E667A" strokeWidth="2"/>
-        <path d="M162 169v29" stroke="#C8BECF" strokeWidth="1.5"/>
-        {!isEmpty ? <g stroke="#A89AB3" strokeWidth="1.6" strokeLinecap="round"><path d="M131 176h22M131 182h18M171 176h21M171 182h16"/></g> : null}
-        {isEmpty ? <g className="empty-prompt"><rect x="145" y="174" width="34" height="18" rx="5" fill="#FFF8F1" stroke="#A78BDA" strokeWidth="1.5"/><path d="M162 178v10M157 183h10" stroke="#8061B5" strokeWidth="2.2" strokeLinecap="round"/></g> : null}
+        <path d="M105 163c17-7 34-6 51 3v38c-17-8-34-9-51-3Z" fill="#FFFDF9" stroke="#786984" strokeWidth="2.2"/>
+        <path d="M156 166c17-9 35-10 52-3v38c-17-6-35-5-52 3Z" fill="#FFFDF9" stroke="#786984" strokeWidth="2.2"/>
+        <path d="M156 168v35" stroke="#C8BECF" strokeWidth="1.7"/>
+        {!isEmpty ? <g stroke="#B6A9BD" strokeWidth="1.6" strokeLinecap="round"><path d="M115 176h29M115 183h24M168 176h28M168 183h22"/></g> : null}
+        {isEmpty ? <g className="empty-prompt"><rect x="138" y="174" width="37" height="20" rx="7" fill="#F7EFFD" stroke="#9B78CE" strokeWidth="1.5"/><path d="M156.5 178v12M150.5 184h12" stroke="#7654A4" strokeWidth="2.2" strokeLinecap="round"/></g> : null}
       </g>
 
       {isSuccess ? <g className="taro-success-props">
-        <g className="success-receipt">
-          <rect x="74" y="132" width="31" height="41" rx="6" fill="#FFFDF8" stroke="#8061B5" strokeWidth="2"/>
-          <path d="M82 143h16M82 150h12M82 157h15" stroke="#B4A7C2" strokeWidth="1.5" strokeLinecap="round"/>
-          <circle cx="98" cy="166" r="6" fill="#9ED36A"/>
-          <path d="m95 166 2 2 4-5" fill="none" stroke="#355646" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-        </g>
-        <circle className="coin coin-one" cx="91" cy="113" r="10" fill="#F3C969"/>
-        <path className="coin coin-one" d="M92 108v10M88 111h7M88 115h7" stroke="#8B6925" strokeWidth="1.5"/>
-        <circle className="coin coin-two" cx="119" cy="99" r="7" fill="#F3C969"/>
-        <g className="sparkles" fill="#F3C969"><path d="m75 91 3 6 6 3-6 3-3 6-3-6-6-3 6-3Z"/><path d="m130 122 2 4 4 2-4 2-2 4-2-4-4-2 4-2Z"/></g>
+        <g className="success-receipt"><rect x="56" y="120" width="38" height="51" rx="8" fill="#FFFDF8" stroke="#7654A4" strokeWidth="2"/><path d="M65 134h20M65 142h16M65 150h19" stroke="#B3A6BD" strokeWidth="1.6" strokeLinecap="round"/><circle cx="85" cy="160" r="7" fill="#A6D66F"/><path d="m81 160 3 3 6-7" fill="none" stroke="#355646" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></g>
+        <circle className="coin coin-one" cx="76" cy="102" r="10" fill="#F3C969"/><path className="coin coin-one" d="M76 97v10M72 100h8M72 104h8" stroke="#876823" strokeWidth="1.5"/>
+        <circle className="coin coin-two" cx="107" cy="91" r="7" fill="#F3C969"/>
+        <g className="sparkles" fill="#F3C969"><path d="m58 86 3 6 6 3-6 3-3 6-3-6-6-3 6-3Z"/><path d="m117 113 2 4 4 2-4 2-2 4-2-4-4-2 4-2Z"/></g>
       </g> : null}
     </g>
 
-    <g className="cannon">
+    <g className="cannon" filter="url(#soft-shadow)">
       <g className="cannon-barrel">
-        <rect x="274" y="103" width="55" height="28" rx="14" fill="#355646" transform="rotate(-8 274 103)"/>
-        <ellipse cx="327" cy="113" rx="7" ry="12" fill="#252A28" transform="rotate(-8 327 113)"/>
-        <ellipse cx="325" cy="111" rx="3" ry="6" fill="#789080" opacity=".7" transform="rotate(-8 325 111)"/>
+        <path d="M292 91c1-8 7-14 15-16l61-18c9-3 18 4 18 14v11c0 8-6 14-14 15l-69 8c-7 1-12-5-11-14Z" fill="#26302C"/>
+        <path d="M302 84c16-6 40-12 66-18" fill="none" stroke="#65766D" strokeWidth="5" strokeLinecap="round" opacity=".45"/>
+        <ellipse cx="377" cy="76" rx="11" ry="16" fill="#101613" transform="rotate(5 377 76)"/>
+        <ellipse cx="375" cy="75" rx="5" ry="9" fill="#72867B" opacity=".72" transform="rotate(5 375 75)"/>
       </g>
-      <rect x="226" y="126" width="76" height="45" rx="20" fill="#4F7C64"/>
-      <path d="M236 136c16-8 42-8 57 0" fill="none" stroke="#789080" strokeWidth="5" strokeLinecap="round" opacity=".86"/>
-      <circle cx="249" cy="178" r="18" fill="#252A28"/><circle cx="289" cy="178" r="18" fill="#252A28"/>
-      <circle cx="249" cy="178" r="8" fill="#789080"/><circle cx="289" cy="178" r="8" fill="#789080"/>
-      <g className="cannon-eye"><circle cx="250" cy="145" r="4" fill="#17201B"/><circle cx="272" cy="145" r="4" fill="#17201B"/><circle cx="249" cy="144" r="1" fill="#E8F6EA"/><circle cx="271" cy="144" r="1" fill="#E8F6EA"/></g>
-      <path d="M254 158c5 4 11 4 16 0" fill="none" stroke="#17201B" strokeWidth="3" strokeLinecap="round"/>
-      <circle className="cannon-status" cx="286" cy="157" r="4" fill={isWarning ? '#E5BC57' : '#9ED36A'}/>
-      <g className="cannon-arm">
-        <path d="M234 151c-14 1-20 8-20 17" fill="none" stroke="#355646" strokeWidth="7" strokeLinecap="round"/>
-        <circle cx="214" cy="168" r="5" fill="#4F7C64"/>
+      <path d="M244 113c0-20 16-35 36-35h54c24 0 43 18 43 42v52c0 20-16 36-36 36h-65c-20 0-36-16-36-36Z" fill="url(#cannon-main)"/>
+      <path d="M253 119c12-19 36-28 64-27 21 1 39 7 51 20" fill="none" stroke="#A7BBA7" strokeWidth="7" strokeLinecap="round" opacity=".47"/>
+      <circle cx="256" cy="142" r="6" fill="#7FA66B"/>
+      <circle className="cannon-status" cx="360" cy="137" r="6" fill={isWarning ? '#E1B84E' : '#9ED36A'}/>
+      <path d="M275 90c-2-18 7-29 18-28 6 8 3 18-4 26" fill="none" stroke="#355646" strokeWidth="4" strokeLinecap="round"/>
+      <circle cx="295" cy="61" r="7" fill="#86A967"/>
+
+      <g className="cannon-eye cannon-eye-left"><ellipse cx="287" cy="133" rx="11" ry="13" fill="#FFF"/><ellipse cx="289" cy="135" rx="6" ry="8" fill="#1B2420"/><circle cx="292" cy="131" r="2.4" fill="#FFF"/></g>
+      <g className="cannon-eye cannon-eye-right"><ellipse cx="327" cy="133" rx="11" ry="13" fill="#FFF"/><ellipse cx="325" cy="135" rx="6" ry="8" fill="#1B2420"/><circle cx="328" cy="131" r="2.4" fill="#FFF"/></g>
+      <ellipse cx="270" cy="153" rx="11" ry="6" fill="#D49BA6" opacity=".45"/><ellipse cx="346" cy="153" rx="11" ry="6" fill="#D49BA6" opacity=".45"/>
+      <path d="M294 154c8 11 20 11 28 0" fill="#203027"/><path d="M301 161c5 3 10 3 14 0" fill="none" stroke="#E9A9B8" strokeWidth="2.5" strokeLinecap="round"/>
+
+      <g className="cannon-arm"><path d="M247 148c-15 1-24 9-26 20" fill="none" stroke="#28332E" strokeWidth="4" strokeLinecap="round"/><circle cx="220" cy="169" r="6" fill="#4F6E56"/></g>
+      <g className="cannon-arm cannon-arm-right"><path d="M373 150c14 4 21 13 20 23" fill="none" stroke="#28332E" strokeWidth="4" strokeLinecap="round"/><circle cx="392" cy="173" r="6" fill="#4F6E56"/></g>
+
+      <g className="cannon-wheels">
+        <circle cx="273" cy="195" r="27" fill="#1C2320"/><circle cx="273" cy="195" r="13" fill="#879A8D"/><circle cx="273" cy="195" r="6" fill="#B9C4BC"/>
+        <circle cx="342" cy="195" r="27" fill="#1C2320"/><circle cx="342" cy="195" r="13" fill="#879A8D"/><circle cx="342" cy="195" r="6" fill="#B9C4BC"/>
       </g>
 
-      {isEmpty ? <g className="archive-box">
-        <path d="M305 167h38v24h-38z" fill="#E8EFE9" stroke="#355646" strokeWidth="2"/>
-        <path d="m305 167 8-8h22l8 8" fill="#D5E2D8" stroke="#355646" strokeWidth="2" strokeLinejoin="round"/>
-      </g> : null}
-
-      {isWarning ? <g className="warning-sign">
-        <rect x="208" y="119" width="32" height="27" rx="6" fill="#FFF5DB" stroke="#D9A441" strokeWidth="2"/>
-        <path d="M224 125v10" stroke="#9A711F" strokeWidth="3" strokeLinecap="round"/>
-        <circle cx="224" cy="140" r="1.7" fill="#9A711F"/>
-      </g> : null}
-
-      {isSafe ? <g className="safe-shield">
-        <path d="M309 142c13-6 25-5 33 0v17c0 14-10 23-17 26-7-3-16-12-16-26Z" fill="#DFF3E7" stroke="#355646" strokeWidth="2"/>
-        <rect x="318" y="153" width="14" height="12" rx="3" fill="#4F7C64"/>
-        <path d="M321 153v-3a4 4 0 0 1 8 0v3" fill="none" stroke="#4F7C64" strokeWidth="2"/>
-      </g> : null}
-
-      {isSummary ? <g className="summary-projector">
-        <path d="M260 62h82v52h-82z" rx="8" fill="#F7FBF7" stroke="#355646" strokeWidth="2"/>
-        <path d="M268 103h66" stroke="#CBD9CE" strokeWidth="1.5"/>
-        <rect x="272" y="87" width="9" height="16" rx="3" fill="#A78BDA"/>
-        <rect x="288" y="78" width="9" height="25" rx="3" fill="#4F7C64"/>
-        <rect x="304" y="83" width="9" height="20" rx="3" fill="#9ED36A"/>
-        <path d="M270 71c15 5 26 1 38 6 9 4 16 2 26-4" fill="none" stroke="#8061B5" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M299 114v10" stroke="#355646" strokeWidth="2"/><path d="M284 124h30" stroke="#355646" strokeWidth="2" strokeLinecap="round"/>
-      </g> : null}
-
-      {isSuccess ? <g className="cannon-sort-feedback">
-        <rect x="301" y="143" width="35" height="28" rx="7" fill="#E8F3EA" stroke="#355646" strokeWidth="2"/>
-        <path d="m310 157 6 6 12-14" fill="none" stroke="#4F7C64" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-      </g> : null}
+      {isEmpty ? <g className="archive-box"><path d="M352 174h44v28h-44z" fill="#E7F0E8" stroke="#355646" strokeWidth="2"/><path d="m352 174 9-10h25l10 10" fill="#D3E2D5" stroke="#355646" strokeWidth="2" strokeLinejoin="round"/></g> : null}
+      {isWarning ? <g className="warning-sign"><rect x="222" y="102" width="37" height="31" rx="8" fill="#FFF4D2" stroke="#D6A638" strokeWidth="2"/><path d="M240 109v12" stroke="#8E681C" strokeWidth="3" strokeLinecap="round"/><circle cx="240" cy="126" r="2" fill="#8E681C"/></g> : null}
+      {isSafe ? <g className="safe-shield"><path d="M365 132c15-7 28-6 37 0v20c0 16-11 26-19 30-8-4-18-14-18-30Z" fill="#E1F0E5" stroke="#355646" strokeWidth="2.3"/><rect x="375" y="144" width="16" height="14" rx="3" fill="#4F7C64"/><path d="M378 144v-4a5 5 0 0 1 10 0v4" fill="none" stroke="#4F7C64" strokeWidth="2"/></g> : null}
+      {isSummary ? <g className="summary-projector"><rect x="236" y="22" width="112" height="63" rx="12" fill="#FBFDF9" stroke="#355646" strokeWidth="2"/><path d="M249 69h87" stroke="#D2DDD4" strokeWidth="1.5"/><rect x="254" y="53" width="11" height="16" rx="3" fill="#9B78CE"/><rect x="274" y="43" width="11" height="26" rx="3" fill="#55775B"/><rect x="294" y="48" width="11" height="21" rx="3" fill="#9ED36A"/><path d="M252 35c18 7 34 0 49 7 12 5 22 2 34-5" fill="none" stroke="#7C5AAE" strokeWidth="2.5" strokeLinecap="round"/></g> : null}
+      {isSuccess ? <g className="cannon-sort-feedback"><rect x="348" y="137" width="43" height="34" rx="9" fill="#E8F3EA" stroke="#355646" strokeWidth="2"/><path d="m359 154 7 7 14-17" fill="none" stroke="#4F7C64" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></g> : null}
     </g>
   </svg>;
 }
@@ -476,40 +491,44 @@ function TrendChart(props: any): any {
 }
 
 function DonutChart(props: any): any {
-  const items = (props.items || []).slice(0, 7);
+  const items = (props.items || []).slice(0, props.compact ? 5 : 7);
   const total = items.reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
   if (!items.length || !total) return <EmptyState title="分类还是空的" message="本月有支出后，这里会显示钱都花去了哪里。"/>;
-  const radius = 55, circumference = 2 * Math.PI * radius;
+  const radius = 58, circumference = 2 * Math.PI * radius;
   let offset = 0;
-  return <div className="donut-layout">
+  return <div className={cn('donut-layout', props.compact && 'compact')}>
     <div className="donut-visual">
-      <svg className="chart-svg donut-svg" viewBox="0 0 170 170" role="img" aria-label="支出分类占比">
-        <circle cx="85" cy="85" r={radius} fill="none" stroke="#F2EDF3" strokeWidth="22"/>
+      <svg className="chart-svg donut-svg" viewBox="0 0 190 190" role="img" aria-label="支出分类占比">
+        <circle cx="95" cy="95" r={radius} fill="none" stroke="#F2EDF3" strokeWidth="26"/>
         {items.map((item: any) => {
           const value = Number(item.amount_cents || 0);
-          const length = value / total * circumference;
+          const rawLength = value / total * circumference;
+          const gap = items.length > 1 ? Math.min(3.5, rawLength * .08) : 0;
+          const length = Math.max(0, rawLength - gap);
           const current = offset;
-          offset += length;
-          return <circle key={item.category_id || item.name} cx="85" cy="85" r={radius} fill="none" stroke={item.color} strokeWidth="22" strokeLinecap="butt" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-current} transform="rotate(-90 85 85)" style={{ transition: 'stroke-dasharray .5s ease' }}><title>{`${item.name} ${formatMoney(value)}`}</title></circle>;
+          offset += rawLength;
+          return <circle key={item.category_id || item.name} cx="95" cy="95" r={radius} fill="none" stroke={item.color || '#8E7CDA'} strokeWidth="26" strokeLinecap="butt" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-current} transform="rotate(-90 95 95)" className="donut-segment"><title>{`${item.name} ${formatMoney(value)}`}</title></circle>;
         })}
-        <text className="donut-center" x="85" y="79" textAnchor="middle">本月支出</text>
-        <text className="donut-total" x="85" y="103" textAnchor="middle">{formatCompactMoney(total)}</text>
+        <circle cx="95" cy="95" r="42" fill="#FFFCF9"/>
+        <text className="donut-center" x="95" y="90" textAnchor="middle">本月支出</text>
+        <text className="donut-total" x="95" y="116" textAnchor="middle">{formatCompactMoney(total)}</text>
       </svg>
-      <span className="donut-caption">共 {items.length} 个支出分类</span>
+      <div className="donut-caption"><strong>{items.length}</strong><span>个支出分类</span></div>
     </div>
     <div className="category-ranking" role="list" aria-label="支出分类排行">
-      {items.map((item: any) => {
+      {items.map((item: any, index: number) => {
         const percent = Math.round(Number(item.amount_cents || 0) / total * 100);
         return <div className="rank-row" role="listitem" key={item.category_id || item.name}>
-          <div className="rank-icon" style={{ background: `${item.color}22` }}>{CATEGORY_EMOJI[item.icon] || '✨'}</div>
+          <div className="rank-index" aria-hidden="true">{index + 1}</div>
+          <div className="rank-icon" style={{ background: `${item.color || '#8E7CDA'}22` }}>{CATEGORY_EMOJI[item.icon] || '✨'}</div>
           <div className="rank-main">
-            <span className="rank-label" title={item.name}>{item.name}</span>
-            <div className="rank-bar" aria-hidden="true"><span style={{ width: `${percent}%`, background: item.color }}/></div>
+            <div className="rank-copy"><span className="rank-label" title={item.name}>{item.name}</span><span className="rank-percent">{percent}%</span></div>
+            <div className="rank-bar" aria-hidden="true"><span style={{ width: `${Math.max(3, percent)}%`, background: item.color || '#8E7CDA' }}/></div>
           </div>
-          <span className="rank-percent">{percent}%</span>
           <strong className="rank-amount">{formatCompactMoney(item.amount_cents)}</strong>
         </div>;
       })}
+      {props.onViewAll ? <button className="rank-more" type="button" onClick={props.onViewAll}><span>查看全部分类</span><small>共 {items.length} 项</small><Icon name="chevron-right" size={16}/></button> : null}
     </div>
   </div>;
 }
@@ -582,7 +601,7 @@ class DashboardPage extends React.Component<any, any> {
           <section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">最近记录</h3><p className="card-subtitle">最新的六笔小账</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('transactions')}>全部明细</button></div>{data.recent.length ? <div className="list">{data.recent.map((item: any, index: number) => <TransactionItem key={item.id} item={item} index={index}/>)}</div> : <EmptyState title="这里还没有记录" message="今天发生的第一笔小事，可以从这里开始。" action={<button className="btn btn-primary" onClick={() => this.props.navigate('add')}>记第一笔</button>}/>}</section>
         </div>
         <div className="stack">
-          <section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">钱花去了哪里</h3><p className="card-subtitle">本月支出分类</p></div></div><DonutChart items={this.state.categories}/></section>
+          <section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">钱花去了哪里</h3><p className="card-subtitle">本月支出分类</p></div></div><DonutChart items={this.state.categories} compact onViewAll={() => this.props.navigate('stats')}/></section>
           <section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">预算进度</h3><p className="card-subtitle">控制节奏，不用给自己压力</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('budgets')}>管理预算</button></div>{data.budgetCents > 0 ? <div style={{ marginBottom: '16px' }}><div className="budget-top"><span>总预算</span><strong>{formatCompactMoney(data.budgetUsedCents)} / {formatCompactMoney(data.budgetCents)}</strong></div><div className="progress-track"><div className={cn('progress-fill', budgetPercent >= 100 ? 'over' : budgetPercent >= 80 ? 'notice' : 'normal')} style={{ width: `${Math.max(2, budgetPercent)}%` }}/></div></div> : null}<BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section>
         </div>
       </div>
@@ -881,7 +900,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.4 · 角色关系与视觉系统升级</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.5 · 角色重绘与图表布局升级</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {

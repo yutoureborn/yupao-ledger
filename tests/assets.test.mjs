@@ -51,24 +51,27 @@ test('认证资源使用版本参数且 Service Worker 优先获取网络新版�
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.4/);
-  assert.match(bootstrap, /app\.js\?v=0\.2\.4/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.5/);
+  assert.match(bootstrap, /app\.js\?v=0\.2\.5/);
   assert.match(worker, /yupao-shell-v5/);
   assert.match(worker, /cache: ['"]no-store['"]/);
 });
 
-test('支出分类卡片采用稳定列布局并避免分类名换行', async () => {
+test('支出分类卡片在侧栏和完整统计中均展示分类列表', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
-  const app = await readFile(path.join(dist, 'app.js'), 'utf8');
-  assert.match(css, /grid-template-columns:\s*38px\s+minmax\(0,1fr\)\s+54px\s+76px/);
+  const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
+  assert.match(css, /\.donut-layout\.compact\s*\{[^}]*grid-template-columns:\s*1fr/);
+  assert.match(css, /grid-template-columns:\s*22px\s+40px\s+minmax\(0,1fr\)\s+72px/);
   assert.match(css, /\.rank-label[^}]*white-space:\s*nowrap/);
   assert.match(css, /@container spending/);
-  assert.match(app, /spending-card/);
+  assert.match(app, /compact/);
+  assert.match(app, /查看全部分类/);
+  assert.match(app, /category-ranking/);
 });
 
 test('芋头与炮台使用互换后的角色职责、正式配色和减少动态降级', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
-  const app = await readFile(path.join(dist, 'app.js'), 'utf8');
+  const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
 
   // 芋头负责快速记账和成功反馈。
   assert.match(app, /taro-pencil/);
@@ -85,12 +88,19 @@ test('芋头与炮台使用互换后的角色职责、正式配色和减少动�
   assert.match(css, /sorted-check/);
 
   // 正式角色配色。
-  assert.match(css, /--mascot-taro-main:\s*#a78bda/i);
-  assert.match(css, /--mascot-cannon-main:\s*#4f7c64/i);
-  assert.match(css, /--mascot-cannon-black:\s*#252a28/i);
-  assert.match(app, /fill:\s*"#A78BDA"/);
-  assert.match(app, /fill:\s*"#4F7C64"/);
-  assert.match(app, /fill:\s*"#252A28"/);
+  assert.match(css, /--mascot-taro-main:\s*#9b78ce/i);
+  assert.match(css, /--mascot-cannon-main:\s*#55775b/i);
+  assert.match(css, /--mascot-cannon-black:\s*#26302c/i);
+  assert.match(app, /id="taro-main"/);
+  assert.match(app, /#9B78CE/);
+  assert.match(app, /id="cannon-main"/);
+  assert.match(app, /#55775B/);
+  assert.match(app, /#26302C/);
 
+  // 参考拟人蔬菜风格：有纹理、夸张眼睛、手脚和玩具机械结构。
+  assert.match(app, /taro-texture/);
+  assert.match(app, /taro-legs/);
+  assert.match(app, /cannon-wheels/);
+  assert.match(app, /rx="12" ry="14"/);
   assert.match(css, /prefers-reduced-motion/);
 });

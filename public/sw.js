@@ -1,7 +1,7 @@
 const CACHE_NAME = 'yupao-shell-v5';
 const SHELL = [
-  '/index.html', '/styles.css?v=0.2.4', '/app.js?v=0.2.4', '/manifest.webmanifest?v=0.2.4',
-  '/vendor/preact.mjs', '/vendor/preact-bootstrap.mjs?v=0.2.4',
+  '/index.html', '/styles.css?v=0.2.5', '/app.js?v=0.2.5', '/manifest.webmanifest?v=0.2.5',
+  '/vendor/preact.mjs', '/vendor/preact-bootstrap.mjs?v=0.2.5',
   '/icons/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png'
 ];
 
