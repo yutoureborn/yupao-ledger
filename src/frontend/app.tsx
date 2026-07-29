@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.2.7';
+const APP_VERSION = '0.2.8';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -253,48 +253,85 @@ function Icon(props: any): any {
   return <svg className={props.className || 'nav-icon'} width={props.size || 22} height={props.size || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{content}</svg>;
 }
 
+function TaroCharacter(props: any = {}): any {
+  const mode = props.mode || 'ledger';
+  const showPencil = mode === 'quick' || mode === 'idle';
+  const showLedger = mode === 'ledger' || mode === 'success' || mode === 'idle';
+  const showPlus = mode === 'quick';
+  return <svg className="mascot-svg taro-svg" viewBox="0 0 180 210" aria-hidden="true">
+    <ellipse cx="90" cy="194" rx="52" ry="9" fill="#2D241E" opacity=".08"/>
+    <path d="M91 34C62 33 39 62 38 106c-1 48 20 80 53 80s56-31 54-79c-2-45-24-72-54-73Z" fill="#9A78C7" stroke="#51405F" strokeWidth="3"/>
+    <path d="M54 84c10-22 30-35 52-34 12 1 22 5 31 13-8-19-23-30-46-29-17 0-31 10-37 25Z" fill="#B99BE0" opacity=".62"/>
+    <path d="M77 37c-13-19-6-31 5-34 10 8 11 20-5 34ZM91 35c3-22 17-27 27-18-2 12-10 20-27 18Z" fill="#79924A" stroke="#4F6534" strokeWidth="2.5"/>
+    <path d="M52 75c15 3 26 2 38-3M48 99c19 4 35 4 50-2M49 124c21 4 38 2 56-3M58 151c18 3 34 2 49-3" fill="none" stroke="#8060AC" strokeWidth="3" strokeLinecap="round" opacity=".5"/>
+    <circle cx="72" cy="104" r="8" fill="#2D2534"/><circle cx="110" cy="104" r="8" fill="#2D2534"/>
+    <circle cx="69" cy="101" r="2.5" fill="#FFF"/><circle cx="107" cy="101" r="2.5" fill="#FFF"/>
+    <ellipse cx="58" cy="119" rx="10" ry="5" fill="#E6A6C2" opacity=".9"/><ellipse cx="124" cy="119" rx="10" ry="5" fill="#E6A6C2" opacity=".9"/>
+    <path d="M79 120c7 8 16 8 23 0" fill="none" stroke="#3D2E45" strokeWidth="3" strokeLinecap="round"/>
+    <path d="M48 139c-14 5-17 14-14 20M135 137c14 5 18 13 16 19" fill="none" stroke="#51405F" strokeWidth="4" strokeLinecap="round"/>
+    <path d="M72 181c-5 11-15 13-21 8M111 181c6 11 16 13 21 7" fill="none" stroke="#51405F" strokeWidth="5" strokeLinecap="round"/>
+    {showPencil ? <g transform="translate(20 118) rotate(-10)"><rect x="0" y="0" width="17" height="72" rx="6" fill="#F0B94C" stroke="#5D4725" strokeWidth="2"/><path d="M0 11h17" stroke="#E37964" strokeWidth="8"/><path d="M3 0 8.5-14 14 0Z" fill="#EFE0BC" stroke="#5D4725" strokeWidth="2"/><path d="M7-10h3l-1.5-4Z" fill="#3B3127"/></g> : null}
+    {showLedger ? <g transform="translate(107 128) rotate(5)"><rect x="0" y="0" width="50" height="55" rx="8" fill="#F7E5B5" stroke="#6E5939" strokeWidth="2.5"/><path d="M8 13h34M8 22h28M8 31h24" stroke="#B49865" strokeWidth="2" strokeLinecap="round"/><path d="m18 42 7 7 14-16" fill="none" stroke="#78A65B" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></g> : null}
+    {showPlus ? <g transform="translate(129 50)"><circle cx="16" cy="16" r="15" fill="#EEF3E2" stroke="#7BA05D" strokeWidth="2"/><path d="M16 8v16M8 16h16" stroke="#5B8246" strokeWidth="3" strokeLinecap="round"/></g> : null}
+  </svg>;
+}
+
+function CannonCharacter(props: any = {}): any {
+  const mode = props.mode || 'organize';
+  const showChart = mode === 'summary';
+  const showShield = mode === 'safe';
+  const showAlert = mode === 'warning';
+  return <svg className="mascot-svg cannon-svg" viewBox="0 0 220 190" aria-hidden="true">
+    <ellipse cx="112" cy="174" rx="72" ry="10" fill="#25231F" opacity=".08"/>
+    <rect x="48" y="78" width="112" height="68" rx="28" fill="#7F9F56" stroke="#34432B" strokeWidth="3"/>
+    <path d="M52 99c25-22 74-28 104-8-6-20-22-29-48-29-29 0-48 12-56 37Z" fill="#A6C56D" opacity=".7"/>
+    <path d="M104 70 133 26c6-9 15-11 24-7l42 18c9 4 10 17 2 23l-58 42Z" fill="#262927" stroke="#111411" strokeWidth="4"/>
+    <path d="M137 29 194 53" stroke="#5D625F" strokeWidth="5" strokeLinecap="round" opacity=".55"/>
+    <ellipse cx="195" cy="48" rx="18" ry="24" fill="#111411" transform="rotate(-67 195 48)"/>
+    <ellipse cx="196" cy="47" rx="9" ry="14" fill="#3B3E3B" transform="rotate(-67 196 47)"/>
+    <path d="M143 24c3-9 12-14 19-9" fill="none" stroke="#F0BE3F" strokeWidth="5" strokeLinecap="round"/>
+    <path d="M56 84h96" stroke="#F2C34A" strokeWidth="7" strokeLinecap="round"/>
+    <circle cx="74" cy="115" r="7" fill="#253024"/><circle cx="112" cy="115" r="7" fill="#253024"/>
+    <circle cx="72" cy="112" r="2.2" fill="#FFF"/><circle cx="110" cy="112" r="2.2" fill="#FFF"/>
+    <ellipse cx="61" cy="129" rx="9" ry="4.5" fill="#EAB0A2" opacity=".85"/><ellipse cx="126" cy="129" rx="9" ry="4.5" fill="#EAB0A2" opacity=".85"/>
+    <path d="M82 130c8 7 15 7 22 0" fill="none" stroke="#2B3329" strokeWidth="3" strokeLinecap="round"/>
+    <circle cx="67" cy="153" r="22" fill="#252927" stroke="#111411" strokeWidth="3"/><circle cx="141" cy="153" r="22" fill="#252927" stroke="#111411" strokeWidth="3"/>
+    <circle cx="67" cy="153" r="10" fill="#F0BE3F"/><circle cx="141" cy="153" r="10" fill="#F0BE3F"/>
+    <circle cx="67" cy="153" r="4" fill="#5E6B56"/><circle cx="141" cy="153" r="4" fill="#5E6B56"/>
+    <path d="M48 116c-15 2-22-4-24-12M159 113c14-2 20-9 21-18" fill="none" stroke="#34432B" strokeWidth="4" strokeLinecap="round"/>
+    <circle cx="22" cy="102" r="7" fill="#F0BE3F" stroke="#34432B" strokeWidth="2"/><circle cx="181" cy="93" r="7" fill="#F0BE3F" stroke="#34432B" strokeWidth="2"/>
+    {showChart ? <g transform="translate(2 18)"><rect x="0" y="0" width="72" height="58" rx="8" fill="#FFFDF8" stroke="#5D6E53" strokeWidth="2"/><rect x="13" y="34" width="9" height="14" rx="2" fill="#89A95F"/><rect x="30" y="24" width="9" height="24" rx="2" fill="#F0BE3F"/><rect x="47" y="14" width="9" height="34" rx="2" fill="#303330"/><path d="M11 11h44" stroke="#C8C1B5" strokeWidth="2"/></g> : null}
+    {showShield ? <g transform="translate(5 20)"><path d="M34 0 65 12v24c0 25-16 38-31 45C19 74 3 61 3 36V12Z" fill="#EEF3E5" stroke="#63814B" strokeWidth="3"/><rect x="23" y="32" width="22" height="19" rx="5" fill="#F0BE3F"/><path d="M28 32v-7a6 6 0 0 1 12 0v7" fill="none" stroke="#34432B" strokeWidth="3"/></g> : null}
+    {showAlert ? <g transform="translate(9 22)"><circle cx="26" cy="26" r="23" fill="#FFF4D8" stroke="#D59D2F" strokeWidth="3"/><path d="M26 13v18M26 39h.1" stroke="#A9761F" strokeWidth="4" strokeLinecap="round"/></g> : null}
+  </svg>;
+}
+
 function LogoMark(): any {
   return <svg viewBox="0 0 72 72" width="44" height="44" aria-hidden="true">
-    <rect width="72" height="72" rx="21" fill="#FFF9F3"/>
-    <ellipse cx="27" cy="40" rx="17" ry="20" fill="#9B78CE"/>
-    <path d="M14 38c1-15 7-25 17-25 10 0 17 10 18 25-8-4-27-4-35 0Z" fill="#A98AE0"/>
-    <path d="M23 19c-6-10-1-16 5-17 5 6 5 12-5 17ZM30 18c2-11 10-14 15-9-1 7-6 11-15 9Z" fill="#6A9E63"/>
-    <circle cx="22" cy="38" r="5" fill="#FFF"/><circle cx="34" cy="38" r="5" fill="#FFF"/>
-    <circle cx="23" cy="39" r="2.7" fill="#35253E"/><circle cx="35" cy="39" r="2.7" fill="#35253E"/>
-    <circle cx="24" cy="37.8" r="1" fill="#FFF"/><circle cx="36" cy="37.8" r="1" fill="#FFF"/>
-    <path d="M24 47c3 4 7 4 10 0" fill="none" stroke="#35253E" strokeWidth="2.3" strokeLinecap="round"/>
-    <rect x="42" y="37" width="21" height="15" rx="7" fill="#55775B"/>
-    <path d="M48 35h13l6-8c2-3-1-6-4-5l-15 6Z" fill="#26302C"/>
-    <ellipse cx="64" cy="27" rx="4" ry="6" fill="#111714" transform="rotate(-19 64 27)"/>
-    <circle cx="48" cy="55" r="6" fill="#1F2623"/><circle cx="59" cy="55" r="6" fill="#1F2623"/>
-    <circle cx="48" cy="55" r="2.5" fill="#8AA28E"/><circle cx="59" cy="55" r="2.5" fill="#8AA28E"/>
-    <circle cx="49" cy="43" r="1.5" fill="#FFF"/><circle cx="56" cy="43" r="1.5" fill="#FFF"/>
-    <circle cx="49.5" cy="43.5" r=".7" fill="#1C2521"/><circle cx="56.5" cy="43.5" r=".7" fill="#1C2521"/>
+    <rect width="72" height="72" rx="18" fill="#FAF7F1"/>
+    <path d="M27 16c-10 0-18 10-18 25 0 14 7 22 18 22s18-8 18-22c0-15-8-25-18-25Z" fill="#9A78C7" stroke="#51405F" strokeWidth="2"/>
+    <path d="M22 18c-5-8-1-13 4-14 4 5 4 9-4 14ZM29 17c2-9 8-11 13-6-2 5-5 8-13 6Z" fill="#79924A"/>
+    <circle cx="22" cy="39" r="2.5" fill="#2D2534"/><circle cx="31" cy="39" r="2.5" fill="#2D2534"/>
+    <path d="M23 46c3 3 6 3 9 0" fill="none" stroke="#3D2E45" strokeWidth="2" strokeLinecap="round"/>
+    <rect x="40" y="36" width="23" height="16" rx="7" fill="#7F9F56" stroke="#34432B" strokeWidth="2"/>
+    <path d="m47 35 7-12 15 6-13 11Z" fill="#252927" stroke="#111411" strokeWidth="2"/>
+    <circle cx="47" cy="55" r="6" fill="#252927"/><circle cx="58" cy="55" r="6" fill="#252927"/>
+    <circle cx="47" cy="55" r="2.5" fill="#F0BE3F"/><circle cx="58" cy="55" r="2.5" fill="#F0BE3F"/>
   </svg>;
 }
 
 function Mascot(props: any): any {
   const variant = props.variant || 'idle';
-  const sourceMap: Record<string, string> = {
-    idle: '/illustrations/hero-duo.webp',
-    loading: '/illustrations/duo-mini.webp',
-    empty: '/illustrations/taro-quick.webp',
-    success: '/illustrations/taro-ledger.webp',
-    warning: '/illustrations/cannon-organize.webp',
-    safe: '/illustrations/cannon-organize.webp',
-    summary: '/illustrations/cannon-summary.webp',
+  const taroMode = variant === 'empty' ? 'quick' : variant === 'success' ? 'success' : 'ledger';
+  const cannonMode = variant === 'summary' ? 'summary' : variant === 'safe' ? 'safe' : variant === 'warning' ? 'warning' : 'organize';
+  const onlyTaro = variant === 'empty' || variant === 'success';
+  const onlyCannon = variant === 'summary' || variant === 'safe' || variant === 'warning';
+  const labelMap: Record<string, string> = {
+    idle: '芋头与绿黄黑炮台一起守着小账本', loading: '芋头与炮台正在整理数据', empty: '芋头拿着铅笔邀请你记账', success: '芋头抱着账本完成记账', warning: '炮台提醒预算接近上限', safe: '炮台守护账户安全', summary: '炮台展示本月统计结果',
   };
-  const altMap: Record<string, string> = {
-    idle: '芋泥紫芋头和绿黑炮台一起守着小账本',
-    loading: '芋头和炮台正在整理小账本',
-    empty: '芋头拿着铅笔邀请你记下第一笔',
-    success: '芋头抱着小账本完成记账',
-    warning: '炮台拿着清单提醒预算进度',
-    safe: '炮台认真整理并守护账本',
-    summary: '绿黑炮台展示本月统计结果',
-  };
-  return <div className={cn('static-mascot', `static-mascot-${variant}`)} role="img" aria-label={props.label || altMap[variant] || altMap.idle}>
-    <img src={sourceMap[variant] || sourceMap.idle} alt="" loading={variant === 'idle' ? 'eager' : 'lazy'} decoding="async"/>
+  return <div className={cn('static-mascot', `static-mascot-${variant}`)} role="img" aria-label={props.label || labelMap[variant] || labelMap.idle}>
+    {!onlyCannon ? <TaroCharacter mode={taroMode}/> : null}
+    {!onlyTaro ? <CannonCharacter mode={cannonMode}/> : null}
   </div>;
 }
 
@@ -470,6 +507,13 @@ function BudgetProgressList(props: any): any {
   })}</div>;
 }
 
+function SummaryMetric(props: any): any {
+  return <article className={cn('card', 'summary-card', `summary-${props.tone}`)}>
+    <div className="summary-icon"><Icon name={props.icon} size={19}/></div>
+    <div className="summary-content"><span className="summary-label">{props.label}</span><span className="summary-value"><AnimatedNumber value={props.value}>{(value: number) => formatMoney(value)}</AnimatedNumber></span><div className="summary-note">{props.note}</div></div>
+  </article>;
+}
+
 class DashboardPage extends React.Component<any, any> {
   constructor(props: any) { super(props); this.state = { loading: true, overview: null, trend: [], categories: [], budgets: [], invoiceSummary: null }; }
   componentDidMount(): void { this.load(); }
@@ -499,11 +543,11 @@ class DashboardPage extends React.Component<any, any> {
         <div className="hero-copy"><span className="hero-kicker">{monthLabel(this.props.month)}的小账</span><h2>{data.expenseCents > 0 ? '这个月的生活，已经有迹可循啦' : '先记下这个月的第一笔吧'}</h2><p>{data.expenseCents > 0 ? `目前支出 ${formatMoney(data.expenseCents)}，结余 ${formatMoney(data.balanceCents)}。慢慢记，不用一次做得很复杂。` : '从一杯饮料、一顿饭开始，小账本会慢慢长成你们的生活地图。'}</p><div className="hero-actions"><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/>记一笔</button><button className="btn btn-secondary" onClick={() => this.props.navigate('transactions')}>看看明细</button></div></div>
         <div className="hero-mascot"><Mascot variant={data.budgetCents > 0 && budgetPercent >= 90 ? 'warning' : 'idle'}/></div>
       </section>
-      <section className="grid grid-4" style={{ marginTop: '18px' }}>
-        <article className="card summary-card summary-income"><span className="summary-label">本月收入</span><span className="summary-value"><AnimatedNumber value={data.incomeCents}>{(value: number) => formatMoney(value)}</AnimatedNumber></span><div className="summary-note">上月 {formatCompactMoney(data.previousIncomeCents)}</div></article>
-        <article className="card summary-card summary-expense"><span className="summary-label">本月支出</span><span className="summary-value"><AnimatedNumber value={data.expenseCents}>{(value: number) => formatMoney(value)}</AnimatedNumber></span><div className="summary-note">上月 {formatCompactMoney(data.previousExpenseCents)}</div></article>
-        <article className="card summary-card summary-balance"><span className="summary-label">本月结余</span><span className="summary-value"><AnimatedNumber value={data.balanceCents}>{(value: number) => formatMoney(value)}</AnimatedNumber></span><div className="summary-note">收入减去支出</div></article>
-        <article className="card summary-card summary-assets"><span className="summary-label">账户合计</span><span className="summary-value"><AnimatedNumber value={data.totalBalanceCents}>{(value: number) => formatMoney(value)}</AnimatedNumber></span><div className="summary-note">共 {data.accounts.length} 个使用中账户</div></article>
+      <section className="grid grid-4 summary-grid" style={{ marginTop: '18px' }}>
+        <SummaryMetric tone="income" icon="wallet" label="本月收入" value={data.incomeCents} note={`上月 ${formatCompactMoney(data.previousIncomeCents)}`}/>
+        <SummaryMetric tone="expense" icon="chart" label="本月支出" value={data.expenseCents} note={`上月 ${formatCompactMoney(data.previousExpenseCents)}`}/>
+        <SummaryMetric tone="balance" icon="target" label="本月结余" value={data.balanceCents} note="收入减去支出"/>
+        <SummaryMetric tone="assets" icon="wallet" label="账户合计" value={data.totalBalanceCents} note={`共 ${data.accounts.length} 个使用中账户`}/>
       </section>
       <div className="dashboard-grid">
         <div className="stack">
@@ -716,7 +760,7 @@ class InvoicesPage extends React.Component<any, any> {
   render(): any {
     const summary = this.state.summary || { received: {}, issued: {} };
     return <div className="page invoice-page"><PageHeader title="发票夹" subtitle="收到的发票关联支出，开出的发票关联收入。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.change({ month })}/><button className="btn btn-primary" onClick={() => this.setState({ creating: true })}><Icon name="plus" size={18}/>记发票</button></PageHeader>
-      <section className="invoice-journal-hero card"><div><span className="journal-sticker">INVOICE JOURNAL</span><h2>每一张票，都和一笔小账对得上</h2><p>先记录发票，再选择关联的收入或支出；暂时找不到对应记录，也可以稍后补关联。</p></div><div className="invoice-hero-doodles"><span>🧾</span><span>📎</span><span>✿</span></div></section>
+      <section className="invoice-journal-hero card"><div className="invoice-hero-icon"><Icon name="invoice" size={26}/></div><div><span className="journal-sticker">发票管理</span><h2>每张发票，都能找到对应的小账</h2><p>收到的发票关联支出，开出的发票关联收入；暂时没有对应记录，也可以稍后补充。</p></div></section>
       <section className="invoice-summary-grid"><button className={cn('invoice-summary-card received', this.state.type === 'received' && 'active')} onClick={() => this.change({ type: 'received' })}><span>收到的发票</span><strong>{formatMoney(summary.received.amountCents || 0)}</strong><small>{summary.received.count || 0} 张 · 已关联 {summary.received.linkedCount || 0}</small></button><button className={cn('invoice-summary-card issued', this.state.type === 'issued' && 'active')} onClick={() => this.change({ type: 'issued' })}><span>开出的发票</span><strong>{formatMoney(summary.issued.amountCents || 0)}</strong><small>{summary.issued.count || 0} 张 · 已关联 {summary.issued.linkedCount || 0}</small></button></section>
       <section className="card card-pad invoice-list-card"><div className="invoice-tabs"><button className={cn(this.state.type === 'received' && 'active')} onClick={() => this.change({ type: 'received' })}>我收到的</button><button className={cn(this.state.type === 'issued' && 'active')} onClick={() => this.change({ type: 'issued' })}>我开出的</button></div><div className="filter-bar invoice-filter-bar"><select className="select" value={this.state.status} onChange={(event: any) => this.change({ status: event.target.value })}><option value="recorded">正常发票</option><option value="void">已作废</option></select><select className="select" value={this.state.linked} onChange={(event: any) => this.change({ linked: event.target.value })}><option value="">全部关联状态</option><option value="true">已关联收支</option><option value="false">未关联</option></select><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索号码、抬头或对方名称" value={this.state.search} onChange={(event: any) => this.setState({ search: event.target.value })} onKeyDown={(event: any) => { if (event.key === 'Enter') this.load(); }}/></div><button className="btn btn-secondary" onClick={() => this.load()}>搜索</button></div><div className="card-title-row"><div><h3 className="card-title">{this.state.type === 'received' ? '我收到的发票' : '我开出的发票'}</h3><p className="card-subtitle">{monthLabel(this.state.month)} · 共 {this.state.total} 张</p></div></div>{this.state.loading ? <div className="stack"><div className="skeleton" style={{ height: '100px' }}/><div className="skeleton" style={{ height: '100px' }}/></div> : this.state.items.length ? <div className="invoice-list">{this.state.items.map((item: any) => <InvoiceItem key={item.id} item={item} onEdit={(entry: any) => this.setState({ edit: entry })} onVoid={(entry: any) => this.voidItem(entry)} onRestore={(entry: any) => this.restoreItem(entry)}/>)}</div> : <EmptyState title="发票夹还是空的" message={this.state.type === 'received' ? '收到发票后记在这里，再和对应支出关联。' : '开出发票后记在这里，再和对应收入关联。'} action={<button className="btn btn-primary" onClick={() => this.setState({ creating: true })}>记第一张发票</button>}/>}</section>
       <Modal open={this.state.creating || Boolean(this.state.edit)} title={this.state.edit ? '编辑发票' : '记录一张发票'} onClose={() => this.setState({ creating: false, edit: null })}><InvoiceForm initial={this.state.edit} defaultType={this.state.type} transactions={this.state.transactions} onCancel={() => this.setState({ creating: false, edit: null })} onSuccess={() => { this.setState({ creating: false, edit: null }); this.load(); this.props.onChanged(); this.props.onToast('发票已经收进夹子', 'success'); }}/></Modal>
@@ -893,7 +937,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.7 · 手账贴纸 UI 与发票关联功能</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.8 · 轻量组件化 UI 与 SVG 角色</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {

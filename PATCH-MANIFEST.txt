@@ -1,0 +1,22 @@
+芋炮小账本 v0.2.8 轻量组件化代码补丁
+
+覆盖文件：
+- src/frontend/app.tsx
+- public/styles.css
+- public/index.html
+- public/manifest.webmanifest
+- public/sw.js
+- public/vendor/preact-bootstrap.mjs
+- package.json
+- README.md
+- RELEASE-NOTES.md
+- tests/assets.test.mjs
+- docs/UI-STYLE-v0.2.8.md
+- docs/UPGRADE-v0.2.8.md
+- docs/EXECUTION-RESULT-v0.2.8.md
+
+不包含：
+- wrangler.jsonc
+- migrations
+- 任何 Secret
+- D1 Database ID

@@ -1,9 +1,8 @@
-const CACHE_NAME = 'yupao-shell-v7';
+const CACHE_NAME = 'yupao-shell-v8';
 const SHELL = [
-  '/index.html', '/styles.css?v=0.2.7', '/app.js?v=0.2.7', '/manifest.webmanifest?v=0.2.7',
-  '/vendor/preact.mjs', '/vendor/preact-bootstrap.mjs?v=0.2.7',
-  '/icons/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png',
-  '/illustrations/hero-duo.webp', '/illustrations/taro-quick.webp', '/illustrations/cannon-summary.webp'
+  '/index.html', '/styles.css?v=0.2.8', '/app.js?v=0.2.8', '/manifest.webmanifest?v=0.2.8',
+  '/vendor/preact.mjs', '/vendor/preact-bootstrap.mjs?v=0.2.8',
+  '/icons/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

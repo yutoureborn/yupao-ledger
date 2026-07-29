@@ -52,9 +52,9 @@ test('认证资源使用版本参数且 Service Worker 优先获取网络新版�
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.7/);
-  assert.match(bootstrap, /app\.js\?v=0\.2\.7/);
-  assert.match(worker, /yupao-shell-v7/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.8/);
+  assert.match(bootstrap, /app\.js\?v=0\.2\.8/);
+  assert.match(worker, /yupao-shell-v8/);
   assert.match(worker, /cache: ['"]no-store['"]/);
 });
 
@@ -70,44 +70,37 @@ test('支出分类卡片在侧栏和完整统计中均展示分类列表', async
   assert.match(app, /category-ranking/);
 });
 
-test('芋头与炮台使用静态拟人插画、角色职责和减少动态降级', async () => {
+test('芋头与炮台使用内联 SVG 组件、角色职责和减少动态降级', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
 
-  // 芋头负责快速记账，炮台负责整理统计与安全。
-  assert.match(app, /taro-quick\.webp/);
-  assert.match(app, /taro-ledger\.webp/);
-  assert.match(app, /cannon-summary\.webp/);
-  assert.match(app, /cannon-organize\.webp/);
+  assert.match(app, /function TaroCharacter/);
+  assert.match(app, /function CannonCharacter/);
+  assert.match(app, /mascot-svg taro-svg/);
+  assert.match(app, /mascot-svg cannon-svg/);
+  assert.match(app, /#7F9F56/i);
+  assert.match(app, /#F0BE3F/i);
+  assert.match(app, /#262927/i);
   assert.match(app, /芋头准备好啦/);
   assert.match(app, /炮台已经整理好本月数据/);
+  assert.doesNotMatch(app, /\/illustrations\//);
 
-  // 静态角色只保留轻微淡入或悬浮，不再依赖复杂 SVG 肢体动画。
   assert.match(css, /\.static-mascot/);
-  assert.match(css, /static-reveal/);
-  assert.doesNotMatch(css, /static-float/);
+  assert.match(css, /\.mascot-svg/);
   assert.match(css, /prefers-reduced-motion/);
-  assert.doesNotMatch(app, /taro-pencil/);
-  assert.doesNotMatch(app, /cannon-wheels/);
-
-  // 新的奶油暖色 UI 与绿黑/芋泥紫角色资产均进入构建结果。
-  assert.match(css, /--primary:\s*#E47C55/i);
-  assert.match(css, /background:\s*linear-gradient\(180deg, #E8865D/i);
-  for (const file of ['hero-duo.webp', 'taro-quick.webp', 'taro-ledger.webp', 'cannon-summary.webp', 'cannon-organize.webp']) {
-    await access(path.join(dist, 'illustrations', file));
-  }
+  assert.match(css, /--primary:\s*#8E6FB8/i);
 });
 
 
-test('发票页面与手账贴纸主题进入构建产物', async () => {
+test('发票页面与轻量组件化主题进入构建产物', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
   assert.match(app, /发票夹/);
   assert.match(app, /收到的发票只能关联支出/);
   assert.match(app, /开出的发票只能关联收入/);
   assert.match(app, /invoice-journal-hero/);
-  assert.match(css, /奶油手账/);
+  assert.match(app, /invoice-hero-icon/);
+  assert.match(css, /v0\.2\.8 · 轻量组件化视觉系统/);
   assert.match(css, /\.invoice-card/);
-  assert.match(css, /--primary:\s*#ee8faf/i);
-  assert.doesNotMatch(css, /static-float 6\.8s/);
+  assert.match(css, /--primary:\s*#8E6FB8/i);
 });
