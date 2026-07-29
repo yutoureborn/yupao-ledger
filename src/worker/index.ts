@@ -33,6 +33,8 @@ export interface Env {
 
 type TransactionType = 'expense' | 'income' | 'transfer';
 type CategoryType = 'expense' | 'income';
+type InvoiceType = 'received' | 'issued';
+type InvoiceStatus = 'recorded' | 'void';
 
 type UserContext = {
   userId: string;
@@ -661,7 +663,8 @@ async function listTransactions(env: Env, context: UserContext, url: URL): Promi
     env.DB,
     `SELECT t.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
             a.name AS account_name, ta.name AS target_account_name,
-            u.display_name AS creator_name
+            u.display_name AS creator_name,
+            (SELECT COUNT(*) FROM invoices i WHERE i.household_id = t.household_id AND i.transaction_id = t.id AND i.status = 'recorded') AS invoice_count
      FROM transactions t
      LEFT JOIN categories c ON c.id = t.category_id
      LEFT JOIN accounts a ON a.id = t.account_id
@@ -728,7 +731,8 @@ async function createTransaction(request: Request, env: Env, context: UserContex
 async function getTransaction(env: Env, context: UserContext, id: string): Promise<Record<string, unknown>> {
   const item = await queryFirst<Record<string, unknown>>(
     env.DB,
-    `SELECT t.*, c.name AS category_name, a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name
+    `SELECT t.*, c.name AS category_name, a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name,
+            (SELECT COUNT(*) FROM invoices i WHERE i.household_id = t.household_id AND i.transaction_id = t.id AND i.status = 'recorded') AS invoice_count
      FROM transactions t
      LEFT JOIN categories c ON c.id = t.category_id
      LEFT JOIN accounts a ON a.id = t.account_id
@@ -780,6 +784,190 @@ async function restoreTransaction(env: Env, context: UserContext, id: string): P
   const after = await getTransaction(env, context, id);
   await audit(env, context, 'restore', 'transaction', id, before, after);
   return ok(after);
+}
+
+
+function invoiceExpectedTransactionType(type: InvoiceType): 'expense' | 'income' {
+  return type === 'received' ? 'expense' : 'income';
+}
+
+async function validateInvoiceTransaction(env: Env, context: UserContext, type: InvoiceType, transactionId: string | null): Promise<void> {
+  if (!transactionId) return;
+  const transaction = await queryFirst<{ type: string }>(
+    env.DB,
+    'SELECT type FROM transactions WHERE id = ? AND household_id = ? AND deleted_at IS NULL',
+    transactionId,
+    context.householdId,
+  );
+  if (!transaction) throw new HttpError(400, 'TRANSACTION_NOT_FOUND', '所选收支记录不存在或已删除');
+  const expected = invoiceExpectedTransactionType(type);
+  if (transaction.type !== expected) {
+    throw new HttpError(400, 'INVOICE_TRANSACTION_TYPE_MISMATCH', type === 'received' ? '收到的发票只能关联支出记录' : '开出的发票只能关联收入记录');
+  }
+}
+
+function parseInvoiceBody(body: Record<string, unknown>): {
+  type: InvoiceType;
+  invoiceNumber: string;
+  invoiceCode: string | null;
+  title: string;
+  counterpartyName: string;
+  amountCents: number;
+  taxAmountCents: number;
+  invoiceDate: string;
+  transactionId: string | null;
+  note: string | null;
+} {
+  const type = assertEnum(body.type, '发票类型', ['received', 'issued'] as const);
+  const invoiceNumber = assertString(body.invoiceNumber, '发票号码', 80);
+  const invoiceCode = assertString(body.invoiceCode, '发票代码', 80, false) || null;
+  const title = assertString(body.title, '发票抬头/内容', 120);
+  const counterpartyName = assertString(body.counterpartyName, type === 'received' ? '开票方' : '客户名称', 120);
+  const amountCents = assertInteger(body.amountCents, '发票金额', 1, 999_999_999_99);
+  const taxAmountCents = assertInteger(body.taxAmountCents ?? 0, '税额', 0, amountCents);
+  const invoiceDate = assertDate(body.invoiceDate, '开票日期');
+  const transactionId = assertString(body.transactionId, '关联记录', 80, false) || null;
+  const note = assertString(body.note, '备注', 500, false) || null;
+  return { type, invoiceNumber, invoiceCode, title, counterpartyName, amountCents, taxAmountCents, invoiceDate, transactionId, note };
+}
+
+async function getInvoice(env: Env, context: UserContext, id: string): Promise<Record<string, unknown>> {
+  const item = await queryFirst<Record<string, unknown>>(
+    env.DB,
+    `SELECT i.*, t.type AS transaction_type, t.amount_cents AS transaction_amount_cents,
+      t.occurred_at AS transaction_occurred_at, t.merchant AS transaction_merchant,
+      c.name AS transaction_category_name, a.name AS transaction_account_name
+     FROM invoices i
+     LEFT JOIN transactions t ON t.id = i.transaction_id AND t.household_id = i.household_id
+     LEFT JOIN categories c ON c.id = t.category_id
+     LEFT JOIN accounts a ON a.id = t.account_id
+     WHERE i.id = ? AND i.household_id = ?`,
+    id,
+    context.householdId,
+  );
+  if (!item) throw new HttpError(404, 'INVOICE_NOT_FOUND', '没有找到这张发票');
+  return item;
+}
+
+async function listInvoices(env: Env, context: UserContext, url: URL): Promise<Response> {
+  const month = url.searchParams.get('month');
+  const type = url.searchParams.get('type');
+  const status = url.searchParams.get('status');
+  const linked = url.searchParams.get('linked');
+  const search = (url.searchParams.get('search') || '').trim();
+  const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 100, 1), 300);
+  const offset = Math.max(Number(url.searchParams.get('offset')) || 0, 0);
+  const clauses = ['i.household_id = ?'];
+  const params: unknown[] = [context.householdId];
+  if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    const range = monthRange(month);
+    clauses.push('i.invoice_date >= ? AND i.invoice_date < ?');
+    params.push(range.start, range.end);
+  }
+  if (type && ['received', 'issued'].includes(type)) { clauses.push('i.type = ?'); params.push(type); }
+  if (status && ['recorded', 'void'].includes(status)) { clauses.push('i.status = ?'); params.push(status); }
+  else clauses.push("i.status = 'recorded'");
+  if (linked === 'true') clauses.push('i.transaction_id IS NOT NULL');
+  if (linked === 'false') clauses.push('i.transaction_id IS NULL');
+  if (search) {
+    clauses.push("(i.invoice_number LIKE ? OR COALESCE(i.invoice_code, '') LIKE ? OR i.title LIKE ? OR i.counterparty_name LIKE ? OR COALESCE(i.note, '') LIKE ?)");
+    const pattern = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+    params.push(pattern, pattern, pattern, pattern, pattern);
+  }
+  const select = `SELECT i.*, t.type AS transaction_type, t.amount_cents AS transaction_amount_cents,
+      t.occurred_at AS transaction_occurred_at, t.merchant AS transaction_merchant,
+      c.name AS transaction_category_name, a.name AS transaction_account_name
+    FROM invoices i
+    LEFT JOIN transactions t ON t.id = i.transaction_id AND t.household_id = i.household_id
+    LEFT JOIN categories c ON c.id = t.category_id
+    LEFT JOIN accounts a ON a.id = t.account_id`;
+  const rows = await queryAll(env.DB, `${select} WHERE ${clauses.join(' AND ')} ORDER BY i.invoice_date DESC, i.created_at DESC LIMIT ? OFFSET ?`, ...params, limit, offset);
+  const count = await queryFirst<{ count: number }>(env.DB, `SELECT COUNT(*) AS count FROM invoices i WHERE ${clauses.join(' AND ')}`, ...params);
+  return ok({ items: rows, total: count?.count ?? rows.length, limit, offset });
+}
+
+async function createInvoice(request: Request, env: Env, context: UserContext): Promise<Response> {
+  const body = await readJson(request);
+  const data = parseInvoiceBody(body);
+  await validateInvoiceTransaction(env, context, data.type, data.transactionId);
+  const id = crypto.randomUUID();
+  try {
+    await run(env.DB, `INSERT INTO invoices
+      (id, household_id, type, status, invoice_number, invoice_code, title, counterparty_name, amount_cents, tax_amount_cents, currency, invoice_date, transaction_id, note, created_by, updated_by)
+      VALUES (?, ?, ?, 'recorded', ?, ?, ?, ?, ?, ?, 'CNY', ?, ?, ?, ?, ?)`,
+      id, context.householdId, data.type, data.invoiceNumber, data.invoiceCode, data.title, data.counterpartyName,
+      data.amountCents, data.taxAmountCents, data.invoiceDate, data.transactionId, data.note, context.userId, context.userId);
+  } catch (error) {
+    if (String(error).toLowerCase().includes('unique')) throw new HttpError(409, 'INVOICE_NUMBER_EXISTS', '同类型下已经记录过这个发票号码');
+    throw error;
+  }
+  const created = await getInvoice(env, context, id);
+  await audit(env, context, 'create', 'invoice', id, null, created);
+  return ok(created, 201);
+}
+
+async function updateInvoice(request: Request, env: Env, context: UserContext, id: string): Promise<Response> {
+  const before = await getInvoice(env, context, id);
+  if (before.status === 'void') throw new HttpError(409, 'INVOICE_VOID', '这张发票已经作废');
+  const body = await readJson(request);
+  const data = parseInvoiceBody(body);
+  const version = assertInteger(body.version, '版本', 1);
+  await validateInvoiceTransaction(env, context, data.type, data.transactionId);
+  let result: D1Result;
+  try {
+    result = await run(env.DB, `UPDATE invoices SET type = ?, invoice_number = ?, invoice_code = ?, title = ?, counterparty_name = ?,
+      amount_cents = ?, tax_amount_cents = ?, invoice_date = ?, transaction_id = ?, note = ?, updated_by = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND household_id = ? AND version = ? AND status = 'recorded'`,
+      data.type, data.invoiceNumber, data.invoiceCode, data.title, data.counterpartyName, data.amountCents, data.taxAmountCents,
+      data.invoiceDate, data.transactionId, data.note, context.userId, id, context.householdId, version);
+  } catch (error) {
+    if (String(error).toLowerCase().includes('unique')) throw new HttpError(409, 'INVOICE_NUMBER_EXISTS', '同类型下已经记录过这个发票号码');
+    throw error;
+  }
+  if ((result.meta?.changes ?? 0) === 0) throw new HttpError(409, 'VERSION_CONFLICT', '这张发票刚刚被另一台设备修改，请刷新后再试');
+  const after = await getInvoice(env, context, id);
+  await audit(env, context, 'update', 'invoice', id, before, after);
+  return ok(after);
+}
+
+async function voidInvoice(env: Env, context: UserContext, id: string): Promise<Response> {
+  const before = await getInvoice(env, context, id);
+  if (before.status !== 'void') {
+    await run(env.DB, "UPDATE invoices SET status = 'void', updated_by = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?", context.userId, id, context.householdId);
+    await audit(env, context, 'void', 'invoice', id, before, null);
+  }
+  return ok({ id, void: true });
+}
+
+async function restoreInvoice(env: Env, context: UserContext, id: string): Promise<Response> {
+  const before = await getInvoice(env, context, id);
+  if (before.status === 'void') {
+    try {
+      await run(env.DB, "UPDATE invoices SET status = 'recorded', updated_by = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?", context.userId, id, context.householdId);
+    } catch (error) {
+      if (String(error).toLowerCase().includes('unique')) throw new HttpError(409, 'INVOICE_NUMBER_EXISTS', '同类型下已经存在相同发票号码，无法恢复');
+      throw error;
+    }
+  }
+  const after = await getInvoice(env, context, id);
+  await audit(env, context, 'restore', 'invoice', id, before, after);
+  return ok(after);
+}
+
+async function invoiceSummary(env: Env, context: UserContext, url: URL): Promise<Response> {
+  const month = parseMonth(url.searchParams.get('month'));
+  const range = monthRange(month);
+  const rows = await queryAll<{ type: InvoiceType; amount_cents: number; count: number; linked_count: number }>(env.DB, `SELECT type,
+      COALESCE(SUM(amount_cents), 0) AS amount_cents, COUNT(*) AS count,
+      COALESCE(SUM(CASE WHEN transaction_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS linked_count
+    FROM invoices WHERE household_id = ? AND status = 'recorded' AND invoice_date >= ? AND invoice_date < ? GROUP BY type`,
+    context.householdId, range.start, range.end);
+  const received = rows.find((item) => item.type === 'received');
+  const issued = rows.find((item) => item.type === 'issued');
+  return ok({ month,
+    received: { amountCents: Number(received?.amount_cents || 0), count: Number(received?.count || 0), linkedCount: Number(received?.linked_count || 0) },
+    issued: { amountCents: Number(issued?.amount_cents || 0), count: Number(issued?.count || 0), linkedCount: Number(issued?.linked_count || 0) },
+  });
 }
 
 async function handleAccounts(request: Request, env: Env, context: UserContext, id?: string): Promise<Response> {
@@ -910,7 +1098,8 @@ async function overviewStats(env: Env, context: UserContext, url: URL): Promise<
     COALESCE(SUM(CASE WHEN type = 'expense' THEN amount_cents ELSE 0 END), 0) AS expense_cents
     FROM transactions WHERE household_id = ? AND deleted_at IS NULL AND occurred_at >= ? AND occurred_at < ?`, context.householdId, previousRange.start, previousRange.end);
   const recent = await queryAll(env.DB, `SELECT t.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
-      a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name
+      a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name,
+      (SELECT COUNT(*) FROM invoices i WHERE i.household_id = t.household_id AND i.transaction_id = t.id AND i.status = 'recorded') AS invoice_count
     FROM transactions t LEFT JOIN categories c ON c.id = t.category_id LEFT JOIN accounts a ON a.id = t.account_id
     LEFT JOIN accounts ta ON ta.id = t.target_account_id LEFT JOIN users u ON u.id = t.created_by
     WHERE t.household_id = ? AND t.deleted_at IS NULL ORDER BY t.occurred_at DESC, t.created_at DESC LIMIT 6`, context.householdId);
@@ -998,7 +1187,9 @@ async function exportData(env: Env, context: UserContext, format: 'csv' | 'json'
     WHERE t.household_id = ? AND t.deleted_at IS NULL ORDER BY t.occurred_at DESC`, context.householdId);
   const timestamp = new Date().toISOString().slice(0, 10);
   if (format === 'json') {
-    return new Response(JSON.stringify({ exportedAt: new Date().toISOString(), household: context.householdName, transactions: rows }, null, 2), {
+    const invoices = await queryAll<Record<string, unknown>>(env.DB, `SELECT i.type, i.status, i.invoice_number, i.invoice_code, i.title, i.counterparty_name, i.amount_cents, i.tax_amount_cents, i.currency, i.invoice_date, i.transaction_id, i.note, i.created_at, i.updated_at
+      FROM invoices i WHERE i.household_id = ? ORDER BY i.invoice_date DESC, i.created_at DESC`, context.householdId);
+    return new Response(JSON.stringify({ exportedAt: new Date().toISOString(), household: context.householdName, transactions: rows, invoices }, null, 2), {
       headers: { ...SECURITY_HEADERS, 'content-type': 'application/json; charset=utf-8', 'content-disposition': `attachment; filename="yupao-ledger-${timestamp}.json"`, 'cache-control': 'no-store' },
     });
   }
@@ -1278,6 +1469,18 @@ async function routeApi(request: Request, env: Env): Promise<Response> {
     if (request.method === 'GET') return ok(await getTransaction(env, context, id));
     if (request.method === 'PATCH') return updateTransaction(request, env, context, id);
     if (request.method === 'DELETE') return deleteTransaction(env, context, id);
+  }
+
+  if (url.pathname === '/api/invoices/summary' && request.method === 'GET') return invoiceSummary(env, context, url);
+  if (url.pathname === '/api/invoices' && request.method === 'GET') return listInvoices(env, context, url);
+  if (url.pathname === '/api/invoices' && request.method === 'POST') return createInvoice(request, env, context);
+  const invoiceMatch = url.pathname.match(/^\/api\/invoices\/([^/]+)(?:\/(restore))?$/);
+  if (invoiceMatch) {
+    const id = decodeURIComponent(invoiceMatch[1]);
+    if (invoiceMatch[2] === 'restore' && request.method === 'POST') return restoreInvoice(env, context, id);
+    if (request.method === 'GET') return ok(await getInvoice(env, context, id));
+    if (request.method === 'PATCH') return updateInvoice(request, env, context, id);
+    if (request.method === 'DELETE') return voidInvoice(env, context, id);
   }
 
   const accountMatch = url.pathname.match(/^\/api\/accounts(?:\/([^/]+))?$/);

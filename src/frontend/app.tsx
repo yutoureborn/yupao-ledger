@@ -1,7 +1,8 @@
 /* global React, ReactDOM */
 
-type RouteKey = 'home' | 'transactions' | 'add' | 'stats' | 'accounts' | 'budgets' | 'settings';
+type RouteKey = 'home' | 'transactions' | 'add' | 'invoices' | 'stats' | 'accounts' | 'budgets' | 'settings';
 type TransactionType = 'expense' | 'income' | 'transfer';
+type InvoiceType = 'received' | 'issued';
 
 type Bootstrap = {
   user: { id: string; email: string; displayName: string; role: string };
@@ -25,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.2.6';
+const APP_VERSION = '0.2.7';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -36,10 +37,11 @@ const ROUTES: Array<{ key: RouteKey; label: string; icon: string; mobile: boolea
   { key: 'home', label: '首页', icon: 'home', mobile: true },
   { key: 'transactions', label: '明细', icon: 'list', mobile: true },
   { key: 'add', label: '记一笔', icon: 'plus', mobile: true },
+  { key: 'invoices', label: '发票', icon: 'invoice', mobile: true },
   { key: 'stats', label: '统计', icon: 'chart', mobile: true },
   { key: 'accounts', label: '账户', icon: 'wallet', mobile: false },
   { key: 'budgets', label: '预算', icon: 'target', mobile: false },
-  { key: 'settings', label: '设置', icon: 'settings', mobile: true },
+  { key: 'settings', label: '设置', icon: 'settings', mobile: false },
 ];
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -49,7 +51,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
   alipay: '🔵', card: '💳', bank: '🏦', credit: '💳', stored: '🎫', other: '🧺',
 };
 
-const WARM_CHART_COLORS = ['#9B78CE', '#E8845E', '#7FA66B', '#F0B653', '#6D9FA7', '#C982A6', '#B88858'];
+const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8', '#9BCED4', '#E9A58F'];
 
 const ACCOUNT_TYPE_LABEL: Record<string, string> = {
   cash: '现金', wechat: '微信', alipay: '支付宝', bank: '银行卡', credit: '信用卡', stored: '储值账户', other: '其他',
@@ -117,6 +119,9 @@ function safePercent(value: number, total: number): number {
   if (!total || total <= 0) return 0;
   return Math.max(0, Math.min(100, (value / total) * 100));
 }
+
+function invoiceTypeLabel(type: InvoiceType): string { return type === 'received' ? '收到的发票' : '开出的发票'; }
+function invoiceCounterpartyLabel(type: InvoiceType): string { return type === 'received' ? '开票方' : '客户名称'; }
 
 function transactionTitle(item: any): string {
   if (item.type === 'transfer') return `${item.account_name || '账户'} → ${item.target_account_name || '账户'}`;
@@ -231,6 +236,7 @@ function Icon(props: any): any {
     case 'plus': content = <path d="M12 5v14M5 12h14"/>; break;
     case 'chart': content = <g><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></g>; break;
     case 'wallet': content = <g><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H19a2 2 0 0 1 2 2v13H5.5A2.5 2.5 0 0 1 3 16.5z"/><path d="M16 10h6v5h-6a2.5 2.5 0 0 1 0-5Z"/><circle cx="17" cy="12.5" r=".7" fill="currentColor" stroke="none"/></g>; break;
+    case 'invoice': content = <g><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 11h6M9 15h6M9 18h4"/><path d="M4 7v14h10"/></g>; break;
     case 'target': content = <g><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></g>; break;
     case 'settings': content = <g><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.2 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2v-4h.3A1.7 1.7 0 0 0 4 8.2a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.2 4a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V2h4v.3A1.7 1.7 0 0 0 15 4a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 8a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.9v4h-.9A1.7 1.7 0 0 0 19.4 15Z"/></g>; break;
     case 'chevron-left': content = <path d="m15 18-6-6 6-6"/>; break;
@@ -364,7 +370,7 @@ function TransactionItem(props: any): any {
   const sign = item.type === 'income' ? '+' : item.type === 'expense' ? '-' : '';
   return <div className="transaction-item" style={{ animationDelay: `${Math.min(props.index || 0, 10) * 35}ms` }}>
     <div className="transaction-icon" style={{ background: `${item.category_color || '#8E7CDA'}20` }}>{CATEGORY_EMOJI[item.category_icon] || (item.type === 'transfer' ? '↔️' : '✨')}</div>
-    <div className="transaction-main"><div className="transaction-name"><span>{transactionTitle(item)}</span>{item.type === 'transfer' ? <span className="tag">转账</span> : null}</div><div className="transaction-meta">{transactionMeta(item)}</div></div>
+    <div className="transaction-main"><div className="transaction-name"><span>{transactionTitle(item)}</span>{item.type === 'transfer' ? <span className="tag">转账</span> : null}{Number(item.invoice_count || 0) > 0 ? <span className="tag invoice-link-tag">🧾 {item.invoice_count}张</span> : null}</div><div className="transaction-meta">{transactionMeta(item)}</div></div>
     <div className="transaction-side"><div className={cn('transaction-amount', item.type)}>{sign}{formatMoney(item.amount_cents)}</div>{props.editable ? <div className="transaction-actions"><button className="mini-action" onClick={() => props.onEdit(item)}>编辑</button><button className="mini-action" onClick={() => props.onDelete(item)}>删除</button></div> : null}</div>
   </div>;
 }
@@ -465,18 +471,19 @@ function BudgetProgressList(props: any): any {
 }
 
 class DashboardPage extends React.Component<any, any> {
-  constructor(props: any) { super(props); this.state = { loading: true, overview: null, trend: [], categories: [], budgets: [] }; }
+  constructor(props: any) { super(props); this.state = { loading: true, overview: null, trend: [], categories: [], budgets: [], invoiceSummary: null }; }
   componentDidMount(): void { this.load(); }
   componentDidUpdate(prevProps: any): void { if (prevProps.month !== this.props.month || prevProps.refreshToken !== this.props.refreshToken) this.load(); }
   async load(): Promise<void> {
     this.setState({ loading: true });
     try {
       const month = this.props.month;
-      const [overview, trend, categories, budgets] = await Promise.all([
+      const [overview, trend, categories, budgets, invoiceSummary] = await Promise.all([
         apiRequest(`/api/stats/overview?month=${month}`), apiRequest(`/api/stats/trend?month=${month}`),
         apiRequest(`/api/stats/category-breakdown?month=${month}`), apiRequest(`/api/stats/budget-progress?month=${month}`),
+        apiRequest(`/api/invoices/summary?month=${month}`),
       ]);
-      this.setState({ loading: false, overview, trend: trend.items, categories: categories.items, budgets: budgets.items });
+      this.setState({ loading: false, overview, trend: trend.items, categories: categories.items, budgets: budgets.items, invoiceSummary });
     } catch (error: any) { this.setState({ loading: false }); this.props.onError(error.message); }
   }
   render(): any {
@@ -505,6 +512,7 @@ class DashboardPage extends React.Component<any, any> {
         </div>
         <div className="stack">
           <section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">钱花去了哪里</h3><p className="card-subtitle">本月支出分类</p></div></div><DonutChart items={this.state.categories} compact onViewAll={() => this.props.navigate('stats')}/></section>
+          <section className="card card-pad invoice-pocket-card"><div className="card-title-row"><div><h3 className="card-title">发票小夹子</h3><p className="card-subtitle">收入和支出的凭证都收在这里</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('invoices')}>打开</button></div><div className="invoice-pocket-grid"><button type="button" onClick={() => this.props.navigate('invoices')}><span>收到的</span><strong>{formatCompactMoney(this.state.invoiceSummary?.received?.amountCents || 0)}</strong><small>{this.state.invoiceSummary?.received?.count || 0} 张 · 已关联 {this.state.invoiceSummary?.received?.linkedCount || 0}</small></button><button type="button" onClick={() => this.props.navigate('invoices')}><span>开出的</span><strong>{formatCompactMoney(this.state.invoiceSummary?.issued?.amountCents || 0)}</strong><small>{this.state.invoiceSummary?.issued?.count || 0} 张 · 已关联 {this.state.invoiceSummary?.issued?.linkedCount || 0}</small></button></div></section>
           <section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">预算进度</h3><p className="card-subtitle">控制节奏，不用给自己压力</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('budgets')}>管理预算</button></div>{data.budgetCents > 0 ? <div style={{ marginBottom: '16px' }}><div className="budget-top"><span>总预算</span><strong>{formatCompactMoney(data.budgetUsedCents)} / {formatCompactMoney(data.budgetCents)}</strong></div><div className="progress-track"><div className={cn('progress-fill', budgetPercent >= 100 ? 'over' : budgetPercent >= 80 ? 'notice' : 'normal')} style={{ width: `${Math.max(2, budgetPercent)}%` }}/></div></div> : null}<BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section>
         </div>
       </div>
@@ -631,6 +639,88 @@ class StatsPage extends React.Component<any, any> {
   }
   render(): any {
     return <div className="page"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="grid grid-2"><section className="card role-assistant role-assistant-cannon form-span"><div className="role-assistant-copy"><strong>炮台已经整理好本月数据</strong><span>趋势、分类和预算都归好类了，慢慢看就行。</span></div><div className="role-assistant-mascot role-assistant-mascot-summary"><Mascot variant="summary" label="绿黑炮台投影本月图表，芋头在旁边查看"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
+  }
+}
+
+
+function InvoiceItem(props: any): any {
+  const item = props.item;
+  const isVoid = item.status === 'void';
+  const linkText = item.transaction_id
+    ? `${item.transaction_type === 'expense' ? '支出' : '收入'} · ${item.transaction_category_name || item.transaction_merchant || compactDate(item.transaction_occurred_at || '')}`
+    : '暂未关联收支';
+  return <article className={cn('invoice-card', isVoid && 'is-void')}>
+    <div className={cn('invoice-stamp', item.type)}><Icon name="invoice" size={20}/><span>{item.type === 'received' ? '收' : '开'}</span></div>
+    <div className="invoice-card-main"><div className="invoice-card-heading"><strong>{item.title}</strong><span className={cn('invoice-type-pill', item.type)}>{invoiceTypeLabel(item.type)}</span>{isVoid ? <span className="tag">已作废</span> : null}</div><p>{item.counterparty_name} · {item.invoice_number}</p><div className="invoice-link-line"><span>🔗 {linkText}</span><span>{dateLabel(item.invoice_date)}</span></div></div>
+    <div className="invoice-card-side"><strong>{formatMoney(item.amount_cents)}</strong>{item.tax_amount_cents ? <small>含税额 {formatMoney(item.tax_amount_cents)}</small> : <small>未单列税额</small>}<div className="invoice-actions">{isVoid ? <button onClick={() => props.onRestore(item)}>恢复</button> : <><button onClick={() => props.onEdit(item)}>编辑</button><button onClick={() => props.onVoid(item)}>作废</button></>}</div></div>
+  </article>;
+}
+
+class InvoiceForm extends React.Component<any, any> {
+  constructor(props: any) {
+    super(props);
+    const item = props.initial || {};
+    this.state = {
+      type: item.type || props.defaultType || 'received', invoiceNumber: item.invoice_number || '', invoiceCode: item.invoice_code || '',
+      title: item.title || '', counterpartyName: item.counterparty_name || '', amount: item.amount_cents ? (item.amount_cents / 100).toFixed(2) : '',
+      taxAmount: item.tax_amount_cents ? (item.tax_amount_cents / 100).toFixed(2) : '', invoiceDate: item.invoice_date ? item.invoice_date.slice(0, 10) : today(),
+      transactionId: item.transaction_id || '', note: item.note || '', saving: false, error: '',
+    };
+  }
+  candidates(): any[] { return (this.props.transactions || []).filter((item: any) => item.type === (this.state.type === 'received' ? 'expense' : 'income')); }
+  setType(type: InvoiceType): void { this.setState({ type, transactionId: '' }); }
+  async submit(event: any): Promise<void> {
+    event.preventDefault();
+    const amountCents = moneyToCents(this.state.amount); const taxAmountCents = this.state.taxAmount ? moneyToCents(this.state.taxAmount) : 0;
+    if (!this.state.invoiceNumber.trim()) { this.setState({ error: '请输入发票号码' }); return; }
+    if (!this.state.title.trim()) { this.setState({ error: '请输入发票抬头或内容' }); return; }
+    if (!this.state.counterpartyName.trim()) { this.setState({ error: `请输入${invoiceCounterpartyLabel(this.state.type)}` }); return; }
+    if (!amountCents) { this.setState({ error: '请输入正确的发票金额' }); return; }
+    if (taxAmountCents > amountCents) { this.setState({ error: '税额不能大于发票金额' }); return; }
+    this.setState({ saving: true, error: '' });
+    const payload = { type: this.state.type, invoiceNumber: this.state.invoiceNumber.trim(), invoiceCode: this.state.invoiceCode.trim(), title: this.state.title.trim(),
+      counterpartyName: this.state.counterpartyName.trim(), amountCents, taxAmountCents, invoiceDate: this.state.invoiceDate,
+      transactionId: this.state.transactionId || null, note: this.state.note.trim(), ...(this.props.initial ? { version: this.props.initial.version } : {}) };
+    try {
+      const path = this.props.initial ? `/api/invoices/${this.props.initial.id}` : '/api/invoices';
+      await apiRequest(path, { method: this.props.initial ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
+      this.props.onSuccess();
+    } catch (error: any) { this.setState({ saving: false, error: error.message || '保存发票失败' }); }
+  }
+  render(): any {
+    const candidates = this.candidates();
+    return <form className="invoice-form" onSubmit={(event: any) => this.submit(event)}>
+      <div className="type-switch invoice-type-switch"><button type="button" className={cn(this.state.type === 'received' && 'active expense')} onClick={() => this.setType('received')}>收到的发票</button><button type="button" className={cn(this.state.type === 'issued' && 'active income')} onClick={() => this.setType('issued')}>开出的发票</button></div>
+      <div className="form-grid"><div className="field"><label>发票号码</label><input className="input" maxLength={80} required value={this.state.invoiceNumber} onChange={(event: any) => this.setState({ invoiceNumber: event.target.value })} placeholder="例如：031001900111"/></div><div className="field"><label>发票代码（可选）</label><input className="input" maxLength={80} value={this.state.invoiceCode} onChange={(event: any) => this.setState({ invoiceCode: event.target.value })}/></div><div className="field form-span"><label>发票抬头 / 内容</label><input className="input" maxLength={120} required value={this.state.title} onChange={(event: any) => this.setState({ title: event.target.value })} placeholder="例如：办公用品、设计服务费"/></div><div className="field"><label>{invoiceCounterpartyLabel(this.state.type)}</label><input className="input" maxLength={120} required value={this.state.counterpartyName} onChange={(event: any) => this.setState({ counterpartyName: event.target.value })} placeholder={this.state.type === 'received' ? '谁给你开票' : '发票开给谁'}/></div><div className="field"><label>开票日期</label><input className="input" type="date" required value={this.state.invoiceDate} onChange={(event: any) => this.setState({ invoiceDate: event.target.value })}/></div><div className="field"><label>发票金额</label><input className="input" inputMode="decimal" required value={this.state.amount} onChange={(event: any) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })} placeholder="0.00"/></div><div className="field"><label>其中税额（可选）</label><input className="input" inputMode="decimal" value={this.state.taxAmount} onChange={(event: any) => this.setState({ taxAmount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })} placeholder="0.00"/></div><div className="field form-span"><label>{this.state.type === 'received' ? '关联支出' : '关联收入'}（可选）</label><select className="select" value={this.state.transactionId} onChange={(event: any) => this.setState({ transactionId: event.target.value })}><option value="">暂不关联</option>{candidates.map((item: any) => <option key={item.id} value={item.id}>{item.occurred_at.slice(0, 10)} · {transactionTitle(item)} · {formatMoney(item.amount_cents)}</option>)}</select><small className="field-hint">{this.state.type === 'received' ? '收到的发票只能关联支出' : '开出的发票只能关联收入'}，同一笔收支可以关联多张发票。</small></div><div className="field form-span"><label>备注（可选）</label><textarea className="textarea" maxLength={500} value={this.state.note} onChange={(event: any) => this.setState({ note: event.target.value })} placeholder="例如：用于报销、客户已确认开票等"/></div></div>
+      {this.state.error ? <p className="error-text">{this.state.error}</p> : null}<div className="form-actions"><button type="button" className="btn btn-ghost" onClick={this.props.onCancel}>取消</button><button className="btn btn-primary" disabled={this.state.saving}>{this.state.saving ? '保存中…' : this.props.initial ? '保存发票' : '收进发票夹'}</button></div>
+    </form>;
+  }
+}
+
+class InvoicesPage extends React.Component<any, any> {
+  constructor(props: any) { super(props); this.state = { loading: true, month: props.month, type: 'received', status: 'recorded', linked: '', search: '', items: [], total: 0, summary: null, transactions: [], creating: false, edit: null }; }
+  componentDidMount(): void { this.load(); }
+  componentDidUpdate(prevProps: any): void { if (prevProps.refreshToken !== this.props.refreshToken) this.load(); }
+  async load(): Promise<void> {
+    this.setState({ loading: true });
+    const params = new URLSearchParams({ month: this.state.month, type: this.state.type, status: this.state.status, limit: '200' });
+    if (this.state.linked) params.set('linked', this.state.linked); if (this.state.search.trim()) params.set('search', this.state.search.trim());
+    try {
+      const [data, summary, expenseTransactions, incomeTransactions] = await Promise.all([apiRequest(`/api/invoices?${params.toString()}`), apiRequest(`/api/invoices/summary?month=${this.state.month}`), apiRequest('/api/transactions?type=expense&limit=300'), apiRequest('/api/transactions?type=income&limit=300')]);
+      this.setState({ loading: false, items: data.items, total: data.total, summary, transactions: [...expenseTransactions.items, ...incomeTransactions.items] });
+    } catch (error: any) { this.setState({ loading: false }); this.props.onError(error.message); }
+  }
+  change(state: any): void { this.setState(state, () => this.load()); }
+  async voidItem(item: any): Promise<void> { if (!window.confirm(`作废发票“${item.invoice_number}”？关联的收支记录不会删除。`)) return; try { await apiRequest(`/api/invoices/${item.id}`, { method: 'DELETE' }); this.load(); this.props.onChanged(); this.props.onToast('发票已经作废', 'success'); } catch (error: any) { this.props.onToast(error.message, 'error'); } }
+  async restoreItem(item: any): Promise<void> { try { await apiRequest(`/api/invoices/${item.id}/restore`, { method: 'POST' }); this.load(); this.props.onChanged(); this.props.onToast('发票已经恢复，请重新检查关联记录', 'success'); } catch (error: any) { this.props.onToast(error.message, 'error'); } }
+  render(): any {
+    const summary = this.state.summary || { received: {}, issued: {} };
+    return <div className="page invoice-page"><PageHeader title="发票夹" subtitle="收到的发票关联支出，开出的发票关联收入。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.change({ month })}/><button className="btn btn-primary" onClick={() => this.setState({ creating: true })}><Icon name="plus" size={18}/>记发票</button></PageHeader>
+      <section className="invoice-journal-hero card"><div><span className="journal-sticker">INVOICE JOURNAL</span><h2>每一张票，都和一笔小账对得上</h2><p>先记录发票，再选择关联的收入或支出；暂时找不到对应记录，也可以稍后补关联。</p></div><div className="invoice-hero-doodles"><span>🧾</span><span>📎</span><span>✿</span></div></section>
+      <section className="invoice-summary-grid"><button className={cn('invoice-summary-card received', this.state.type === 'received' && 'active')} onClick={() => this.change({ type: 'received' })}><span>收到的发票</span><strong>{formatMoney(summary.received.amountCents || 0)}</strong><small>{summary.received.count || 0} 张 · 已关联 {summary.received.linkedCount || 0}</small></button><button className={cn('invoice-summary-card issued', this.state.type === 'issued' && 'active')} onClick={() => this.change({ type: 'issued' })}><span>开出的发票</span><strong>{formatMoney(summary.issued.amountCents || 0)}</strong><small>{summary.issued.count || 0} 张 · 已关联 {summary.issued.linkedCount || 0}</small></button></section>
+      <section className="card card-pad invoice-list-card"><div className="invoice-tabs"><button className={cn(this.state.type === 'received' && 'active')} onClick={() => this.change({ type: 'received' })}>我收到的</button><button className={cn(this.state.type === 'issued' && 'active')} onClick={() => this.change({ type: 'issued' })}>我开出的</button></div><div className="filter-bar invoice-filter-bar"><select className="select" value={this.state.status} onChange={(event: any) => this.change({ status: event.target.value })}><option value="recorded">正常发票</option><option value="void">已作废</option></select><select className="select" value={this.state.linked} onChange={(event: any) => this.change({ linked: event.target.value })}><option value="">全部关联状态</option><option value="true">已关联收支</option><option value="false">未关联</option></select><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索号码、抬头或对方名称" value={this.state.search} onChange={(event: any) => this.setState({ search: event.target.value })} onKeyDown={(event: any) => { if (event.key === 'Enter') this.load(); }}/></div><button className="btn btn-secondary" onClick={() => this.load()}>搜索</button></div><div className="card-title-row"><div><h3 className="card-title">{this.state.type === 'received' ? '我收到的发票' : '我开出的发票'}</h3><p className="card-subtitle">{monthLabel(this.state.month)} · 共 {this.state.total} 张</p></div></div>{this.state.loading ? <div className="stack"><div className="skeleton" style={{ height: '100px' }}/><div className="skeleton" style={{ height: '100px' }}/></div> : this.state.items.length ? <div className="invoice-list">{this.state.items.map((item: any) => <InvoiceItem key={item.id} item={item} onEdit={(entry: any) => this.setState({ edit: entry })} onVoid={(entry: any) => this.voidItem(entry)} onRestore={(entry: any) => this.restoreItem(entry)}/>)}</div> : <EmptyState title="发票夹还是空的" message={this.state.type === 'received' ? '收到发票后记在这里，再和对应支出关联。' : '开出发票后记在这里，再和对应收入关联。'} action={<button className="btn btn-primary" onClick={() => this.setState({ creating: true })}>记第一张发票</button>}/>}</section>
+      <Modal open={this.state.creating || Boolean(this.state.edit)} title={this.state.edit ? '编辑发票' : '记录一张发票'} onClose={() => this.setState({ creating: false, edit: null })}><InvoiceForm initial={this.state.edit} defaultType={this.state.type} transactions={this.state.transactions} onCancel={() => this.setState({ creating: false, edit: null })} onSuccess={() => { this.setState({ creating: false, edit: null }); this.load(); this.props.onChanged(); this.props.onToast('发票已经收进夹子', 'success'); }}/></Modal>
+    </div>;
   }
 }
 
@@ -803,7 +893,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.6 · 奶油暖色 UI 与静态角色升级</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.7 · 手账贴纸 UI 与发票关联功能</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {
@@ -856,7 +946,7 @@ class App extends React.Component<any, any> {
   changeMotion(reduce: boolean): void { localStorage.setItem('yupao-reduce-motion', String(reduce)); this.applyMotion(reduce); this.setState({ reduceMotion: reduce }); }
   renderPage(): any {
     const common = { bootstrap: this.state.bootstrap, month: this.state.month, refreshToken: this.state.refreshToken, navigate: (route: RouteKey) => this.navigate(route), onChanged: () => this.changed(), onError: (message: string) => this.showToast(message, 'error'), onToast: (message: string, kind?: any, actionLabel?: string, action?: () => void) => this.showToast(message, kind, actionLabel, action) };
-    switch (this.state.route) { case 'transactions': return <TransactionsPage {...common}/>; case 'add': return <AddPage {...common}/>; case 'stats': return <StatsPage {...common}/>; case 'accounts': return <AccountsPage {...common}/>; case 'budgets': return <BudgetsPage {...common}/>; case 'settings': return <SettingsPage {...common} reduceMotion={this.state.reduceMotion} onMotionChange={(value: boolean) => this.changeMotion(value)} onLogout={() => this.logout()}/>; default: return <DashboardPage {...common} onMonthChange={(month: string) => this.setState({ month }, () => this.changed())}/>; }
+    switch (this.state.route) { case 'transactions': return <TransactionsPage {...common}/>; case 'add': return <AddPage {...common}/>; case 'invoices': return <InvoicesPage {...common}/>; case 'stats': return <StatsPage {...common}/>; case 'accounts': return <AccountsPage {...common}/>; case 'budgets': return <BudgetsPage {...common}/>; case 'settings': return <SettingsPage {...common} reduceMotion={this.state.reduceMotion} onMotionChange={(value: boolean) => this.changeMotion(value)} onLogout={() => this.logout()}/>; default: return <DashboardPage {...common} onMonthChange={(month: string) => this.setState({ month }, () => this.changed())}/>; }
   }
   render(): any {
     const phase = this.state.authPhase;
@@ -868,7 +958,7 @@ class App extends React.Component<any, any> {
     if (phase === 'error' || (this.state.error && !this.state.bootstrap)) return <div className="loading-page"><div><div style={{ width: '240px' }}><Mascot variant="empty"/></div><h2>小账本暂时打不开</h2><p style={{ color: 'var(--text-2)' }}>{this.state.error}</p><button className="btn btn-primary" onClick={() => this.initializeAuth()}>再试一次</button></div></div>;
     if (this.state.loading && !this.state.bootstrap) return <LoadingPage/>;
     const bootstrap = this.state.bootstrap as Bootstrap; const toast = this.state.toast as ToastState;
-    return <div className="app-shell">{!this.state.online ? <div className="offline-banner">现在没有网络，连上后再记账吧。</div> : null}<aside className="sidebar"><a className="brand" href="#/home"><span className="brand-mark"><LogoMark/></span><span className="brand-copy"><strong>芋炮小账本</strong><span>两个人的小日子</span></span></a><nav className="nav-list">{ROUTES.map((route) => <button key={route.key} className={cn('nav-item', this.state.route === route.key && 'active')} onClick={() => this.navigate(route.key)}><Icon name={route.icon}/><span>{route.label}</span></button>)}</nav><div className="sidebar-bottom"><div className="member-pill"><div className="avatar">{bootstrap.user.displayName.slice(0, 1)}</div><div><strong>{bootstrap.user.displayName}</strong><small>{bootstrap.household.name}</small></div></div></div></aside><header className="mobile-topbar"><div className="mobile-brand"><LogoMark/><span>芋炮小账本</span></div><div className="avatar">{bootstrap.user.displayName.slice(0, 1)}</div></header><main className="main">{this.renderPage()}</main><nav className="bottom-nav">{ROUTES.filter((route) => route.mobile).map((route) => <button key={route.key} className={cn(this.state.route === route.key && 'active', route.key === 'add' && 'center')} onClick={() => this.navigate(route.key)}>{route.key === 'add' ? <span className="nav-icon-wrap"><Icon name={route.icon}/></span> : <Icon name={route.icon}/>}<span>{route.label}</span></button>)}</nav>{toast ? <div className={cn('toast', toast.kind)}><span>{toast.message}</span>{toast.action ? <button onClick={() => { toast.action && toast.action(); this.setState({ toast: null }); }}>{toast.actionLabel || '操作'}</button> : null}</div> : null}</div>;
+    return <div className="app-shell">{!this.state.online ? <div className="offline-banner">现在没有网络，连上后再记账吧。</div> : null}<aside className="sidebar"><a className="brand" href="#/home"><span className="brand-mark"><LogoMark/></span><span className="brand-copy"><strong>芋炮小账本</strong><span>两个人的小日子</span></span></a><nav className="nav-list">{ROUTES.map((route) => <button key={route.key} className={cn('nav-item', this.state.route === route.key && 'active')} onClick={() => this.navigate(route.key)}><Icon name={route.icon}/><span>{route.label}</span></button>)}</nav><div className="sidebar-bottom"><div className="member-pill"><div className="avatar">{bootstrap.user.displayName.slice(0, 1)}</div><div><strong>{bootstrap.user.displayName}</strong><small>{bootstrap.household.name}</small></div></div></div></aside><header className="mobile-topbar"><div className="mobile-brand"><LogoMark/><span>芋炮小账本</span></div><button className="avatar avatar-button" type="button" onClick={() => this.navigate('settings')} aria-label="打开设置">{bootstrap.user.displayName.slice(0, 1)}</button></header><main className="main">{this.renderPage()}</main><nav className="bottom-nav">{ROUTES.filter((route) => route.mobile).map((route) => <button key={route.key} className={cn(this.state.route === route.key && 'active', route.key === 'add' && 'center')} onClick={() => this.navigate(route.key)}>{route.key === 'add' ? <span className="nav-icon-wrap"><Icon name={route.icon}/></span> : <Icon name={route.icon}/>}<span>{route.label}</span></button>)}</nav>{toast ? <div className={cn('toast', toast.kind)}><span>{toast.message}</span>{toast.action ? <button onClick={() => { toast.action && toast.action(); this.setState({ toast: null }); }}>{toast.actionLabel || '操作'}</button> : null}</div> : null}</div>;
   }
 }
 

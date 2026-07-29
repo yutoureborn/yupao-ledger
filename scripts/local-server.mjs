@@ -12,7 +12,7 @@ const localDir = path.join(root, '.local');
 await mkdir(localDir, { recursive: true });
 const db = new DatabaseSync(path.join(localDir, 'yupao.db'));
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
-const migrations = ['0001_init.sql', '0002_internal_auth.sql'];
+const migrations = ['0001_init.sql', '0002_internal_auth.sql', '0003_invoices.sql'];
 for (const file of migrations) db.exec(await readFile(path.join(root, 'migrations', file), 'utf8'));
 
 function seedDemoData() {
@@ -63,6 +63,14 @@ function seedDemoData() {
     db.prepare(`INSERT INTO transactions (id,household_id,type,amount_cents,currency,account_id,target_account_id,category_id,merchant,note,occurred_at,created_by,updated_by)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(crypto.randomUUID(), household, row[0], row[1], 'CNY', row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[8]);
   }
+  const sampleExpense = db.prepare("SELECT id FROM transactions WHERE household_id = ? AND type = 'expense' ORDER BY occurred_at DESC LIMIT 1").get(household);
+  const sampleIncome = db.prepare("SELECT id FROM transactions WHERE household_id = ? AND type = 'income' ORDER BY occurred_at DESC LIMIT 1").get(household);
+  db.prepare(`INSERT OR IGNORE INTO invoices (id, household_id, type, status, invoice_number, title, counterparty_name, amount_cents, tax_amount_cents, currency, invoice_date, transaction_id, note, created_by, updated_by)
+    VALUES (?, ?, 'received', 'recorded', ?, ?, ?, ?, ?, 'CNY', ?, ?, ?, ?, ?)`)
+    .run('invoice-demo-received', household, 'R202607001', '餐饮消费', '巷口面馆', 6800, 0, local(0,19).slice(0,10), sampleExpense?.id || null, '本地演示发票', user1, user1);
+  db.prepare(`INSERT OR IGNORE INTO invoices (id, household_id, type, status, invoice_number, title, counterparty_name, amount_cents, tax_amount_cents, currency, invoice_date, transaction_id, note, created_by, updated_by)
+    VALUES (?, ?, 'issued', 'recorded', ?, ?, ?, ?, ?, 'CNY', ?, ?, ?, ?, ?)`)
+    .run('invoice-demo-issued', household, 'I202607001', '设计服务费', '示例客户', 286000, 16189, local(14,16).slice(0,10), sampleIncome?.id || null, '本地演示发票', user1, user1);
   const month = local(0).slice(0,7);
   db.prepare('INSERT OR IGNORE INTO budgets (id,household_id,period,category_id,amount_cents) VALUES (?,?,?,?,?)').run('budget-total', household, month, null, 500000);
   db.prepare('INSERT OR IGNORE INTO budgets (id,household_id,period,category_id,amount_cents) VALUES (?,?,?,?,?)').run('budget-food', household, month, 'cat-food', 120000);
@@ -87,7 +95,7 @@ const d1 = {
   }
 };
 
-const MIME = { '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.txt':'text/plain; charset=utf-8','.map':'application/json' };
+const MIME = { '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.txt':'text/plain; charset=utf-8','.map':'application/json' };
 async function assetFetch(request) {
   const url = new URL(request.url);
   let pathname = decodeURIComponent(url.pathname);

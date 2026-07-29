@@ -50,6 +50,14 @@ GET/POST/PATCH/DELETE /api/accounts
 GET/POST/PATCH/DELETE /api/categories
 GET/POST/PATCH/DELETE /api/budgets
 
+GET    /api/invoices
+POST   /api/invoices
+GET    /api/invoices/:id
+PATCH  /api/invoices/:id
+DELETE /api/invoices/:id
+POST   /api/invoices/:id/restore
+GET    /api/invoices/summary
+
 GET /api/stats/overview
 GET /api/stats/trend
 GET /api/stats/category-breakdown
@@ -82,3 +90,13 @@ GET /api/export/json
 4. Worker 使用 `PASSWORD_PEPPER` 对凭据二次处理后与 D1 中的验证值比较。
 
 首次初始化由浏览器生成独立盐值。该调整不改变 `auth_credentials` 表结构。
+
+
+## 发票关联规则
+
+- `type=received`：仅可关联 `type=expense` 的交易。
+- `type=issued`：仅可关联 `type=income` 的交易。
+- 发票可以暂不关联，之后通过 PATCH 补充。
+- 同一笔收支可以关联多张发票。
+- 作废发票不会删除被关联的收支记录。
+- 所有查询和写入都按当前会话的 `household_id` 隔离。

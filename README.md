@@ -2,7 +2,7 @@
 
 > 两个人的小日子，都记在这里。
 
-芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.6 使用**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
+芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.7 使用**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
 
 ## 已完成
 
@@ -15,7 +15,7 @@
 - 支出、收入、转账的新增、编辑、软删除和恢复
 - 账户余额、分类、预算和可视化图表
 - 手机、平板和桌面响应式布局
-- 芋泥紫芋头与绿黑炮台动态角色、页面转场和图表动画
+- 芋泥紫芋头与绿黑炮台静态插画、手账贴纸界面和轻量页面反馈
 - PWA 安装与离线应用外壳
 - CSV、JSON 导出
 - D1 审计日志、版本冲突检测和加密备份脚本
@@ -48,6 +48,7 @@ src/frontend/app.tsx               前端、登录与首次初始化界面
 src/worker/index.ts                Worker API 与认证逻辑
 migrations/0001_init.sql           账本基础表
 migrations/0002_internal_auth.sql  内置认证表
+migrations/0003_invoices.sql       发票记录与收支关联表
 docs/UPGRADE-TO-INTERNAL-AUTH.md   从 0.1.x 升级到方案 B
 docs/GITHUB-WEB-WORKERS-BUILDS.md GitHub 网页部署说明
 ```
@@ -147,3 +148,16 @@ v0.2.4 将两个角色的职责正式互换：
 - 芋头保持明显芋泥紫，负责快速记账；炮台保持绿黑玩具机械色，负责整理和统计。
 - 首页支出分类卡片改为“圆环 + 分类排行”完整结构，PC 侧栏和移动端均不会只剩圆环。
 - 本版本不修改 D1 表结构。升级步骤见 `docs/UPGRADE-v0.2.5.md`。
+
+
+## 0.2.7 手账贴纸 UI 与发票夹
+
+- 整体视觉切换为奶油粉白、活页纸、标签贴纸和柔和描边的手账风。
+- 角色继续采用静态插画，只保留淡入等轻量反馈。
+- 新增“发票夹”：分别记录收到的发票与开出的发票。
+- 收到的发票只能关联支出；开出的发票只能关联收入。
+- 支持查询、搜索、编辑、作废、恢复、关联状态筛选和月度汇总。
+- 交易列表显示已关联发票数量；JSON 导出包含发票数据。
+- 升级前必须先在 D1 Console 执行 `migrations/0003_invoices.sql`。
+
+详细步骤见 `docs/UPGRADE-v0.2.7.md`。

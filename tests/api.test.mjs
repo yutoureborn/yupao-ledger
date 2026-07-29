@@ -39,6 +39,7 @@ async function setup({ bypass = true } = {}) {
   const db = new DatabaseSync(':memory:');
   db.exec(await readFile(path.join(root, 'migrations/0001_init.sql'), 'utf8'));
   db.exec(await readFile(path.join(root, 'migrations/0002_internal_auth.sql'), 'utf8'));
+  db.exec(await readFile(path.join(root, 'migrations/0003_invoices.sql'), 'utf8'));
   const d1 = {
     prepare(sql) { return new LocalStatement(db.prepare(sql)); },
     async batch(statements) {
@@ -317,4 +318,68 @@ test('页面外壳不长期缓存，财务接口始终 no-store', async () => {
   assert.equal(shell.headers.get('cross-origin-resource-policy'), 'same-origin');
   const api = await handleRequest(new Request('https://test.local/api/bootstrap'), env);
   assert.equal(api.headers.get('cache-control'), 'no-store');
+});
+
+
+test('收到的发票只能关联支出，开出的发票只能关联收入', async () => {
+  const { call } = await setup();
+  const bootstrap = (await call('/api/bootstrap?month=2026-07')).payload.data;
+  const account = bootstrap.accounts[0];
+  const expenseCategory = bootstrap.categories.find((item) => item.type === 'expense');
+  const incomeCategory = bootstrap.categories.find((item) => item.type === 'income');
+  const expense = (await call('/api/transactions', { method: 'POST', body: { type: 'expense', amountCents: 8800, accountId: account.id, categoryId: expenseCategory.id, occurredAt: '2026-07-22', merchant: '办公用品店' } })).payload.data;
+  const income = (await call('/api/transactions', { method: 'POST', body: { type: 'income', amountCents: 28800, accountId: account.id, categoryId: incomeCategory.id, occurredAt: '2026-07-23', merchant: '客户回款' } })).payload.data;
+
+  const received = await call('/api/invoices', { method: 'POST', body: { type: 'received', invoiceNumber: 'R-202607-001', title: '办公用品', counterpartyName: '办公用品店', amountCents: 8800, taxAmountCents: 500, invoiceDate: '2026-07-22', transactionId: expense.id, note: '' } });
+  assert.equal(received.response.status, 201);
+  assert.equal(received.payload.data.transaction_type, 'expense');
+
+  const issued = await call('/api/invoices', { method: 'POST', body: { type: 'issued', invoiceNumber: 'I-202607-001', title: '服务费', counterpartyName: '客户公司', amountCents: 28800, taxAmountCents: 1630, invoiceDate: '2026-07-23', transactionId: income.id, note: '' } });
+  assert.equal(issued.response.status, 201);
+  assert.equal(issued.payload.data.transaction_type, 'income');
+
+  const mismatch = await call('/api/invoices', { method: 'POST', body: { type: 'received', invoiceNumber: 'R-202607-002', title: '错误关联', counterpartyName: '测试', amountCents: 100, taxAmountCents: 0, invoiceDate: '2026-07-23', transactionId: income.id, note: '' } });
+  assert.equal(mismatch.response.status, 400);
+  assert.equal(mismatch.payload.error.code, 'INVOICE_TRANSACTION_TYPE_MISMATCH');
+});
+
+test('发票支持查询、编辑、作废和恢复，并在交易中显示关联数量', async () => {
+  const { call } = await setup();
+  const bootstrap = (await call('/api/bootstrap?month=2026-07')).payload.data;
+  const account = bootstrap.accounts[0];
+  const category = bootstrap.categories.find((item) => item.type === 'expense');
+  const transaction = (await call('/api/transactions', { method: 'POST', body: { type: 'expense', amountCents: 12000, accountId: account.id, categoryId: category.id, occurredAt: '2026-07-24', merchant: '测试商户' } })).payload.data;
+  const created = (await call('/api/invoices', { method: 'POST', body: { type: 'received', invoiceNumber: 'R-CRUD-001', title: '测试发票', counterpartyName: '测试商户', amountCents: 12000, taxAmountCents: 700, invoiceDate: '2026-07-24', transactionId: transaction.id, note: '原备注' } })).payload.data;
+
+  const listing = await call('/api/invoices?month=2026-07&type=received&status=recorded');
+  assert.equal(listing.payload.data.total, 1);
+  assert.equal(listing.payload.data.items[0].invoice_number, 'R-CRUD-001');
+
+  const updated = await call(`/api/invoices/${created.id}`, { method: 'PATCH', body: { type: 'received', invoiceNumber: 'R-CRUD-001', title: '修改后的发票', counterpartyName: '测试商户', amountCents: 13000, taxAmountCents: 800, invoiceDate: '2026-07-24', transactionId: transaction.id, note: '修改后', version: created.version } });
+  assert.equal(updated.response.status, 200);
+  assert.equal(updated.payload.data.amount_cents, 13000);
+
+  const transactions = await call('/api/transactions?month=2026-07');
+  assert.equal(Number(transactions.payload.data.items[0].invoice_count), 1);
+
+  assert.equal((await call(`/api/invoices/${created.id}`, { method: 'DELETE' })).response.status, 200);
+  assert.equal((await call('/api/invoices?month=2026-07&type=received&status=recorded')).payload.data.total, 0);
+  const voidListing = await call('/api/invoices?month=2026-07&type=received&status=void');
+  assert.equal(voidListing.payload.data.total, 1);
+  assert.equal(voidListing.payload.data.items[0].transaction_id, transaction.id);
+  const afterVoidTransactions = await call('/api/transactions?month=2026-07');
+  assert.equal(Number(afterVoidTransactions.payload.data.items[0].invoice_count), 0);
+  assert.equal((await call(`/api/invoices/${created.id}/restore`, { method: 'POST' })).response.status, 200);
+  const afterRestoreTransactions = await call('/api/transactions?month=2026-07');
+  assert.equal(Number(afterRestoreTransactions.payload.data.items[0].invoice_count), 1);
+});
+
+test('发票汇总按收到和开出分别计算', async () => {
+  const { call } = await setup();
+  await call('/api/invoices', { method: 'POST', body: { type: 'received', invoiceNumber: 'R-SUM-001', title: '采购', counterpartyName: '供应商', amountCents: 5000, taxAmountCents: 0, invoiceDate: '2026-07-10', transactionId: null, note: '' } });
+  await call('/api/invoices', { method: 'POST', body: { type: 'issued', invoiceNumber: 'I-SUM-001', title: '服务费', counterpartyName: '客户', amountCents: 9000, taxAmountCents: 0, invoiceDate: '2026-07-11', transactionId: null, note: '' } });
+  const summary = await call('/api/invoices/summary?month=2026-07');
+  assert.equal(summary.payload.data.received.amountCents, 5000);
+  assert.equal(summary.payload.data.issued.amountCents, 9000);
+  assert.equal(summary.payload.data.received.linkedCount, 0);
 });
