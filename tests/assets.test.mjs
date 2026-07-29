@@ -51,9 +51,9 @@ test('认证资源使用版本参数且 Service Worker 优先获取网络新版�
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.3/);
-  assert.match(bootstrap, /app\.js\?v=0\.2\.3/);
-  assert.match(worker, /yupao-shell-v4/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.4/);
+  assert.match(bootstrap, /app\.js\?v=0\.2\.4/);
+  assert.match(worker, /yupao-shell-v5/);
   assert.match(worker, /cache: ['"]no-store['"]/);
 });
 
@@ -66,14 +66,31 @@ test('支出分类卡片采用稳定列布局并避免分类名换行', async ()
   assert.match(app, /spending-card/);
 });
 
-test('芋头与炮台包含拟人动作和减少动态降级', async () => {
+test('芋头与炮台使用互换后的角色职责、正式配色和减少动态降级', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(dist, 'app.js'), 'utf8');
-  assert.match(app, /taro-arm-right/);
-  assert.match(app, /ledger-book/);
-  assert.match(app, /cannon-arm/);
+
+  // 芋头负责快速记账和成功反馈。
+  assert.match(app, /taro-pencil/);
+  assert.match(app, /success-receipt/);
+  assert.match(app, /empty-prompt/);
+  assert.match(css, /taro-write-ready/);
+  assert.match(css, /receipt-lift/);
+
+  // 炮台负责整理、统计和安全守护。
+  assert.match(app, /summary-projector/);
+  assert.match(app, /cannon-sort-feedback/);
   assert.match(app, /safe-shield/);
-  assert.match(css, /taro-wave/);
-  assert.match(css, /cannon-wave/);
+  assert.match(css, /projector-reveal/);
+  assert.match(css, /sorted-check/);
+
+  // 正式角色配色。
+  assert.match(css, /--mascot-taro-main:\s*#a78bda/i);
+  assert.match(css, /--mascot-cannon-main:\s*#4f7c64/i);
+  assert.match(css, /--mascot-cannon-black:\s*#252a28/i);
+  assert.match(app, /fill:\s*"#A78BDA"/);
+  assert.match(app, /fill:\s*"#4F7C64"/);
+  assert.match(app, /fill:\s*"#252A28"/);
+
   assert.match(css, /prefers-reduced-motion/);
 });

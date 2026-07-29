@@ -1,7 +1,7 @@
 {
   "name": "yupao-ledger",
   "private": true,
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "芋炮小账本：双人家庭动态在线记账 PWA（内置双账号认证）",
   "type": "module",
   "scripts": {
