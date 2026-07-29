@@ -25,7 +25,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.2.2';
+const APP_VERSION = '0.2.3';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -260,32 +260,49 @@ function LogoMark(): any {
 
 function Mascot(props: any): any {
   const variant = props.variant || 'idle';
-  return <svg className={cn('mascot', variant)} viewBox="0 0 340 220" role="img" aria-label={props.label || '芋头和小炮台'}>
-    <ellipse cx="164" cy="198" rx="116" ry="14" fill="#E7DDE9" opacity=".55"/>
+  const isSuccess = variant === 'success';
+  const isWarning = variant === 'warning';
+  const isEmpty = variant === 'empty';
+  const isSafe = variant === 'safe';
+  const isSummary = variant === 'summary';
+  return <svg className={cn('mascot', variant)} viewBox="0 0 360 230" role="img" aria-label={props.label || '拟人化芋头和玩具小炮台'}>
+    <ellipse cx="175" cy="207" rx="128" ry="13" fill="#E7DDE9" opacity=".52"/>
     <g className="taro-body">
-      <path d="M103 63c-10 17-17 44-12 74 7 42 31 68 68 68 38 0 63-25 70-66 5-31-3-61-16-78-20-25-87-24-110 2Z" fill="#9D89DF"/>
-      <path d="M111 69c19-14 78-17 101 2" fill="none" stroke="#B6A7EA" strokeWidth="9" strokeLinecap="round" opacity=".85"/>
-      <path d="M101 121c8 9 11 28 8 46" fill="none" stroke="#8872CD" strokeWidth="5" strokeLinecap="round" opacity=".65"/>
-      <path d="M215 119c-7 11-9 28-6 43" fill="none" stroke="#8872CD" strokeWidth="5" strokeLinecap="round" opacity=".65"/>
+      <path d="M105 65c-11 19-18 47-13 78 7 42 32 67 70 67 39 0 65-25 72-67 5-32-3-62-17-80-21-25-88-24-112 2Z" fill="#9D89DF"/>
+      <path d="M114 72c21-15 80-17 104 2" fill="none" stroke="#B9AAEC" strokeWidth="9" strokeLinecap="round" opacity=".82"/>
+      <path d="M103 124c8 10 11 28 8 45M220 122c-8 12-10 29-7 44" fill="none" stroke="#8872CD" strokeWidth="5" strokeLinecap="round" opacity=".62"/>
       <g className="leaf">
-        <path d="M142 65c-17-26-10-46 6-50 10 14 11 31-6 50Z" fill="#68A77A"/>
-        <path d="M156 62c5-31 25-41 39-31-1 18-13 30-39 31Z" fill="#7BBE91"/>
+        <path d="M145 67c-18-27-11-48 6-52 11 15 12 33-6 52Z" fill="#68A77A"/>
+        <path d="M159 64c5-32 26-42 40-31-1 18-14 31-40 31Z" fill="#7BBE91"/>
       </g>
-      <g className="eye"><circle cx="139" cy="123" r="5" fill="#302A39"/><circle cx="181" cy="123" r="5" fill="#302A39"/></g>
-      <path d="M146 146c9 9 22 9 31 0" fill="none" stroke="#302A39" strokeWidth="4" strokeLinecap="round"/>
-      <ellipse cx="121" cy="141" rx="11" ry="6" fill="#D59ACB" opacity=".55"/><ellipse cx="200" cy="141" rx="11" ry="6" fill="#D59ACB" opacity=".55"/>
-      <path d="M111 167c-12 5-17 16-11 25" fill="none" stroke="#7A66C0" strokeWidth="8" strokeLinecap="round"/>
-      <path d="M211 166c12 4 18 14 13 24" fill="none" stroke="#7A66C0" strokeWidth="8" strokeLinecap="round"/>
+      <g className="taro-brows" fill="none" stroke="#6655A9" strokeWidth="2.4" strokeLinecap="round"><path d="M132 113c4-3 9-3 13 0"/><path d="M180 113c4-3 9-3 13 0"/></g>
+      <g className="eye"><circle cx="139" cy="125" r="5" fill="#302A39"/><circle cx="187" cy="125" r="5" fill="#302A39"/><circle cx="137.5" cy="123.5" r="1.2" fill="white"/><circle cx="185.5" cy="123.5" r="1.2" fill="white"/></g>
+      {isEmpty ? <path d="M154 151c7-4 14-4 21 0" fill="none" stroke="#302A39" strokeWidth="3.5" strokeLinecap="round"/> : <path d="M150 148c10 10 24 10 34 0" fill="none" stroke="#302A39" strokeWidth="4" strokeLinecap="round"/>}
+      <ellipse cx="121" cy="143" rx="11" ry="6" fill="#D59ACB" opacity=".55"/><ellipse cx="204" cy="143" rx="11" ry="6" fill="#D59ACB" opacity=".55"/>
+      <g className="taro-arm taro-arm-left"><path d="M114 163c-18 3-27 13-25 27" fill="none" stroke="#7A66C0" strokeWidth="9" strokeLinecap="round"/><circle cx="90" cy="190" r="6" fill="#9D89DF"/></g>
+      <g className="taro-arm taro-arm-right"><path d="M214 162c18 2 28 11 29 24" fill="none" stroke="#7A66C0" strokeWidth="9" strokeLinecap="round"/><circle cx="243" cy="186" r="6" fill="#9D89DF"/></g>
+      <g className="ledger-book">
+        <path d="M124 165c12-5 25-4 38 3v31c-13-7-26-8-38-3Z" fill="#FFF8F1" stroke="#6E667A" strokeWidth="2"/>
+        <path d="M162 168c13-7 27-8 40-3v31c-13-5-27-4-40 3Z" fill="#FFFDF8" stroke="#6E667A" strokeWidth="2"/>
+        <path d="M162 169v29" stroke="#C8BECF" strokeWidth="1.5"/>
+        {!isEmpty ? <g stroke="#B3A8BC" strokeWidth="1.6" strokeLinecap="round"><path d="M131 176h22M131 182h18M171 176h21M171 182h16"/></g> : null}
+        {isSummary ? <g><rect x="170" y="174" width="5" height="13" rx="2" fill="#B9A7F5"/><rect x="178" y="179" width="5" height="8" rx="2" fill="#F1A476"/><rect x="186" y="171" width="5" height="16" rx="2" fill="#77B98D"/></g> : null}
+      </g>
     </g>
     <g className="cannon">
-      <rect x="224" y="124" width="72" height="44" rx="19" fill="#F1A476"/>
-      <rect x="275" y="102" width="50" height="27" rx="13.5" fill="#E78D65" transform="rotate(-8 275 102)"/>
-      <circle cx="246" cy="173" r="18" fill="#6E667A"/><circle cx="285" cy="173" r="18" fill="#6E667A"/>
-      <circle cx="246" cy="173" r="8" fill="#B6AEC0"/><circle cx="285" cy="173" r="8" fill="#B6AEC0"/>
-      <circle cx="248" cy="142" r="4" fill="#302A39"/><circle cx="268" cy="142" r="4" fill="#302A39"/>
-      <path d="M252 154c5 4 10 4 14 0" fill="none" stroke="#302A39" strokeWidth="3" strokeLinecap="round"/>
-      <circle className="coin" cx="316" cy="99" r="10" fill="#F3C969"/><path className="coin" d="M317 94v10M313 97h7M313 101h7" stroke="#9A711F" strokeWidth="1.5"/>
-      <circle className="coin" cx="300" cy="79" r="7" fill="#F3C969"/>
+      <g className="cannon-barrel"><rect x="274" y="103" width="55" height="28" rx="14" fill="#E78D65" transform="rotate(-8 274 103)"/><ellipse cx="327" cy="113" rx="7" ry="12" fill="#CE7657" transform="rotate(-8 327 113)"/></g>
+      <rect x="226" y="126" width="76" height="45" rx="20" fill="#F1A476"/>
+      <path d="M236 136c16-8 42-8 57 0" fill="none" stroke="#F7C4A5" strokeWidth="5" strokeLinecap="round" opacity=".9"/>
+      <circle cx="249" cy="178" r="18" fill="#6E667A"/><circle cx="289" cy="178" r="18" fill="#6E667A"/>
+      <circle cx="249" cy="178" r="8" fill="#B6AEC0"/><circle cx="289" cy="178" r="8" fill="#B6AEC0"/>
+      <g className="cannon-eye"><circle cx="250" cy="145" r="4" fill="#302A39"/><circle cx="272" cy="145" r="4" fill="#302A39"/><circle cx="249" cy="144" r="1" fill="white"/><circle cx="271" cy="144" r="1" fill="white"/></g>
+      <path d="M254 158c5 4 11 4 16 0" fill="none" stroke="#302A39" strokeWidth="3" strokeLinecap="round"/>
+      <g className="cannon-arm"><path d="M234 151c-14 1-20 8-20 17" fill="none" stroke="#D98260" strokeWidth="7" strokeLinecap="round"/><circle cx="214" cy="168" r="5" fill="#F1A476"/></g>
+      {isWarning ? <g className="warning-sign"><path d="M211 122h28v24h-28z" rx="5" fill="#FFF5DB" stroke="#D9A441" strokeWidth="2"/><path d="M225 127v10" stroke="#9A711F" strokeWidth="3" strokeLinecap="round"/><circle cx="225" cy="141" r="1.7" fill="#9A711F"/></g> : null}
+      {isSafe ? <g className="safe-shield"><path d="M311 144c12-6 23-5 31 0v16c0 13-10 22-16 25-7-3-15-12-15-25Z" fill="#DFF3E7" stroke="#58A77B" strokeWidth="2"/><rect x="319" y="154" width="14" height="12" rx="3" fill="#58A77B"/><path d="M322 154v-3a4 4 0 0 1 8 0v3" fill="none" stroke="#58A77B" strokeWidth="2"/></g> : null}
+      <circle className="coin coin-one" cx="329" cy="94" r="10" fill="#F3C969"/><path className="coin coin-one" d="M330 89v10M326 92h7M326 96h7" stroke="#9A711F" strokeWidth="1.5"/>
+      <circle className="coin coin-two" cx="309" cy="76" r="7" fill="#F3C969"/>
+      {isSuccess ? <g className="sparkles" fill="#F3C969"><path d="m286 83 3 6 6 3-6 3-3 6-3-6-6-3 6-3Z"/><path d="m342 121 2 4 4 2-4 2-2 4-2-4-4-2 4-2Z"/></g> : null}
     </g>
   </svg>;
 }
@@ -396,18 +413,35 @@ function DonutChart(props: any): any {
   const radius = 55, circumference = 2 * Math.PI * radius;
   let offset = 0;
   return <div className="donut-layout">
-    <svg className="chart-svg" viewBox="0 0 170 170" role="img" aria-label="支出分类占比">
-      <circle cx="85" cy="85" r={radius} fill="none" stroke="#F2EDF3" strokeWidth="22"/>
+    <div className="donut-visual">
+      <svg className="chart-svg donut-svg" viewBox="0 0 170 170" role="img" aria-label="支出分类占比">
+        <circle cx="85" cy="85" r={radius} fill="none" stroke="#F2EDF3" strokeWidth="22"/>
+        {items.map((item: any) => {
+          const value = Number(item.amount_cents || 0);
+          const length = value / total * circumference;
+          const current = offset;
+          offset += length;
+          return <circle key={item.category_id || item.name} cx="85" cy="85" r={radius} fill="none" stroke={item.color} strokeWidth="22" strokeLinecap="butt" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-current} transform="rotate(-90 85 85)" style={{ transition: 'stroke-dasharray .5s ease' }}><title>{`${item.name} ${formatMoney(value)}`}</title></circle>;
+        })}
+        <text className="donut-center" x="85" y="79" textAnchor="middle">本月支出</text>
+        <text className="donut-total" x="85" y="103" textAnchor="middle">{formatCompactMoney(total)}</text>
+      </svg>
+      <span className="donut-caption">共 {items.length} 个支出分类</span>
+    </div>
+    <div className="category-ranking" role="list" aria-label="支出分类排行">
       {items.map((item: any) => {
-        const value = Number(item.amount_cents || 0);
-        const length = value / total * circumference;
-        const current = offset;
-        offset += length;
-        return <circle key={item.category_id || item.name} cx="85" cy="85" r={radius} fill="none" stroke={item.color} strokeWidth="22" strokeLinecap="butt" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-current} transform="rotate(-90 85 85)" style={{ transition: 'stroke-dasharray .5s ease' }}><title>{`${item.name} ${formatMoney(value)}`}</title></circle>;
+        const percent = Math.round(Number(item.amount_cents || 0) / total * 100);
+        return <div className="rank-row" role="listitem" key={item.category_id || item.name}>
+          <div className="rank-icon" style={{ background: `${item.color}22` }}>{CATEGORY_EMOJI[item.icon] || '✨'}</div>
+          <div className="rank-main">
+            <span className="rank-label" title={item.name}>{item.name}</span>
+            <div className="rank-bar" aria-hidden="true"><span style={{ width: `${percent}%`, background: item.color }}/></div>
+          </div>
+          <span className="rank-percent">{percent}%</span>
+          <strong className="rank-amount">{formatCompactMoney(item.amount_cents)}</strong>
+        </div>;
       })}
-      <text className="donut-center" x="85" y="80" textAnchor="middle">本月支出</text><text x="85" y="101" textAnchor="middle" fill="#302A39" fontSize="13" fontWeight="800">{formatCompactMoney(total)}</text>
-    </svg>
-    <div className="category-ranking">{items.map((item: any) => <div className="rank-row" key={item.category_id || item.name}><div className="rank-icon" style={{ background: `${item.color}22` }}>{CATEGORY_EMOJI[item.icon] || '✨'}</div><div className="rank-info"><div className="rank-name"><span>{item.name}</span><span>{Math.round(item.amount_cents / total * 100)}%</span></div><div className="rank-bar"><span style={{ width: `${item.amount_cents / total * 100}%`, background: item.color }}/></div></div><strong>{formatCompactMoney(item.amount_cents)}</strong></div>)}</div>
+    </div>
   </div>;
 }
 
@@ -479,7 +513,7 @@ class DashboardPage extends React.Component<any, any> {
           <section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">最近记录</h3><p className="card-subtitle">最新的六笔小账</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('transactions')}>全部明细</button></div>{data.recent.length ? <div className="list">{data.recent.map((item: any, index: number) => <TransactionItem key={item.id} item={item} index={index}/>)}</div> : <EmptyState title="这里还没有记录" message="今天发生的第一笔小事，可以从这里开始。" action={<button className="btn btn-primary" onClick={() => this.props.navigate('add')}>记第一笔</button>}/>}</section>
         </div>
         <div className="stack">
-          <section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">钱花去了哪里</h3><p className="card-subtitle">本月支出分类</p></div></div><DonutChart items={this.state.categories}/></section>
+          <section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">钱花去了哪里</h3><p className="card-subtitle">本月支出分类</p></div></div><DonutChart items={this.state.categories}/></section>
           <section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">预算进度</h3><p className="card-subtitle">控制节奏，不用给自己压力</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('budgets')}>管理预算</button></div>{data.budgetCents > 0 ? <div style={{ marginBottom: '16px' }}><div className="budget-top"><span>总预算</span><strong>{formatCompactMoney(data.budgetUsedCents)} / {formatCompactMoney(data.budgetCents)}</strong></div><div className="progress-track"><div className={cn('progress-fill', budgetPercent >= 100 ? 'over' : budgetPercent >= 80 ? 'notice' : 'normal')} style={{ width: `${Math.max(2, budgetPercent)}%` }}/></div></div> : null}<BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section>
         </div>
       </div>
@@ -605,7 +639,7 @@ class StatsPage extends React.Component<any, any> {
     } catch (error: any) { this.setState({ loading: false }); this.props.onError(error.message); }
   }
   render(): any {
-    return <div className="page"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="grid grid-2"><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
+    return <div className="page"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="grid grid-2"><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
   }
 }
 
@@ -758,8 +792,9 @@ class SecuritySettings extends React.Component<any, any> {
         derivePasswordProof(this.state.currentPassword, params.salt, params.iterations),
         createClientCredential(this.state.newPassword, params.iterations),
       ]);
-      await apiRequest('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPasswordProof, newCredential }) });
-      this.close(); this.props.onToast('密码已经修改，其他设备已退出', 'success');
+      const result = await apiRequest<{ changed: boolean; csrfToken: string }>('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPasswordProof, newCredential }) });
+      if (result.csrfToken) setClientAuth(result.csrfToken);
+      this.close(); this.props.onToast('密码已经修改，所有旧会话已轮换', 'success');
     } catch (error: any) { this.setState({ saving: false, error: error.message }); }
   }
   async regenerate(event: any): Promise<void> {
@@ -777,7 +812,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.1 · 免费 Workers 适配认证</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="idle"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.3 · 安全回归与双端布局优化</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {

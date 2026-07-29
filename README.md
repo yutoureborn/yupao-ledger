@@ -2,7 +2,7 @@
 
 > 两个人的小日子，都记在这里。
 
-芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.1 使用**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
+芋炮小账本是一套面向两名固定家庭成员的动态在线记账 PWA。项目使用 Cloudflare Worker、Static Assets 和 D1，在免费 `workers.dev` 地址上运行。版本 0.2.3 使用**项目内双账号认证**，不再依赖 Cloudflare Zero Trust 或 Cloudflare Access。
 
 ## 已完成
 
@@ -114,6 +114,6 @@ migrations/0002_internal_auth.sql
 见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 
-## 0.2.1 免费 Workers 兼容修复
+## 0.2.3 安全与界面回归
 
-0.2.0 在 Worker 内执行 PBKDF2，可能超过 Workers Free 单次请求的 CPU 限额。0.2.1 将高成本的 PBKDF2 派生移动到浏览器，Worker 只执行轻量验证和 D1 操作。现有 D1 表结构不需要迁移。
+v0.2.3 收紧生产认证绕过、同源检查、请求体、Session 轮换、缓存和恢复码写入，并重构 PC / 移动端支出分类卡片。芋头和玩具炮台增加挥手、抱账本、金币反馈和安全盾牌等拟人动作。现有 D1 表结构不需要迁移。详细结果见 `docs/SECURITY-REGRESSION-v0.2.3.md` 和 `docs/UI-UX-OPTIMIZATION-v0.2.3.md`。

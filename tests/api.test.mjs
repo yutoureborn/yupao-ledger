@@ -235,3 +235,86 @@ test('production mode rejects requests without an internal session', async () =>
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);
 });
+
+test('正式 workers.dev 环境即使误设 AUTH_BYPASS 也不会绕过登录', async () => {
+  const { env } = await setup({ bypass: true });
+  const response = await handleRequest(new Request('https://yupao-ledger.example.workers.dev/api/bootstrap'), env);
+  const payload = await response.json();
+  assert.equal(response.status, 401);
+  assert.equal(payload.error.code, 'AUTH_REQUIRED');
+});
+
+test('公开认证接口拒绝跨站来源', async () => {
+  const { env } = await setup({ bypass: false });
+  const request = new Request('https://test.local/api/auth/password-params', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://evil.example' },
+    body: JSON.stringify({ email: 'owner@example.test' }),
+  });
+  const response = await handleRequest(request, env);
+  const payload = await response.json();
+  assert.equal(response.status, 403);
+  assert.equal(payload.error.code, 'ORIGIN_MISMATCH');
+});
+
+test('JSON 请求体超过限制会被拒绝', async () => {
+  const { env } = await setup({ bypass: false });
+  const body = JSON.stringify({ email: `${'a'.repeat(33000)}@example.test` });
+  const request = new Request('https://test.local/api/auth/password-params', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://test.local' },
+    body,
+  });
+  const response = await handleRequest(request, env);
+  const payload = await response.json();
+  assert.equal(response.status, 413);
+  assert.equal(payload.error.code, 'PAYLOAD_TOO_LARGE');
+});
+
+test('修改密码会轮换当前会话并撤销旧 Cookie', async () => {
+  const { call } = await setup({ bypass: false });
+  await initializeAccounts(call);
+  const loggedIn = await login(call);
+  const params = await call('/api/auth/password-params', { method: 'POST', body: { email: 'owner@example.test' } });
+  const currentPasswordProof = await deriveProof('TaroLedger2026!', params.payload.data.salt, params.payload.data.iterations);
+  const changed = await call('/api/auth/change-password', {
+    method: 'POST',
+    headers: { cookie: loggedIn.cookie, 'x-csrf-token': loggedIn.csrf, origin: 'https://test.local' },
+    body: { currentPasswordProof, newCredential: await newCredential('RotatedTaroLedger2026!') },
+  });
+  assert.equal(changed.response.status, 200);
+  assert.ok(changed.payload.data.csrfToken);
+  const newCookie = changed.response.headers.get('set-cookie')?.split(';')[0] || '';
+  assert.notEqual(newCookie, loggedIn.cookie);
+  assert.equal((await call('/api/auth/session', { headers: { cookie: loggedIn.cookie } })).response.status, 401);
+  assert.equal((await call('/api/auth/session', { headers: { cookie: newCookie } })).response.status, 200);
+});
+
+test('账户和分类颜色仅接受六位十六进制值', async () => {
+  const { call } = await setup();
+  const result = await call('/api/accounts', {
+    method: 'POST',
+    body: { name: '恶意颜色测试', type: 'cash', openingBalanceCents: 0, icon: 'cash', color: 'url(javascript:alert(1))' },
+  });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.payload.error.code, 'VALIDATION_ERROR');
+});
+
+test('损坏的 Cookie 编码不会让 Worker 崩溃', async () => {
+  const { env } = await setup({ bypass: false });
+  const response = await handleRequest(new Request('https://test.local/api/auth/session', {
+    headers: { cookie: '__Host-yupao_session=%E0%A4%A' },
+  }), env);
+  const payload = await response.json();
+  assert.equal(response.status, 401);
+  assert.equal(payload.error.code, 'AUTH_REQUIRED');
+});
+
+test('页面外壳不长期缓存，财务接口始终 no-store', async () => {
+  const { env } = await setup({ bypass: false });
+  const shell = await handleRequest(new Request('https://test.local/'), env);
+  assert.equal(shell.headers.get('cache-control'), 'no-cache, max-age=0, must-revalidate');
+  assert.equal(shell.headers.get('cross-origin-resource-policy'), 'same-origin');
+  const api = await handleRequest(new Request('https://test.local/api/bootstrap'), env);
+  assert.equal(api.headers.get('cache-control'), 'no-store');
+});

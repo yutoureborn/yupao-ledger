@@ -1,22 +1,25 @@
 # TODO
 
-> 0.2.1 已修复 Workers Free 下 PBKDF2 CPU 超限。
+## v0.2.3 发布前
 
-## 上线前
-
-- [ ] 执行 `migrations/0002_internal_auth.sql`
-- [ ] 设置正式 `PASSWORD_PEPPER`
-- [ ] 设置临时 `SETUP_TOKEN`
-- [ ] 确认 `AUTH_BYPASS=false`
-- [ ] 初始化两个账号并下载恢复码
+- [x] 内置认证代码安全回归
+- [x] PC 支出分类卡片布局修复
+- [x] 移动端分类卡片响应规则
+- [x] 芋头与炮台拟人动作
+- [x] 27 项自动化测试通过
+- [ ] 上传 v0.2.3 补丁到 GitHub `main`
+- [ ] Workers Builds 部署成功
 - [ ] 删除初始化后的 `SETUP_TOKEN`
-- [ ] 测试两个账号的跨设备同步
-- [ ] 执行一次加密备份
+- [ ] 备份 `PASSWORD_PEPPER`
+- [ ] PC 与手机真机视觉验收
+- [ ] 执行一次正式加密备份与恢复演练
 
 ## 后续可选
 
+- [ ] 明细筛选移动端抽屉
+- [ ] 图表触摸 Tooltip
+- [ ] 单设备 Session 管理
 - [ ] Turnstile 异常登录验证
+- [ ] 自动 D1 → R2 备份
 - [ ] TOTP 二步验证
-- [ ] 主动会话列表与单设备撤销
-- [ ] 登录安全通知
-- [ ] 票据附件与 OCR
+- [ ] 月度总结分享图

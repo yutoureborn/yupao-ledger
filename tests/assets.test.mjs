@@ -51,8 +51,29 @@ test('认证资源使用版本参数且 Service Worker 优先获取网络新版�
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.2/);
-  assert.match(bootstrap, /app\.js\?v=0\.2\.2/);
-  assert.match(worker, /yupao-shell-v3/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.3/);
+  assert.match(bootstrap, /app\.js\?v=0\.2\.3/);
+  assert.match(worker, /yupao-shell-v4/);
   assert.match(worker, /cache: ['"]no-store['"]/);
+});
+
+test('支出分类卡片采用稳定列布局并避免分类名换行', async () => {
+  const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
+  const app = await readFile(path.join(dist, 'app.js'), 'utf8');
+  assert.match(css, /grid-template-columns:\s*38px\s+minmax\(0,1fr\)\s+54px\s+76px/);
+  assert.match(css, /\.rank-label[^}]*white-space:\s*nowrap/);
+  assert.match(css, /@container spending/);
+  assert.match(app, /spending-card/);
+});
+
+test('芋头与炮台包含拟人动作和减少动态降级', async () => {
+  const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
+  const app = await readFile(path.join(dist, 'app.js'), 'utf8');
+  assert.match(app, /taro-arm-right/);
+  assert.match(app, /ledger-book/);
+  assert.match(app, /cannon-arm/);
+  assert.match(app, /safe-shield/);
+  assert.match(css, /taro-wave/);
+  assert.match(css, /cannon-wave/);
+  assert.match(css, /prefers-reduced-motion/);
 });

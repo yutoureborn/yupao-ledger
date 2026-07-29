@@ -71,6 +71,8 @@ const SECURITY_HEADERS: Record<string, string> = {
   'permissions-policy': 'camera=(), microphone=(), geolocation=()',
   'x-frame-options': 'DENY',
   'cross-origin-opener-policy': 'same-origin',
+  'cross-origin-resource-policy': 'same-origin',
+  'x-permitted-cross-domain-policies': 'none',
 };
 
 function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
@@ -99,10 +101,13 @@ function fail(error: HttpError, extraHeaders: Record<string, string> = {}): Resp
   );
 }
 
-function applySecurityHeaders(response: Response): Response {
+function applySecurityHeaders(response: Response, pathname = '/'): Response {
   const headers = new Headers(response.headers);
   Object.entries(SECURITY_HEADERS).forEach(([key, value]) => headers.set(key, value));
-  if (!headers.has('cache-control')) headers.set('cache-control', 'public, max-age=300');
+  if (!headers.has('cache-control')) {
+    const isShell = pathname === '/' || pathname.endsWith('.html') || pathname.endsWith('/sw.js') || pathname.endsWith('.webmanifest');
+    headers.set('cache-control', isShell ? 'no-cache, max-age=0, must-revalidate' : 'public, max-age=3600');
+  }
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -113,6 +118,7 @@ const LOGIN_WINDOW_SECONDS = 15 * 60;
 const LOGIN_EMAIL_LIMIT = 5;
 const LOGIN_IP_LIMIT = 20;
 const RECOVERY_CODE_COUNT = 8;
+const MAX_JSON_BODY_BYTES = 32 * 1024;
 
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -146,17 +152,19 @@ function parseCookies(request: Request): Map<string, string> {
   for (const segment of raw.split(';')) {
     const index = segment.indexOf('=');
     if (index <= 0) continue;
-    cookies.set(segment.slice(0, index).trim(), decodeURIComponent(segment.slice(index + 1).trim()));
+    const name = segment.slice(0, index).trim();
+    const encoded = segment.slice(index + 1).trim();
+    try { cookies.set(name, decodeURIComponent(encoded)); } catch { continue; }
   }
   return cookies;
 }
 
 function sessionCookie(token: string, maxAge: number): string {
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`;
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict; Priority=High`;
 }
 
 function clearSessionCookie(): string {
-  return `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`;
+  return `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict; Priority=High`;
 }
 
 function secretIsReady(value: string | undefined): boolean {
@@ -288,11 +296,18 @@ async function enforceLoginRateLimit(request: Request, env: Env, email: string):
   return ipHash;
 }
 
-async function createRecoveryCodes(userId: string, env: Env): Promise<string[]> {
+async function replaceRecoveryCodes(userId: string, env: Env): Promise<string[]> {
   const codes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
+  const now = currentEpoch();
+  const statements: D1PreparedStatement[] = [
+    env.DB.prepare('DELETE FROM recovery_codes WHERE user_id = ? AND used_at IS NULL').bind(userId),
+  ];
   for (const code of codes) {
-    await run(env.DB, 'INSERT INTO recovery_codes (id, user_id, code_hash, created_at) VALUES (?, ?, ?, ?)', crypto.randomUUID(), userId, await secretHash(`recovery:${normalizeRecoveryCode(code)}`, env), currentEpoch());
+    statements.push(env.DB.prepare('INSERT INTO recovery_codes (id, user_id, code_hash, created_at) VALUES (?, ?, ?, ?)').bind(
+      crypto.randomUUID(), userId, await secretHash(`recovery:${normalizeRecoveryCode(code)}`, env), now,
+    ));
   }
+  await executeBatch(env.DB, statements);
   return codes;
 }
 
@@ -301,6 +316,7 @@ async function createSession(userId: string, request: Request, env: Env, remembe
   const csrfToken = randomToken(24);
   const maxAge = rememberMe ? REMEMBER_SESSION_SECONDS : SESSION_SECONDS;
   const now = currentEpoch();
+  await run(env.DB, 'DELETE FROM auth_sessions WHERE expires_at <= ? OR (revoked_at IS NOT NULL AND revoked_at <= ?)', now, now - 7 * 24 * 60 * 60);
   await run(
     env.DB,
     `INSERT INTO auth_sessions (id, token_hash, user_id, csrf_token, expires_at, created_at, last_seen_at, ip_hash, user_agent)
@@ -364,11 +380,20 @@ async function getDevelopmentContext(request: Request, env: Env): Promise<UserCo
   return { userId: user.id, email, displayName: user.display_name, householdId, householdName, role: membership.role };
 }
 
+function enforceRequestOrigin(request: Request): void {
+  const expectedOrigin = new URL(request.url).origin;
+  const origin = request.headers.get('origin');
+  const fetchSite = request.headers.get('sec-fetch-site');
+  if (origin && origin !== expectedOrigin) throw new HttpError(403, 'ORIGIN_MISMATCH', '请求来源不正确');
+  if (!origin && fetchSite && !['same-origin', 'none'].includes(fetchSite)) {
+    throw new HttpError(403, 'ORIGIN_MISMATCH', '请求来源不正确');
+  }
+}
+
 async function enforceCsrf(request: Request, context: UserContext): Promise<void> {
   if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return;
   if (!context.csrfToken) return;
-  const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) throw new HttpError(403, 'ORIGIN_MISMATCH', '请求来源不正确');
+  enforceRequestOrigin(request);
   const submitted = request.headers.get('x-csrf-token') || '';
   if (!(await constantTimeTextEqual(submitted, context.csrfToken))) throw new HttpError(403, 'CSRF_INVALID', '页面验证已失效，请刷新后再试');
 }
@@ -428,8 +453,14 @@ async function seedHousehold(db: D1Database, householdId: string): Promise<void>
   }
 }
 
+function authBypassEnabled(request: Request, env: Env): boolean {
+  if (env.AUTH_BYPASS !== 'true') return false;
+  const hostname = new URL(request.url).hostname.toLowerCase();
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.endsWith('.local');
+}
+
 async function ensureUserContext(request: Request, env: Env): Promise<UserContext> {
-  if (env.AUTH_BYPASS === 'true') return getDevelopmentContext(request, env);
+  if (authBypassEnabled(request, env)) return getDevelopmentContext(request, env);
   return getSessionContext(request, env);
 }
 
@@ -458,7 +489,12 @@ function assertDate(value: unknown, field = '日期'): string {
   if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/.test(date)) {
     throw new HttpError(400, 'VALIDATION_ERROR', `${field}格式不正确`, { field });
   }
-  return date.length === 10 ? `${date}T12:00:00` : date;
+  const normalized = date.length === 10 ? `${date}T12:00:00` : date;
+  const parsed = new Date(`${normalized}Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== normalized.slice(0, 10)) {
+    throw new HttpError(400, 'VALIDATION_ERROR', `${field}不是有效日期`, { field });
+  }
+  return normalized;
 }
 
 function assertEnum<T extends string>(value: unknown, field: string, allowed: readonly T[]): T {
@@ -468,20 +504,33 @@ function assertEnum<T extends string>(value: unknown, field: string, allowed: re
   return value as T;
 }
 
+function assertColor(value: unknown, field = '颜色'): string {
+  const color = assertString(value, field, 7);
+  if (!/^#[0-9A-Fa-f]{6}$/.test(color)) throw new HttpError(400, 'VALIDATION_ERROR', `${field}格式不正确`, { field });
+  return color.toUpperCase();
+}
+
 async function readJson(request: Request): Promise<Record<string, unknown>> {
   const contentType = request.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) throw new HttpError(415, 'CONTENT_TYPE_REQUIRED', '请使用 JSON 格式提交数据');
+  const declaredLength = Number(request.headers.get('content-length') || 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+    throw new HttpError(413, 'PAYLOAD_TOO_LARGE', '提交内容过大');
+  }
   try {
-    const data = await request.json();
+    const text = await request.text();
+    if (new TextEncoder().encode(text).byteLength > MAX_JSON_BODY_BYTES) throw new HttpError(413, 'PAYLOAD_TOO_LARGE', '提交内容过大');
+    const data = JSON.parse(text);
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('invalid');
     return data as Record<string, unknown>;
-  } catch {
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
     throw new HttpError(400, 'INVALID_JSON', '提交内容无法读取');
   }
 }
 
 function parseMonth(value: string | null): string {
-  if (value && /^\d{4}-\d{2}$/.test(value)) return value;
+  if (value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return value;
   const now = new Date();
   const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit' });
   const parts = formatter.formatToParts(now);
@@ -741,7 +790,7 @@ async function handleAccounts(request: Request, env: Env, context: UserContext, 
     const type = assertEnum(body.type, '账户类型', ['cash', 'wechat', 'alipay', 'bank', 'credit', 'stored', 'other'] as const);
     const openingBalanceCents = assertInteger(body.openingBalanceCents ?? 0, '期初余额', -999_999_999_99, 999_999_999_99);
     const icon = assertString(body.icon || type, '图标', 30);
-    const color = assertString(body.color || '#8E7CDA', '颜色', 20);
+    const color = assertColor(body.color || '#8E7CDA');
     const sort = await queryFirst<{ max_sort: number | null }>(env.DB, 'SELECT MAX(sort_order) AS max_sort FROM accounts WHERE household_id = ?', context.householdId);
     const newId = crypto.randomUUID();
     await run(env.DB, 'INSERT INTO accounts (id, household_id, name, type, currency, opening_balance_cents, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', newId, context.householdId, name, type, 'CNY', openingBalanceCents, icon, color, (sort?.max_sort ?? -1) + 1);
@@ -758,7 +807,7 @@ async function handleAccounts(request: Request, env: Env, context: UserContext, 
     const type = assertEnum(body.type ?? before.type, '账户类型', ['cash', 'wechat', 'alipay', 'bank', 'credit', 'stored', 'other'] as const);
     const openingBalanceCents = assertInteger(body.openingBalanceCents ?? before.opening_balance_cents, '期初余额', -999_999_999_99, 999_999_999_99);
     const icon = assertString(body.icon ?? before.icon, '图标', 30);
-    const color = assertString(body.color ?? before.color, '颜色', 20);
+    const color = assertColor(body.color ?? before.color);
     await run(env.DB, 'UPDATE accounts SET name = ?, type = ?, opening_balance_cents = ?, icon = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?', name, type, openingBalanceCents, icon, color, id, context.householdId);
     const after = await queryFirst(env.DB, 'SELECT * FROM accounts WHERE id = ?', id);
     await audit(env, context, 'update', 'account', id, before, after);
@@ -780,7 +829,7 @@ async function handleCategories(request: Request, env: Env, context: UserContext
     const type = assertEnum(body.type, '分类类型', ['expense', 'income'] as const);
     const name = assertString(body.name, '分类名称', 20);
     const icon = assertString(body.icon || 'dots', '图标', 30);
-    const color = assertString(body.color || '#8E7CDA', '颜色', 20);
+    const color = assertColor(body.color || '#8E7CDA');
     const sort = await queryFirst<{ max_sort: number | null }>(env.DB, 'SELECT MAX(sort_order) AS max_sort FROM categories WHERE household_id = ? AND type = ?', context.householdId, type);
     const newId = crypto.randomUUID();
     await run(env.DB, 'INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)', newId, context.householdId, type, name, icon, color, (sort?.max_sort ?? -1) + 1);
@@ -795,7 +844,7 @@ async function handleCategories(request: Request, env: Env, context: UserContext
     const body = await readJson(request);
     const name = assertString(body.name ?? before.name, '分类名称', 20);
     const icon = assertString(body.icon ?? before.icon, '图标', 30);
-    const color = assertString(body.color ?? before.color, '颜色', 20);
+    const color = assertColor(body.color ?? before.color);
     await run(env.DB, 'UPDATE categories SET name = ?, icon = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?', name, icon, color, id, context.householdId);
     const after = await queryFirst(env.DB, 'SELECT * FROM categories WHERE id = ?', id);
     await audit(env, context, 'update', 'category', id, before, after);
@@ -968,8 +1017,10 @@ function assertEmail(value: unknown, field = '邮箱'): string {
 }
 
 async function authConfigured(env: Env): Promise<boolean> {
-  if (env.AUTH_BYPASS === 'true') return true;
-  const row = await queryFirst<{ count: number }>(env.DB, 'SELECT COUNT(*) AS count FROM auth_credentials');
+  const row = await queryFirst<{ count: number }>(env.DB, `SELECT COUNT(*) AS count
+    FROM auth_credentials c
+    JOIN household_members hm ON hm.user_id = c.user_id
+    WHERE hm.household_id = 'home'`);
   return (row?.count ?? 0) >= 2;
 }
 
@@ -982,11 +1033,11 @@ async function executeBatch(db: D1Database, statements: D1PreparedStatement[]): 
   for (const statement of statements) await statement.run();
 }
 
-async function handleSetupStatus(env: Env): Promise<Response> {
+async function handleSetupStatus(request: Request, env: Env): Promise<Response> {
   let schemaReady = true;
   let configured = false;
   try {
-    configured = await authConfigured(env);
+    configured = authBypassEnabled(request, env) || await authConfigured(env);
   } catch {
     schemaReady = false;
   }
@@ -1008,7 +1059,12 @@ async function handleAuthSetup(request: Request, env: Env): Promise<Response> {
   const configuredSetupToken = requiredSecret(env.SETUP_TOKEN, 'SETUP_TOKEN');
   const body = await readJson(request);
   const submittedToken = assertString(body.setupToken, '初始化密钥', 256);
-  if (!(await constantTimeTextEqual(submittedToken, configuredSetupToken))) throw new HttpError(403, 'SETUP_TOKEN_INVALID', '初始化密钥不正确');
+  const setupIdentity = 'setup@yupao.local';
+  const setupIpHash = await enforceLoginRateLimit(request, env, setupIdentity);
+  const setupTokenValid = await constantTimeTextEqual(submittedToken, configuredSetupToken);
+  await recordLoginAttempt(env.DB, setupIdentity, setupIpHash, setupTokenValid);
+  if (!setupTokenValid) throw new HttpError(403, 'SETUP_TOKEN_INVALID', '初始化密钥不正确');
+  await run(env.DB, 'DELETE FROM login_attempts WHERE email = ? AND success = 0', setupIdentity);
 
   const householdName = assertString(body.householdName || env.HOUSEHOLD_NAME || '芋炮之家', '家庭名称', 40);
   const ownerEmail = assertEmail(body.ownerEmail, '管理员邮箱');
@@ -1115,7 +1171,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleAuthSession(request: Request, env: Env): Promise<Response> {
-  if (env.AUTH_BYPASS === 'true') {
+  if (authBypassEnabled(request, env)) {
     const context = await getDevelopmentContext(request, env);
     return ok({ user: { id: context.userId, email: context.email, displayName: context.displayName, role: context.role, householdName: context.householdName }, csrfToken: '' });
   }
@@ -1134,23 +1190,30 @@ async function handleChangePassword(request: Request, env: Env, context: UserCon
   if (!(await verifyCredentialProof(body.currentPasswordProof, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
   const next = assertClientCredential(body.newCredential);
   if (next.iterations !== passwordIterations(env)) throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数已变化，请刷新页面后重试');
+  const existingSession = context.sessionId ? await queryFirst<{ created_at: number; expires_at: number }>(env.DB, 'SELECT created_at, expires_at FROM auth_sessions WHERE id = ?', context.sessionId) : null;
+  const rememberMe = Boolean(existingSession && Number(existingSession.expires_at) - Number(existingSession.created_at) > SESSION_SECONDS);
   const record = { hash: await storedCredentialHash(next.proof, env), salt: next.salt, iterations: next.iterations };
-  await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, currentEpoch(), context.userId);
-  await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', currentEpoch(), context.userId, context.sessionId || '');
-  return ok({ changed: true });
+  const now = currentEpoch();
+  await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, now, context.userId);
+  await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL', now, context.userId);
+  const session = await createSession(context.userId, request, env, rememberMe);
+  await audit(env, context, 'security.password_changed', 'user', context.userId, null, { sessionsRotated: true });
+  return ok({ changed: true, csrfToken: session.csrfToken }, 200, { 'set-cookie': sessionCookie(session.token, session.maxAge) });
 }
 
 async function handleRevokeOtherSessions(env: Env, context: UserContext): Promise<Response> {
-  await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', currentEpoch(), context.userId, context.sessionId || '');
-  return ok({ revoked: true });
+  const result = await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', currentEpoch(), context.userId, context.sessionId || '');
+  await audit(env, context, 'security.sessions_revoked', 'user', context.userId, null, { revokedCount: Number(result.meta?.changes || 0) });
+  return ok({ revoked: true, revokedCount: Number(result.meta?.changes || 0) });
 }
 
 async function handleRegenerateRecoveryCodes(request: Request, env: Env, context: UserContext): Promise<Response> {
   const body = await readJson(request);
   const credential = await queryFirst<{ password_hash: string }>(env.DB, 'SELECT password_hash FROM auth_credentials WHERE user_id = ?', context.userId);
   if (!(await verifyCredentialProof(body.currentPasswordProof, credential, env))) throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
-  await run(env.DB, 'DELETE FROM recovery_codes WHERE user_id = ? AND used_at IS NULL', context.userId);
-  return ok({ recoveryCodes: await createRecoveryCodes(context.userId, env) });
+  const recoveryCodes = await replaceRecoveryCodes(context.userId, env);
+  await audit(env, context, 'security.recovery_codes_regenerated', 'user', context.userId, null, { count: recoveryCodes.length });
+  return ok({ recoveryCodes });
 }
 
 async function handleRecover(request: Request, env: Env): Promise<Response> {
@@ -1187,7 +1250,8 @@ async function routeApi(request: Request, env: Env): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: SECURITY_HEADERS });
   if (url.pathname === '/api/health') return ok({ service: 'yupao-ledger', auth: 'internal-session', time: new Date().toISOString() });
 
-  if (url.pathname === '/api/auth/setup-status' && request.method === 'GET') return handleSetupStatus(env);
+  if (url.pathname === '/api/auth/setup-status' && request.method === 'GET') return handleSetupStatus(request, env);
+  if (request.method === 'POST' && ['/api/auth/setup', '/api/auth/password-params', '/api/auth/login', '/api/auth/recover'].includes(url.pathname)) enforceRequestOrigin(request);
   if (url.pathname === '/api/auth/setup' && request.method === 'POST') return handleAuthSetup(request, env);
   if (url.pathname === '/api/auth/password-params' && request.method === 'POST') return handlePasswordParams(request, env);
   if (url.pathname === '/api/auth/login' && request.method === 'POST') return handleLogin(request, env);
@@ -1240,7 +1304,7 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   try {
     if (url.pathname.startsWith('/api/')) return await routeApi(request, env);
     const response = await env.ASSETS.fetch(request);
-    return applySecurityHeaders(response);
+    return applySecurityHeaders(response, url.pathname);
   } catch (error) {
     if (error instanceof HttpError) return fail(error);
     console.error('Unhandled error', { path: url.pathname, message: error instanceof Error ? error.message : String(error) });
