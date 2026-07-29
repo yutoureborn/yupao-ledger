@@ -1,5 +1,14 @@
 # TODO
 
+## v0.2.6 发布前
+
+- [ ] 上传 v0.2.6 补丁到 GitHub `main`
+- [ ] 确认 Workers Builds 27 项测试通过
+- [ ] PC 1366px 与 1920px 验收
+- [ ] Android / iPhone 真机验收
+- [ ] 检查单分类、多分类和超长分类名
+
+
 ## v0.2.5 发布前
 
 - [x] 重绘芋头与炮台生产 SVG

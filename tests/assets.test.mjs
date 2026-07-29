@@ -51,9 +51,9 @@ test('认证资源使用版本参数且 Service Worker 优先获取网络新版�
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.5/);
-  assert.match(bootstrap, /app\.js\?v=0\.2\.5/);
-  assert.match(worker, /yupao-shell-v5/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.2\.6/);
+  assert.match(bootstrap, /app\.js\?v=0\.2\.6/);
+  assert.match(worker, /yupao-shell-v6/);
   assert.match(worker, /cache: ['"]no-store['"]/);
 });
 
@@ -69,38 +69,29 @@ test('支出分类卡片在侧栏和完整统计中均展示分类列表', async
   assert.match(app, /category-ranking/);
 });
 
-test('芋头与炮台使用互换后的角色职责、正式配色和减少动态降级', async () => {
+test('芋头与炮台使用静态拟人插画、角色职责和减少动态降级', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
 
-  // 芋头负责快速记账和成功反馈。
-  assert.match(app, /taro-pencil/);
-  assert.match(app, /success-receipt/);
-  assert.match(app, /empty-prompt/);
-  assert.match(css, /taro-write-ready/);
-  assert.match(css, /receipt-lift/);
+  // 芋头负责快速记账，炮台负责整理统计与安全。
+  assert.match(app, /taro-quick\.webp/);
+  assert.match(app, /taro-ledger\.webp/);
+  assert.match(app, /cannon-summary\.webp/);
+  assert.match(app, /cannon-organize\.webp/);
+  assert.match(app, /芋头准备好啦/);
+  assert.match(app, /炮台已经整理好本月数据/);
 
-  // 炮台负责整理、统计和安全守护。
-  assert.match(app, /summary-projector/);
-  assert.match(app, /cannon-sort-feedback/);
-  assert.match(app, /safe-shield/);
-  assert.match(css, /projector-reveal/);
-  assert.match(css, /sorted-check/);
-
-  // 正式角色配色。
-  assert.match(css, /--mascot-taro-main:\s*#9b78ce/i);
-  assert.match(css, /--mascot-cannon-main:\s*#55775b/i);
-  assert.match(css, /--mascot-cannon-black:\s*#26302c/i);
-  assert.match(app, /id="taro-main"/);
-  assert.match(app, /#9B78CE/);
-  assert.match(app, /id="cannon-main"/);
-  assert.match(app, /#55775B/);
-  assert.match(app, /#26302C/);
-
-  // 参考拟人蔬菜风格：有纹理、夸张眼睛、手脚和玩具机械结构。
-  assert.match(app, /taro-texture/);
-  assert.match(app, /taro-legs/);
-  assert.match(app, /cannon-wheels/);
-  assert.match(app, /rx="12" ry="14"/);
+  // 静态角色只保留轻微淡入或悬浮，不再依赖复杂 SVG 肢体动画。
+  assert.match(css, /\.static-mascot/);
+  assert.match(css, /static-float/);
   assert.match(css, /prefers-reduced-motion/);
+  assert.doesNotMatch(app, /taro-pencil/);
+  assert.doesNotMatch(app, /cannon-wheels/);
+
+  // 新的奶油暖色 UI 与绿黑/芋泥紫角色资产均进入构建结果。
+  assert.match(css, /--primary:\s*#E47C55/i);
+  assert.match(css, /background:\s*linear-gradient\(180deg, #E8865D/i);
+  for (const file of ['hero-duo.webp', 'taro-quick.webp', 'taro-ledger.webp', 'cannon-summary.webp', 'cannon-organize.webp']) {
+    await access(path.join(dist, 'illustrations', file));
+  }
 });

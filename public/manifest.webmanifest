@@ -4,8 +4,8 @@
   "description": "两个人的小日子，都记在这里。",
   "start_url": "/#/home",
   "display": "standalone",
-  "background_color": "#FFF8F1",
-  "theme_color": "#8061B5",
+  "background_color": "#F5EDE3",
+  "theme_color": "#E47C55",
   "lang": "zh-CN",
   "orientation": "any",
   "icons": [
