@@ -1,7 +1,7 @@
 {
   "name": "yupao-ledger",
   "private": true,
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "芋炮小账本：双人家庭动态在线记账 PWA（轻量组件化 UI、内联 SVG 角色与发票关联）",
   "type": "module",
   "scripts": {

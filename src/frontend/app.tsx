@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.2.8';
+const APP_VERSION = '0.2.9';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -281,28 +281,30 @@ function CannonCharacter(props: any = {}): any {
   const showChart = mode === 'summary';
   const showShield = mode === 'safe';
   const showAlert = mode === 'warning';
-  return <svg className="mascot-svg cannon-svg" viewBox="0 0 220 190" aria-hidden="true">
-    <ellipse cx="112" cy="174" rx="72" ry="10" fill="#25231F" opacity=".08"/>
-    <rect x="48" y="78" width="112" height="68" rx="28" fill="#7F9F56" stroke="#34432B" strokeWidth="3"/>
-    <path d="M52 99c25-22 74-28 104-8-6-20-22-29-48-29-29 0-48 12-56 37Z" fill="#A6C56D" opacity=".7"/>
-    <path d="M104 70 133 26c6-9 15-11 24-7l42 18c9 4 10 17 2 23l-58 42Z" fill="#262927" stroke="#111411" strokeWidth="4"/>
-    <path d="M137 29 194 53" stroke="#5D625F" strokeWidth="5" strokeLinecap="round" opacity=".55"/>
-    <ellipse cx="195" cy="48" rx="18" ry="24" fill="#111411" transform="rotate(-67 195 48)"/>
-    <ellipse cx="196" cy="47" rx="9" ry="14" fill="#3B3E3B" transform="rotate(-67 196 47)"/>
-    <path d="M143 24c3-9 12-14 19-9" fill="none" stroke="#F0BE3F" strokeWidth="5" strokeLinecap="round"/>
-    <path d="M56 84h96" stroke="#F2C34A" strokeWidth="7" strokeLinecap="round"/>
-    <circle cx="74" cy="115" r="7" fill="#253024"/><circle cx="112" cy="115" r="7" fill="#253024"/>
-    <circle cx="72" cy="112" r="2.2" fill="#FFF"/><circle cx="110" cy="112" r="2.2" fill="#FFF"/>
-    <ellipse cx="61" cy="129" rx="9" ry="4.5" fill="#EAB0A2" opacity=".85"/><ellipse cx="126" cy="129" rx="9" ry="4.5" fill="#EAB0A2" opacity=".85"/>
-    <path d="M82 130c8 7 15 7 22 0" fill="none" stroke="#2B3329" strokeWidth="3" strokeLinecap="round"/>
-    <circle cx="67" cy="153" r="22" fill="#252927" stroke="#111411" strokeWidth="3"/><circle cx="141" cy="153" r="22" fill="#252927" stroke="#111411" strokeWidth="3"/>
-    <circle cx="67" cy="153" r="10" fill="#F0BE3F"/><circle cx="141" cy="153" r="10" fill="#F0BE3F"/>
-    <circle cx="67" cy="153" r="4" fill="#5E6B56"/><circle cx="141" cy="153" r="4" fill="#5E6B56"/>
-    <path d="M48 116c-15 2-22-4-24-12M159 113c14-2 20-9 21-18" fill="none" stroke="#34432B" strokeWidth="4" strokeLinecap="round"/>
-    <circle cx="22" cy="102" r="7" fill="#F0BE3F" stroke="#34432B" strokeWidth="2"/><circle cx="181" cy="93" r="7" fill="#F0BE3F" stroke="#34432B" strokeWidth="2"/>
-    {showChart ? <g transform="translate(2 18)"><rect x="0" y="0" width="72" height="58" rx="8" fill="#FFFDF8" stroke="#5D6E53" strokeWidth="2"/><rect x="13" y="34" width="9" height="14" rx="2" fill="#89A95F"/><rect x="30" y="24" width="9" height="24" rx="2" fill="#F0BE3F"/><rect x="47" y="14" width="9" height="34" rx="2" fill="#303330"/><path d="M11 11h44" stroke="#C8C1B5" strokeWidth="2"/></g> : null}
-    {showShield ? <g transform="translate(5 20)"><path d="M34 0 65 12v24c0 25-16 38-31 45C19 74 3 61 3 36V12Z" fill="#EEF3E5" stroke="#63814B" strokeWidth="3"/><rect x="23" y="32" width="22" height="19" rx="5" fill="#F0BE3F"/><path d="M28 32v-7a6 6 0 0 1 12 0v7" fill="none" stroke="#34432B" strokeWidth="3"/></g> : null}
-    {showAlert ? <g transform="translate(9 22)"><circle cx="26" cy="26" r="23" fill="#FFF4D8" stroke="#D59D2F" strokeWidth="3"/><path d="M26 13v18M26 39h.1" stroke="#A9761F" strokeWidth="4" strokeLinecap="round"/></g> : null}
+  return <svg className="mascot-svg cannon-svg" viewBox="0 0 250 205" aria-hidden="true">
+    <ellipse cx="128" cy="188" rx="84" ry="11" fill="#25231F" opacity=".08"/>
+    <path d="M55 94c0-23 19-41 42-41h44c10 0 19 3 27 8l28 19c9 6 15 17 15 28v16c0 16-13 29-29 29H85c-17 0-30-13-30-29Z" fill="#86A55F" stroke="#34432B" strokeWidth="3"/>
+    <path d="M65 102c18-24 71-35 116-15-9-19-27-27-57-27-28 0-47 10-59 42Z" fill="#A9C56E" opacity=".72"/>
+    <path d="M143 72h27c8 0 14 6 14 14v8h-41Z" fill="#F0C34A" stroke="#87671B" strokeWidth="3"/>
+    <path d="M168 83 213 71c10-3 21 4 24 15l1 4c3 11-4 22-15 24l-55 9Z" fill="#252927" stroke="#111411" strokeWidth="4"/>
+    <ellipse cx="225" cy="92" rx="8" ry="13" fill="#474B47" transform="rotate(-10 225 92)"/>
+    <path d="M86 82h58" stroke="#F0C34A" strokeWidth="7" strokeLinecap="round"/>
+    <circle cx="103" cy="108" r="7" fill="#243022"/><circle cx="137" cy="108" r="7" fill="#243022"/>
+    <circle cx="100" cy="105" r="2.2" fill="#FFF"/><circle cx="134" cy="105" r="2.2" fill="#FFF"/>
+    <ellipse cx="91" cy="121" rx="8" ry="4.5" fill="#EAB0A2" opacity=".9"/><ellipse cx="149" cy="121" rx="8" ry="4.5" fill="#EAB0A2" opacity=".9"/>
+    <path d="M112 122c7 7 15 7 22 0" fill="none" stroke="#2B3329" strokeWidth="3" strokeLinecap="round"/>
+    <path d="M72 121c-18 3-25-5-28-14M208 120c13 1 22-7 25-18" fill="none" stroke="#34432B" strokeWidth="4" strokeLinecap="round"/>
+    <circle cx="39" cy="105" r="7" fill="#F0C34A" stroke="#34432B" strokeWidth="2"/><circle cx="235" cy="98" r="7" fill="#F0C34A" stroke="#34432B" strokeWidth="2"/>
+    <path d="M77 145h111c12 0 21 10 21 21v4H56v-4c0-11 9-21 21-21Z" fill="#252927" stroke="#111411" strokeWidth="3"/>
+    <path d="M89 148h20M121 148h20M153 148h20" stroke="#5B615B" strokeWidth="4" strokeLinecap="round" opacity=".8"/>
+    <circle cx="92" cy="167" r="23" fill="#252927" stroke="#111411" strokeWidth="3"/><circle cx="173" cy="167" r="23" fill="#252927" stroke="#111411" strokeWidth="3"/>
+    <circle cx="92" cy="167" r="10" fill="#F0C34A"/><circle cx="173" cy="167" r="10" fill="#F0C34A"/>
+    <circle cx="92" cy="167" r="4" fill="#70805D"/><circle cx="173" cy="167" r="4" fill="#70805D"/>
+    <path d="M149 54c-2-10 4-19 14-22 8 4 12 12 6 22" fill="#A9C56E" stroke="#5E7640" strokeWidth="2.5"/>
+    <circle cx="165" cy="41" r="4" fill="#F0C34A" stroke="#5E7640" strokeWidth="2"/>
+    {showChart ? <g transform="translate(8 18)"><rect x="0" y="0" width="76" height="60" rx="10" fill="#FFFDF8" stroke="#5D6E53" strokeWidth="2"/><rect x="14" y="35" width="10" height="13" rx="2" fill="#89A95F"/><rect x="31" y="25" width="10" height="23" rx="2" fill="#F0BE3F"/><rect x="48" y="16" width="10" height="32" rx="2" fill="#303330"/><path d="M12 12h47" stroke="#C8C1B5" strokeWidth="2"/></g> : null}
+    {showShield ? <g transform="translate(10 18)"><path d="M35 0 67 12v24c0 25-16 38-32 46C20 74 3 61 3 36V12Z" fill="#EEF3E5" stroke="#63814B" strokeWidth="3"/><rect x="24" y="32" width="22" height="19" rx="5" fill="#F0BE3F"/><path d="M29 32v-7a6 6 0 0 1 12 0v7" fill="none" stroke="#34432B" strokeWidth="3"/></g> : null}
+    {showAlert ? <g transform="translate(16 22)"><circle cx="26" cy="26" r="23" fill="#FFF4D8" stroke="#D59D2F" strokeWidth="3"/><path d="M26 13v18M26 39h.1" stroke="#A9761F" strokeWidth="4" strokeLinecap="round"/></g> : null}
   </svg>;
 }
 
@@ -313,10 +315,11 @@ function LogoMark(): any {
     <path d="M22 18c-5-8-1-13 4-14 4 5 4 9-4 14ZM29 17c2-9 8-11 13-6-2 5-5 8-13 6Z" fill="#79924A"/>
     <circle cx="22" cy="39" r="2.5" fill="#2D2534"/><circle cx="31" cy="39" r="2.5" fill="#2D2534"/>
     <path d="M23 46c3 3 6 3 9 0" fill="none" stroke="#3D2E45" strokeWidth="2" strokeLinecap="round"/>
-    <rect x="40" y="36" width="23" height="16" rx="7" fill="#7F9F56" stroke="#34432B" strokeWidth="2"/>
-    <path d="m47 35 7-12 15 6-13 11Z" fill="#252927" stroke="#111411" strokeWidth="2"/>
-    <circle cx="47" cy="55" r="6" fill="#252927"/><circle cx="58" cy="55" r="6" fill="#252927"/>
-    <circle cx="47" cy="55" r="2.5" fill="#F0BE3F"/><circle cx="58" cy="55" r="2.5" fill="#F0BE3F"/>
+    <rect x="40" y="38" width="19" height="12" rx="6" fill="#86A55F" stroke="#34432B" strokeWidth="2"/>
+    <path d="M49 35h8c3 0 5 2 5 5v2H49Z" fill="#F0C34A" stroke="#87671B" strokeWidth="2"/>
+    <path d="M55 39 69 36c3-1 5 1 6 4 1 3-1 6-4 7l-15 2Z" fill="#252927" stroke="#111411" strokeWidth="2"/>
+    <circle cx="45" cy="55" r="6" fill="#252927"/><circle cx="58" cy="55" r="6" fill="#252927"/>
+    <circle cx="45" cy="55" r="2.5" fill="#F0BE3F"/><circle cx="58" cy="55" r="2.5" fill="#F0BE3F"/>
   </svg>;
 }
 
@@ -327,7 +330,7 @@ function Mascot(props: any): any {
   const onlyTaro = variant === 'empty' || variant === 'success';
   const onlyCannon = variant === 'summary' || variant === 'safe' || variant === 'warning';
   const labelMap: Record<string, string> = {
-    idle: '芋头与绿黄黑炮台一起守着小账本', loading: '芋头与炮台正在整理数据', empty: '芋头拿着铅笔邀请你记账', success: '芋头抱着账本完成记账', warning: '炮台提醒预算接近上限', safe: '炮台守护账户安全', summary: '炮台展示本月统计结果',
+    idle: '芋头与绿黄黑坦克小助手一起守着小账本', loading: '芋头与坦克小助手正在整理数据', empty: '芋头拿着铅笔邀请你记账', success: '芋头抱着账本完成记账', warning: '坦克小助手提醒预算接近上限', safe: '坦克小助手守护账户安全', summary: '坦克小助手展示本月统计结果',
   };
   return <div className={cn('static-mascot', `static-mascot-${variant}`)} role="img" aria-label={props.label || labelMap[variant] || labelMap.idle}>
     {!onlyCannon ? <TaroCharacter mode={taroMode}/> : null}
@@ -937,7 +940,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.8 · 轻量组件化 UI 与 SVG 角色</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.9 · 轻量组件化 UI 与坦克拟人 SVG 角色</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {
