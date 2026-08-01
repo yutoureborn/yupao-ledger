@@ -47,15 +47,15 @@ test('应用产物包含动态 API 调用而非纯静态页面', async () => {
   assert.match(app, /\/api\/invoices/);
 });
 
-test('关键前端资源预加载且版本统一为 0.3.4', async () => {
+test('关键前端资源预加载且版本统一为 0.3.7', async () => {
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.4/);
-  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.4/);
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.4/);
-  assert.match(bootstrap, /app\.js\?v=0\.3\.4/);
-  assert.match(worker, /yupao-shell-v13/);
+  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.7/);
+  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.7/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.7/);
+  assert.match(bootstrap, /app\.js\?v=0\.3\.7/);
+  assert.match(worker, /yupao-shell-v14/);
 });
 
 test('PWA 缓存按导航、版本资源和普通静态资源分层处理', async () => {
@@ -81,7 +81,7 @@ test('支出分类模块在侧栏和完整统计中使用重构后的概览布�
   assert.match(app, /查看全部分类/);
 });
 
-test('大芋头与小坦克改为正式角色资产，并通过统一映射接入页面场景', async () => {
+test('大芋头与小炮台使用正式角色资产，并通过统一映射接入页面场景', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
   await access(path.join(dist, 'illustrations/mascots/hero-duo-v033.webp'));
@@ -145,4 +145,21 @@ test('发票页面与轻量生活感主题进入构建产物', async () => {
   assert.match(app, /invoice-hero-mascot/);
   assert.match(css, /\.invoice-card/);
   assert.match(css, /\.invoice-pocket-card/);
+});
+
+
+test('v0.3.7 包含统一品牌 SVG 与移动端独立页面结构', async () => {
+  const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
+  const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
+  await access(path.join(dist, 'brand/brand-mark-v037.svg'));
+  await access(path.join(dist, 'brand/brand-lockup-v037.svg'));
+  assert.match(app, /brand-mark-v037\.svg/);
+  assert.match(app, /function MobileDashboardView/);
+  assert.match(app, /function MobileTransactionsView/);
+  assert.match(app, /function MobileStatsView/);
+  assert.match(app, /小炮台/);
+  assert.match(css, /\.mobile-product-view/);
+  assert.match(css, /\.mobile-home-hero/);
+  assert.match(css, /\.mobile-date-groups/);
+  assert.match(css, /\.mobile-stats-v037/);
 });

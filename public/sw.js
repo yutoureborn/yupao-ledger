@@ -1,21 +1,23 @@
-const CACHE_NAME = 'yupao-shell-v13';
+const CACHE_NAME = 'yupao-shell-v14';
 const APP_SHELL = [
   '/index.html',
-  '/styles.css?v=0.3.4',
-  '/app.js?v=0.3.4',
-  '/manifest.webmanifest?v=0.3.4',
+  '/styles.css?v=0.3.7',
+  '/app.js?v=0.3.7',
+  '/manifest.webmanifest?v=0.3.7',
   '/vendor/preact.mjs',
-  '/vendor/preact-bootstrap.mjs?v=0.3.4',
+  '/vendor/preact-bootstrap.mjs?v=0.3.7',
   '/icons/favicon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/illustrations/mascots/hero-duo-v033.webp?v=0.3.4',
-  '/illustrations/mascots/taro-entry-v033.webp?v=0.3.4',
-  '/illustrations/mascots/duo-success-v033.webp?v=0.3.4',
-  '/illustrations/mascots/tank-summary-v033.webp?v=0.3.4',
-  '/illustrations/mascots/tank-safe-v033.webp?v=0.3.4',
-  '/illustrations/mascots/tank-warning-v033.webp?v=0.3.4',
-  '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.4',
+  '/brand/brand-mark-v037.svg?v=0.3.7',
+  '/brand/brand-lockup-v037.svg?v=0.3.7',
+  '/illustrations/mascots/hero-duo-v033.webp?v=0.3.7',
+  '/illustrations/mascots/taro-entry-v033.webp?v=0.3.7',
+  '/illustrations/mascots/duo-success-v033.webp?v=0.3.7',
+  '/illustrations/mascots/tank-summary-v033.webp?v=0.3.7',
+  '/illustrations/mascots/tank-safe-v033.webp?v=0.3.7',
+  '/illustrations/mascots/tank-warning-v033.webp?v=0.3.7',
+  '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.7',
 ];
 
 self.addEventListener('install', (event) => {
@@ -76,7 +78,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   const isVersionedCore = /\.(?:css|js|mjs)$/.test(url.pathname) && url.searchParams.has('v');
-  if (isVersionedCore || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/illustrations/mascots/')) {
+  if (isVersionedCore || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/illustrations/mascots/') || url.pathname.startsWith('/brand/')) {
     event.respondWith(cacheFirst(request));
     return;
   }

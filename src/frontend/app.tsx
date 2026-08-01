@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.6';
+const APP_VERSION = '0.3.7';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -57,14 +57,14 @@ const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8'
 type MascotAssetKey = 'hero' | 'idle' | 'empty' | 'success' | 'summary' | 'safe' | 'warning' | 'invoice';
 
 const MASCOT_ASSETS: Record<MascotAssetKey, { png: string; webp: string }> = {
-  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.6', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.6' },
-  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.6', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.6' },
-  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.6', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.6' },
-  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.6', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.6' },
-  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.6', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.6' },
-  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.6', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.6' },
-  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.6', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.6' },
-  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.6', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.6' },
+  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.7', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.7' },
+  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.7', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.7' },
+  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.7', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.7' },
+  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.7', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.7' },
+  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.7', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.7' },
+  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.7', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.7' },
+  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.7', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.7' },
+  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.7', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.7' },
 };
 
 function MascotPicture(props: { asset: MascotAssetKey; alt?: string; className?: string; eager?: boolean }): any {
@@ -347,27 +347,7 @@ function HeroMascots(props: any = {}): any {
 }
 
 function LogoMark(): any {
-  return <svg viewBox="0 0 88 72" width="48" height="40" aria-hidden="true" className="brand-logo-svg">
-    <rect x="2" y="4" width="84" height="64" rx="20" fill="#FFFEFC" stroke="#D9E6DE" strokeWidth="2"/>
-    <ellipse cx="29" cy="40" rx="17" ry="21" fill="#9C7BD1" stroke="#5A4773" strokeWidth="2"/>
-    <path d="M20 19c-5-8 1-13 7-13 2 6-1 10-7 13Zm13 0c1-8 7-12 13-8-1 6-5 9-13 8Z" fill="#7FA04C" stroke="#5C7437" strokeWidth="1.4" strokeLinejoin="round"/>
-    <ellipse cx="24" cy="38" rx="3.7" ry="4.3" fill="#2E2435"/>
-    <ellipse cx="35" cy="38" rx="3.7" ry="4.3" fill="#2E2435"/>
-    <circle cx="22.8" cy="36.7" r="1" fill="#fff"/><circle cx="33.8" cy="36.7" r="1" fill="#fff"/>
-    <ellipse cx="18.5" cy="45.2" rx="4.2" ry="2.2" fill="#EAB3C0"/>
-    <ellipse cx="40.2" cy="45.2" rx="4.2" ry="2.2" fill="#EAB3C0"/>
-    <path d="M25 48.5c3 3 8 3 11 0" fill="none" stroke="#4A3754" strokeWidth="2.2" strokeLinecap="round"/>
-    <path d="M11 59c2-3 4-5 6-6" fill="none" stroke="#4A3754" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M37 59c2-3 4-5 6-6" fill="none" stroke="#4A3754" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M52 53h22a6 6 0 0 0 6-6v-3H52z" fill="#1F2422" stroke="#151917" strokeWidth="2" strokeLinejoin="round"/>
-    <rect x="50" y="37" width="19" height="14" rx="7" fill="#99BA69" stroke="#5A7742" strokeWidth="2"/>
-    <path d="M61 35h8c3 0 5 2 5 5v2H61Z" fill="#F0C44D" stroke="#9C7D23" strokeWidth="2"/>
-    <circle cx="55.5" cy="43.5" r="2.1" fill="#263129"/><circle cx="63.5" cy="43.5" r="2.1" fill="#263129"/>
-    <circle cx="54.8" cy="42.8" r="0.7" fill="#fff"/><circle cx="62.8" cy="42.8" r="0.7" fill="#fff"/>
-    <path d="M58 47c2.8 1.6 5.8 1.6 8.6 0" fill="none" stroke="#2B352E" strokeWidth="1.8" strokeLinecap="round"/>
-    <circle cx="53" cy="59" r="6.4" fill="#2A2F2D"/><circle cx="68" cy="59" r="6.4" fill="#2A2F2D"/>
-    <circle cx="53" cy="59" r="2.4" fill="#EFC54D"/><circle cx="68" cy="59" r="2.4" fill="#EFC54D"/>
-  </svg>;
+  return <img className="brand-logo-img" src="/brand/brand-mark-v037.svg?v=0.3.7" alt="" aria-hidden="true" decoding="async"/>;
 }
 
 function Mascot(props: any): any {
@@ -640,6 +620,79 @@ function SummaryMetric(props: any): any {
   </article>;
 }
 
+
+function MobileDashboardView(props: any): any {
+  const data = props.data;
+  const budgetPercent = safePercent(data.budgetUsedCents, data.budgetCents);
+  const recent = (data.recent || []).slice(0, 4);
+  return <div className="mobile-product-view mobile-dashboard-v037">
+    <section className="mobile-home-hero card">
+      <div className="mobile-home-hero-copy"><span>{monthLabel(props.month)} · 家庭生活簿</span><h2>{data.expenseCents > 0 ? '把今天的小日子记下来' : '从今天的一笔小事开始'}</h2><p>大芋头负责快速记录，小炮台负责安静整理。</p></div>
+      <div className="mobile-home-hero-mascot"><MascotPicture asset="hero" eager alt=""/></div>
+      <button className="mobile-primary-action" type="button" onClick={() => props.navigate('add')}><Icon name="plus" size={20}/>记一笔</button>
+    </section>
+    <section className="mobile-section-block">
+      <div className="mobile-section-head"><div><span>本月概览</span><small>收入、支出与结余</small></div><button type="button" onClick={() => props.navigate('stats')}>看统计<Icon name="chevron-right" size={15}/></button></div>
+      <div className="mobile-money-grid">
+        <article className="mobile-money-card income"><span>收入</span><strong>{formatCompactMoney(data.incomeCents)}</strong><small>上月 {formatCompactMoney(data.previousIncomeCents)}</small></article>
+        <article className="mobile-money-card expense"><span>支出</span><strong>{formatCompactMoney(data.expenseCents)}</strong><small>上月 {formatCompactMoney(data.previousExpenseCents)}</small></article>
+        <article className="mobile-money-card balance"><span>结余</span><strong>{formatCompactMoney(data.balanceCents)}</strong><small>收入减支出</small></article>
+      </div>
+    </section>
+    <section className="mobile-section-block">
+      <div className="mobile-section-head"><div><span>常用功能</span><small>快速进入常用管理</small></div></div>
+      <div className="mobile-quick-grid">
+        <button type="button" onClick={() => props.navigate('budgets')}><span className="mobile-quick-icon mint"><Icon name="target"/></span><strong>预算</strong><small>控制节奏</small></button>
+        <button type="button" onClick={() => props.navigate('accounts')}><span className="mobile-quick-icon lavender"><Icon name="wallet"/></span><strong>账户</strong><small>查看余额</small></button>
+        <button type="button" onClick={() => props.navigate('invoices')}><span className="mobile-quick-icon peach"><Icon name="invoice"/></span><strong>发票</strong><small>关联收支</small></button>
+        <button type="button" onClick={() => props.navigate('transactions')}><span className="mobile-quick-icon pink"><Icon name="list"/></span><strong>明细</strong><small>查找记录</small></button>
+      </div>
+    </section>
+    <section className="mobile-panel card">
+      <div className="mobile-section-head"><div><span>最近记录</span><small>最近发生的小账</small></div><button type="button" onClick={() => props.navigate('transactions')}>全部<Icon name="chevron-right" size={15}/></button></div>
+      {recent.length ? <div className="mobile-recent-list">{recent.map((item: any, index: number) => <TransactionItem key={item.id} item={item} index={index}/>)}</div> : <EmptyState title="还没有记录" message="今天的第一笔，可以从这里开始。"/>}
+    </section>
+    <section className="mobile-panel card mobile-budget-panel">
+      <div className="mobile-section-head"><div><span>预算进度</span><small>别给自己太大压力</small></div><button type="button" onClick={() => props.navigate('budgets')}>管理<Icon name="chevron-right" size={15}/></button></div>
+      {data.budgetCents > 0 ? <><div className="mobile-budget-number"><strong>{formatCompactMoney(data.budgetUsedCents)}</strong><span>/ {formatCompactMoney(data.budgetCents)}</span><em>{budgetPercent}%</em></div><div className="progress-track"><div className={cn('progress-fill', budgetPercent >= 100 ? 'over' : budgetPercent >= 80 ? 'notice' : 'normal')} style={{ width: `${Math.max(2, budgetPercent)}%` }}/></div></> : <div className="mobile-empty-row"><span>还没设置预算</span><button type="button" onClick={() => props.navigate('budgets')}>去设置</button></div>}
+    </section>
+  </div>;
+}
+
+function MobileTransactionsView(props: any): any {
+  const items = props.items || [];
+  const groups = items.reduce((map: Record<string, any[]>, item: any) => {
+    const key = (item.occurred_at || '').slice(0, 10) || '未注明日期';
+    (map[key] ||= []).push(item);
+    return map;
+  }, {} as Record<string, any[]>);
+  return <div className="mobile-product-view mobile-transactions-v037">
+    <div className="mobile-page-title"><div><h1>明细</h1><p>每一笔都按日期整理好了。</p></div><button className="mobile-square-btn" type="button" onClick={() => props.navigate('add')} aria-label="记一笔"><Icon name="plus"/></button></div>
+    <div className="mobile-month-bar"><MonthSwitcher month={props.month} onChange={props.onMonthChange}/></div>
+    <div className="mobile-segmented" role="tablist" aria-label="收支类型"><button className={!props.type ? 'active' : ''} onClick={() => props.onType('')}>全部</button><button className={props.type === 'income' ? 'active' : ''} onClick={() => props.onType('income')}>收入</button><button className={props.type === 'expense' ? 'active' : ''} onClick={() => props.onType('expense')}>支出</button><button className={props.type === 'transfer' ? 'active' : ''} onClick={() => props.onType('transfer')}>转账</button></div>
+    <div className="mobile-search-row"><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索商户或备注" value={props.search} onChange={(event: any) => props.onSearch(event.target.value)} onKeyDown={(event: any) => { if (event.key === 'Enter') props.onSubmitSearch(); }}/></div><button className="mobile-filter-btn" type="button" onClick={props.onSubmitSearch}><Icon name="search" size={18}/></button></div>
+    {props.loading ? <div className="stack"><div className="skeleton" style={{ height: '82px' }}/><div className="skeleton" style={{ height: '82px' }}/></div> : items.length ? <div className="mobile-date-groups">{Object.entries(groups).map(([date, groupItems]: any) => {
+      const expense = groupItems.filter((item: any) => item.type === 'expense').reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
+      const income = groupItems.filter((item: any) => item.type === 'income').reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
+      return <section className="mobile-date-group" key={date}><header><div><strong>{compactDate(date)}</strong><span>{date === today() ? '今天' : ''}</span></div><small>支出 {formatCompactMoney(expense)} · 收入 {formatCompactMoney(income)}</small></header><div className="mobile-transaction-card">{groupItems.map((item: any, index: number) => <TransactionItem key={item.id} item={item} index={index} editable onEdit={props.onEdit} onDelete={props.onDelete}/>)}</div></section>;
+    })}</div> : <EmptyState title="没有找到记录" message="换个条件，或者记下一笔。"/>}
+  </div>;
+}
+
+function MobileStatsView(props: any): any {
+  const categories = props.categories || [];
+  const total = categories.reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
+  const top = categories[0];
+  return <div className="mobile-product-view mobile-stats-v037">
+    <div className="mobile-page-title"><div><h1>统计</h1><p>看看这个月的钱都去了哪里。</p></div></div>
+    <div className="mobile-month-bar"><MonthSwitcher month={props.month} onChange={props.onMonthChange}/></div>
+    <section className="mobile-stats-summary card"><div className="mobile-section-head"><div><span>月度总览</span><small>{monthLabel(props.month)}</small></div></div><div className="mobile-stats-summary-grid"><div><span>支出</span><strong>{formatCompactMoney(total)}</strong></div><div><span>分类</span><strong>{categories.length}</strong></div><div><span>最高</span><strong>{top ? top.name : '暂无'}</strong></div></div></section>
+    <section className="mobile-panel card mobile-donut-panel"><div className="mobile-section-head"><div><span>支出占比</span><small>从高到低查看</small></div></div><DonutChart items={categories} compact/></section>
+    <section className="mobile-panel card"><div className="mobile-section-head"><div><span>分类预算</span><small>预算与实际支出</small></div><button type="button" onClick={() => props.navigate('budgets')}>管理<Icon name="chevron-right" size={15}/></button></div><BudgetProgressList items={props.budgets} onSetup={() => props.navigate('budgets')}/></section>
+    <section className="mobile-panel card"><div className="mobile-section-head"><div><span>近六个月</span><small>收入和支出的变化</small></div></div><MonthlyBars items={props.months}/></section>
+  </div>;
+}
+
 class DashboardPage extends React.Component<any, any> {
   constructor(props: any) { super(props); this.state = { loading: true, overview: null, trend: [], categories: [], budgets: [], invoiceSummary: null }; }
   componentDidMount(): void { this.load(); }
@@ -665,6 +718,7 @@ class DashboardPage extends React.Component<any, any> {
     const budgetPercent = safePercent(data.budgetUsedCents, data.budgetCents);
 
 return <div className="page dashboard-page dashboard-page-v034">
+  <div className="desktop-product-view">
   <div className="dashboard-header-wrap"><PageHeader title={`${greeting}，${userName}`} subtitle="两个人的小日子，都记在这里。"><MonthSwitcher month={this.props.month} onChange={this.props.onMonthChange}/><button className="icon-btn" onClick={() => this.load()} title="刷新" aria-label="刷新首页数据"><Icon name="refresh" size={18}/></button></PageHeader></div>
   <section className="hero-card card dashboard-hero">
     <div className="hero-copy"><span className="hero-kicker">{monthLabel(this.props.month)} · 家庭生活簿</span><h2>{data.expenseCents > 0 ? '把平常的小日子，轻轻记下来' : '从今天的一笔小事开始'}</h2><p>{data.expenseCents > 0 ? `这个月支出 ${formatMoney(data.expenseCents)}，结余 ${formatMoney(data.balanceCents)}。大芋头负责马上记，小炮台负责慢慢整理。` : '一顿饭、一杯饮料、一次出行，都是你们共同生活的一部分。'}</p><div className="hero-actions"><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/>记一笔</button><button className="btn btn-secondary" onClick={() => this.props.navigate('transactions')}>看看明细</button></div><div className="hero-gentle-note"><span/>今天也不用记得很完美，重要的先留下。</div></div>
@@ -683,6 +737,8 @@ return <div className="page dashboard-page dashboard-page-v034">
     <section className="card card-pad dashboard-card dashboard-card-budget"><div className="card-title-row"><div><h3 className="card-title">预算进度</h3><p className="card-subtitle">控制节奏，不用给自己压力</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('budgets')}>管理预算</button></div>{data.budgetCents > 0 ? <div className="dashboard-total-budget"><div className="budget-top"><span>总预算</span><strong>{formatCompactMoney(data.budgetUsedCents)} / {formatCompactMoney(data.budgetCents)}</strong></div><div className="progress-track"><div className={cn('progress-fill', budgetPercent >= 100 ? 'over' : budgetPercent >= 80 ? 'notice' : 'normal')} style={{ width: `${Math.max(2, budgetPercent)}%` }}/></div></div> : null}<BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section>
     <section className="card card-pad invoice-pocket-card dashboard-card dashboard-card-invoice"><div className="dashboard-invoice-head"><div><h3 className="card-title">发票小夹子</h3><p className="card-subtitle">收到的发票关联支出，开出的发票关联收入。</p></div><button className="btn btn-ghost btn-sm" onClick={() => this.props.navigate('invoices')}>打开发票夹</button></div><div className="invoice-pocket-grid dashboard-invoice-grid"><button type="button" onClick={() => this.props.navigate('invoices')}><span>我收到的</span><strong>{formatCompactMoney(this.state.invoiceSummary?.received?.amountCents || 0)}</strong><small>{this.state.invoiceSummary?.received?.count || 0} 张 · 已关联 {this.state.invoiceSummary?.received?.linkedCount || 0}</small></button><button type="button" onClick={() => this.props.navigate('invoices')}><span>我开出的</span><strong>{formatCompactMoney(this.state.invoiceSummary?.issued?.amountCents || 0)}</strong><small>{this.state.invoiceSummary?.issued?.count || 0} 张 · 已关联 {this.state.invoiceSummary?.issued?.linkedCount || 0}</small></button><div className="dashboard-invoice-mascot"><Mascot variant="invoice" label="芋头和小炮台一起整理发票"/></div></div></section>
   </div>
+  </div>
+  <MobileDashboardView data={data} month={this.props.month} navigate={this.props.navigate}/>
 </div>;
   }
 }
@@ -783,15 +839,11 @@ class TransactionsPage extends React.Component<any, any> {
     const expenseCents = items.filter((item: any) => item.type === 'expense').reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
     const incomeCents = items.filter((item: any) => item.type === 'income').reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
     const transferCount = items.filter((item: any) => item.type === 'transfer').length;
-    return <div className="page transactions-page-v036"><PageHeader title="收支明细" subtitle="按月份、类型或账户查找每一笔记录。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.changeFilter({ month })}/><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/><span className="btn-label">记一笔</span></button></PageHeader>
+    return <div className="page transactions-page-v037"><div className="desktop-product-view"><PageHeader title="收支明细" subtitle="按月份、类型或账户查找每一笔记录。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.changeFilter({ month })}/><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/><span className="btn-label">记一笔</span></button></PageHeader>
       <section className="card detail-hero-card"><div className="detail-hero-copy"><span className="detail-kicker">{monthLabel(this.state.month)} · 记录台账</span><h2>这一个月的收支，都能顺手翻出来</h2><p>大芋头负责把新记录记下来，小炮台负责把它们排得清清楚楚。筛一筛，就能快速找到要看的那一笔。</p></div><div className="detail-hero-stats" role="list" aria-label="明细页摘要"><div className="detail-stat" role="listitem"><span>记录数</span><strong>{this.state.total}</strong><small>当前筛选结果</small></div><div className="detail-stat" role="listitem"><span>支出合计</span><strong>{formatCompactMoney(expenseCents)}</strong><small>{items.filter((item: any) => item.type === 'expense').length} 笔</small></div><div className="detail-stat" role="listitem"><span>收入合计</span><strong>{formatCompactMoney(incomeCents)}</strong><small>{items.filter((item: any) => item.type === 'income').length} 笔</small></div><div className="detail-stat" role="listitem"><span>转账记录</span><strong>{transferCount}</strong><small>账户之间调拨</small></div></div></section>
-      <section className="card card-pad detail-filter-card">
-        <div className="card-title-row detail-filter-head"><div><h3 className="card-title">筛选与查找</h3><p className="card-subtitle">先按月份看，再用类型、账户和关键词收窄范围。</p></div></div>
-        <div className="filter-bar detail-filter-bar"><select className="select" value={this.state.type} onChange={(event: any) => this.changeFilter({ type: event.target.value })}><option value="">全部类型</option><option value="expense">支出</option><option value="income">收入</option><option value="transfer">转账</option></select><select className="select" value={this.state.accountId} onChange={(event: any) => this.changeFilter({ accountId: event.target.value })}><option value="">全部账户</option>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索商户或备注" value={this.state.search} onChange={(event: any) => this.setState({ search: event.target.value })} onKeyDown={(event: any) => { if (event.key === 'Enter') this.load(); }}/></div><button className="btn btn-secondary" onClick={() => this.load()}>搜索</button></div>
-      </section>
-      <section className="card card-pad detail-list-card">
-        <div className="card-title-row detail-list-head"><div><h3 className="card-title">{monthLabel(this.state.month)}</h3><p className="card-subtitle">共 {this.state.total} 笔记录，按时间倒序排列。</p></div></div>
-        {this.state.loading ? <div className="stack"><div className="skeleton" style={{ height: '68px' }}/><div className="skeleton" style={{ height: '68px' }}/><div className="skeleton" style={{ height: '68px' }}/></div> : this.state.items.length ? <div className="list detail-list">{this.state.items.map((item: any, index: number) => <TransactionItem key={item.id} item={item} index={index} editable onEdit={(entry: any) => this.setState({ edit: entry })} onDelete={(entry: any) => this.remove(entry)}/>)}</div> : <EmptyState title="没有找到记录" message="换个筛选条件，或者记下新的一笔。" action={<button className="btn btn-primary" onClick={() => this.props.navigate('add')}>记一笔</button>}/>}</section>
+      <section className="card card-pad detail-filter-card"><div className="card-title-row detail-filter-head"><div><h3 className="card-title">筛选与查找</h3><p className="card-subtitle">先按月份看，再用类型、账户和关键词收窄范围。</p></div></div><div className="filter-bar detail-filter-bar"><select className="select" value={this.state.type} onChange={(event: any) => this.changeFilter({ type: event.target.value })}><option value="">全部类型</option><option value="expense">支出</option><option value="income">收入</option><option value="transfer">转账</option></select><select className="select" value={this.state.accountId} onChange={(event: any) => this.changeFilter({ accountId: event.target.value })}><option value="">全部账户</option>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索商户或备注" value={this.state.search} onChange={(event: any) => this.setState({ search: event.target.value })} onKeyDown={(event: any) => { if (event.key === 'Enter') this.load(); }}/></div><button className="btn btn-secondary" onClick={() => this.load()}>搜索</button></div></section>
+      <section className="card card-pad detail-list-card"><div className="card-title-row detail-list-head"><div><h3 className="card-title">{monthLabel(this.state.month)}</h3><p className="card-subtitle">共 {this.state.total} 笔记录，按时间倒序排列。</p></div></div>{this.state.loading ? <div className="stack"><div className="skeleton" style={{ height: '68px' }}/><div className="skeleton" style={{ height: '68px' }}/><div className="skeleton" style={{ height: '68px' }}/></div> : this.state.items.length ? <div className="list detail-list">{this.state.items.map((item: any, index: number) => <TransactionItem key={item.id} item={item} index={index} editable onEdit={(entry: any) => this.setState({ edit: entry })} onDelete={(entry: any) => this.remove(entry)}/>)}</div> : <EmptyState title="没有找到记录" message="换个筛选条件，或者记下新的一笔。" action={<button className="btn btn-primary" onClick={() => this.props.navigate('add')}>记一笔</button>}/>}</section></div>
+      <MobileTransactionsView items={items} loading={this.state.loading} month={this.state.month} type={this.state.type} search={this.state.search} navigate={this.props.navigate} onMonthChange={(month: string) => this.changeFilter({ month })} onType={(type: string) => this.changeFilter({ type })} onSearch={(search: string) => this.setState({ search })} onSubmitSearch={() => this.load()} onEdit={(entry: any) => this.setState({ edit: entry })} onDelete={(entry: any) => this.remove(entry)}/>
       <Modal open={Boolean(this.state.edit)} title="编辑这笔记录" onClose={() => this.setState({ edit: null })}>{this.state.edit ? <TransactionForm bootstrap={this.props.bootstrap} initial={this.state.edit} onCancel={() => this.setState({ edit: null })} onSuccess={() => { this.setState({ edit: null }); this.load(); this.props.onChanged(); this.props.onToast('已经保存修改', 'success'); }}/> : null}</Modal>
     </div>;
   }
@@ -819,7 +871,7 @@ class StatsPage extends React.Component<any, any> {
     const average = totalExpense ? Math.round(totalExpense / Math.max(1, categories.length)) : 0;
     const budgets = this.state.budgets || [];
     const activeBudgetCount = budgets.length;
-    return <div className="page stats-page-v036"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="stats-grid-v036"><section className="card role-assistant role-assistant-cannon stats-hero-card"><div className="role-assistant-copy"><strong>小炮台已经整理好本月数据</strong><span>趋势、分类和预算都归好类了，慢慢看就行。</span></div><div className="role-assistant-mascot role-assistant-mascot-summary"><Mascot variant="summary" label="沉稳小炮台陪你查看本月图表"/></div></section><section className="stats-overview-strip" aria-label="统计摘要"><article className="card stats-mini-card"><span>本月支出</span><strong>{formatCompactMoney(totalExpense)}</strong><small>当前分类总计</small></article><article className="card stats-mini-card"><span>最高分类</span><strong>{topCategory ? topCategory.name : '暂无'}</strong><small>{topCategory ? `${Math.round(Number(topCategory.amount_cents || 0) / Math.max(1, totalExpense) * 100)}% · ${formatCompactMoney(topCategory.amount_cents)}` : '等待更多记录'}</small></article><article className="card stats-mini-card"><span>预算项目</span><strong>{activeBudgetCount}</strong><small>{activeBudgetCount ? '已纳入月度控制' : '还未开始设置'}</small></article><article className="card stats-mini-card"><span>单类均值</span><strong>{formatCompactMoney(average)}</strong><small>{categories.length} 个支出分类</small></article></section><section className="card card-pad stats-trend-card"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card stats-spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad stats-budget-card"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad stats-months-card"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
+    return <div className="page stats-page-v037"><div className="desktop-product-view"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="stats-grid-v036"><section className="card role-assistant role-assistant-cannon stats-hero-card"><div className="role-assistant-copy"><strong>小炮台已经整理好本月数据</strong><span>趋势、分类和预算都归好类了，慢慢看就行。</span></div><div className="role-assistant-mascot role-assistant-mascot-summary"><Mascot variant="summary" label="沉稳小炮台陪你查看本月图表"/></div></section><section className="stats-overview-strip" aria-label="统计摘要"><article className="card stats-mini-card"><span>本月支出</span><strong>{formatCompactMoney(totalExpense)}</strong><small>当前分类总计</small></article><article className="card stats-mini-card"><span>最高分类</span><strong>{topCategory ? topCategory.name : '暂无'}</strong><small>{topCategory ? `${Math.round(Number(topCategory.amount_cents || 0) / Math.max(1, totalExpense) * 100)}% · ${formatCompactMoney(topCategory.amount_cents)}` : '等待更多记录'}</small></article><article className="card stats-mini-card"><span>预算项目</span><strong>{activeBudgetCount}</strong><small>{activeBudgetCount ? '已纳入月度控制' : '还未开始设置'}</small></article><article className="card stats-mini-card"><span>单类均值</span><strong>{formatCompactMoney(average)}</strong><small>{categories.length} 个支出分类</small></article></section><section className="card card-pad stats-trend-card"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card stats-spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad stats-budget-card"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad stats-months-card"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div><MobileStatsView month={this.state.month} categories={categories} budgets={budgets} months={this.state.months} navigate={this.props.navigate} onMonthChange={(month: string) => this.setState({ month }, () => this.load())}/></div>;
   }
 }
 
@@ -1074,7 +1126,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.3.4 · 桌面布局与交互重构</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.3.7 · 统一品牌与移动端独立重构</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {
