@@ -1,7 +1,7 @@
 "use strict";
 /* global React, ReactDOM */
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.5';
+const APP_VERSION = '0.3.6';
 let authExpiredHandler = null;
 function setClientAuth(csrfToken = '') {
     currentCsrfToken = csrfToken;
@@ -24,14 +24,14 @@ const CATEGORY_EMOJI = {
 };
 const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8', '#9BCED4', '#E9A58F'];
 const MASCOT_ASSETS = {
-    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.5', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.5' },
-    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.5', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.5' },
-    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.5', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.5' },
-    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.5', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.5' },
-    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.5' },
-    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.5' },
-    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.5' },
-    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.5', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.5' },
+    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.6', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.6' },
+    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.6', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.6' },
+    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.6', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.6' },
+    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.6', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.6' },
+    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.6', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.6' },
+    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.6', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.6' },
+    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.6', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.6' },
+    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.6', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.6' },
 };
 function MascotPicture(props) {
     const asset = MASCOT_ASSETS[props.asset] || MASCOT_ASSETS.hero;
@@ -354,7 +354,7 @@ function Icon(props) {
     return React.createElement("svg", { className: props.className || 'nav-icon', width: props.size || 22, height: props.size || 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, content);
 }
 function HeroMascots(props = {}) {
-    return React.createElement("div", { className: "hero-character-stage", "aria-label": "\u6D3B\u6CFC\u7684\u5927\u828B\u5934\u548C\u6C89\u7A33\u7684\u5C0F\u5766\u514B" },
+    return React.createElement("div", { className: "hero-character-stage", "aria-label": "\u6D3B\u6CFC\u7684\u5927\u828B\u5934\u548C\u6C89\u7A33\u7684\u5C0F\u70AE\u53F0" },
         React.createElement("div", { className: cn('hero-character', 'hero-character-duo', props.warning && 'hero-character-warning'), "data-mascot-motion": "hero" },
             React.createElement(MascotPicture, { asset: "hero", eager: true, alt: "" })),
         props.warning ? React.createElement("span", { className: "hero-alert-badge" }, "\u9884\u7B97\u63D0\u9192") : null,
@@ -391,7 +391,7 @@ function LogoMark() {
 function Mascot(props) {
     const variant = (props.variant || 'idle');
     const labelMap = {
-        idle: '活泼的大芋头和沉稳的小坦克一起守着小账本', loading: '大芋头和小坦克正在整理数据', empty: '芋头拿着铅笔邀请你记账', success: '芋头抱着完成清单，小坦克在旁边陪你庆祝', warning: '沉稳的小坦克提醒预算接近上限', safe: '沉稳的小坦克守护账户安全', summary: '沉稳的小坦克展示本月统计结果', invoice: '芋头和小坦克一起整理发票',
+        idle: '活泼的大芋头和沉稳的小炮台一起守着小账本', loading: '大芋头和小炮台正在整理数据', empty: '芋头拿着铅笔邀请你记账', success: '芋头抱着完成清单，小炮台在旁边陪你庆祝', warning: '沉稳的小炮台提醒预算接近上限', safe: '沉稳的小炮台守护账户安全', summary: '沉稳的小炮台展示本月统计结果', invoice: '芋头和小炮台一起整理发票',
     };
     const assetKey = (variant in MASCOT_ASSETS ? variant : 'idle');
     return React.createElement("div", { className: cn('static-mascot', 'static-mascot-asset', `static-mascot-${variant}`), role: "img", "aria-label": props.label || labelMap[variant] || labelMap.idle },
@@ -791,7 +791,7 @@ class DashboardPage extends React.Component {
                         monthLabel(this.props.month),
                         " \u00B7 \u5BB6\u5EAD\u751F\u6D3B\u7C3F"),
                     React.createElement("h2", null, data.expenseCents > 0 ? '把平常的小日子，轻轻记下来' : '从今天的一笔小事开始'),
-                    React.createElement("p", null, data.expenseCents > 0 ? `这个月支出 ${formatMoney(data.expenseCents)}，结余 ${formatMoney(data.balanceCents)}。大芋头负责马上记，小坦克负责慢慢整理。` : '一顿饭、一杯饮料、一次出行，都是你们共同生活的一部分。'),
+                    React.createElement("p", null, data.expenseCents > 0 ? `这个月支出 ${formatMoney(data.expenseCents)}，结余 ${formatMoney(data.balanceCents)}。大芋头负责马上记，小炮台负责慢慢整理。` : '一顿饭、一杯饮料、一次出行，都是你们共同生活的一部分。'),
                     React.createElement("div", { className: "hero-actions" },
                         React.createElement("button", { className: "btn btn-primary", onClick: () => this.props.navigate('add') },
                             React.createElement(Icon, { name: "plus", size: 18 }),
@@ -866,7 +866,7 @@ class DashboardPage extends React.Component {
                                 " \u5F20 \u00B7 \u5DF2\u5173\u8054 ",
                                 ((_m = (_l = this.state.invoiceSummary) === null || _l === void 0 ? void 0 : _l.issued) === null || _m === void 0 ? void 0 : _m.linkedCount) || 0)),
                         React.createElement("div", { className: "dashboard-invoice-mascot" },
-                            React.createElement(Mascot, { variant: "invoice", label: "\u828B\u5934\u548C\u5C0F\u5766\u514B\u4E00\u8D77\u6574\u7406\u53D1\u7968" }))))));
+                            React.createElement(Mascot, { variant: "invoice", label: "\u828B\u5934\u548C\u5C0F\u70AE\u53F0\u4E00\u8D77\u6574\u7406\u53D1\u7968" }))))));
     }
 }
 class TransactionForm extends React.Component {
@@ -975,13 +975,13 @@ class AddPage extends React.Component {
                         React.createElement("strong", null, "\u828B\u5934\u51C6\u5907\u597D\u5566"),
                         React.createElement("span", null, "\u586B\u597D\u91D1\u989D\uFF0C\u5B83\u4F1A\u9A6C\u4E0A\u628A\u8FD9\u7B14\u8BB0\u8FDB\u6765\u3002")),
                     React.createElement("div", { className: "role-assistant-mascot" },
-                        React.createElement(Mascot, { variant: "idle", label: "\u828B\u5934\u62FF\u7740\u94C5\u7B14\u51C6\u5907\u8BB0\u8D26\uFF0C\u5C0F\u5766\u514B\u6253\u5F00\u5F52\u6863\u69FD" }))),
+                        React.createElement(Mascot, { variant: "idle", label: "\u828B\u5934\u62FF\u7740\u94C5\u7B14\u51C6\u5907\u8BB0\u8D26\uFF0C\u5C0F\u70AE\u53F0\u6253\u5F00\u5F52\u6863\u69FD" }))),
                 React.createElement(TransactionForm, { bootstrap: this.props.bootstrap, onSuccess: (_, type) => { this.setState({ success: true, savedType: type }); this.props.onChanged(); window.setTimeout(() => { this.setState({ success: false }); this.props.navigate('home'); }, 1350); } })),
             this.state.success ? React.createElement("div", { className: "success-overlay" },
                 React.createElement("div", { className: "success-box" },
-                    React.createElement(Mascot, { variant: "success", label: "\u828B\u5934\u4E3E\u8D77\u6536\u636E\uFF0C\u5C0F\u5766\u514B\u663E\u793A\u5DF2\u6574\u7406" }),
+                    React.createElement(Mascot, { variant: "success", label: "\u828B\u5934\u4E3E\u8D77\u6536\u636E\uFF0C\u5C0F\u70AE\u53F0\u663E\u793A\u5DF2\u6574\u7406" }),
                     React.createElement("h2", null, "\u8FD9\u7B14\u8BB0\u597D\u5566"),
-                    React.createElement("p", null, this.state.savedType === 'income' ? '芋头已经记下收入，小坦克也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，小坦克已经同步两个账户' : '芋头已经记下这笔，小坦克也整理好了'))) : null);
+                    React.createElement("p", null, this.state.savedType === 'income' ? '芋头已经记下收入，小炮台也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，小炮台已经同步两个账户' : '芋头已经记下这笔，小炮台也整理好了'))) : null);
     }
 }
 class TransactionsPage extends React.Component {
@@ -1036,14 +1036,50 @@ class TransactionsPage extends React.Component {
         }
     }
     render() {
-        return React.createElement("div", { className: "page" },
+        const items = this.state.items || [];
+        const expenseCents = items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + Number(item.amount_cents || 0), 0);
+        const incomeCents = items.filter((item) => item.type === 'income').reduce((sum, item) => sum + Number(item.amount_cents || 0), 0);
+        const transferCount = items.filter((item) => item.type === 'transfer').length;
+        return React.createElement("div", { className: "page transactions-page-v036" },
             React.createElement(PageHeader, { title: "\u6536\u652F\u660E\u7EC6", subtitle: "\u6309\u6708\u4EFD\u3001\u7C7B\u578B\u6216\u8D26\u6237\u67E5\u627E\u6BCF\u4E00\u7B14\u8BB0\u5F55\u3002" },
                 React.createElement(MonthSwitcher, { month: this.state.month, onChange: (month) => this.changeFilter({ month }) }),
                 React.createElement("button", { className: "btn btn-primary", onClick: () => this.props.navigate('add') },
                     React.createElement(Icon, { name: "plus", size: 18 }),
                     React.createElement("span", { className: "btn-label" }, "\u8BB0\u4E00\u7B14"))),
-            React.createElement("section", { className: "card card-pad" },
-                React.createElement("div", { className: "filter-bar" },
+            React.createElement("section", { className: "card detail-hero-card" },
+                React.createElement("div", { className: "detail-hero-copy" },
+                    React.createElement("span", { className: "detail-kicker" },
+                        monthLabel(this.state.month),
+                        " \u00B7 \u8BB0\u5F55\u53F0\u8D26"),
+                    React.createElement("h2", null, "\u8FD9\u4E00\u4E2A\u6708\u7684\u6536\u652F\uFF0C\u90FD\u80FD\u987A\u624B\u7FFB\u51FA\u6765"),
+                    React.createElement("p", null, "\u5927\u828B\u5934\u8D1F\u8D23\u628A\u65B0\u8BB0\u5F55\u8BB0\u4E0B\u6765\uFF0C\u5C0F\u70AE\u53F0\u8D1F\u8D23\u628A\u5B83\u4EEC\u6392\u5F97\u6E05\u6E05\u695A\u695A\u3002\u7B5B\u4E00\u7B5B\uFF0C\u5C31\u80FD\u5FEB\u901F\u627E\u5230\u8981\u770B\u7684\u90A3\u4E00\u7B14\u3002")),
+                React.createElement("div", { className: "detail-hero-stats", role: "list", "aria-label": "\u660E\u7EC6\u9875\u6458\u8981" },
+                    React.createElement("div", { className: "detail-stat", role: "listitem" },
+                        React.createElement("span", null, "\u8BB0\u5F55\u6570"),
+                        React.createElement("strong", null, this.state.total),
+                        React.createElement("small", null, "\u5F53\u524D\u7B5B\u9009\u7ED3\u679C")),
+                    React.createElement("div", { className: "detail-stat", role: "listitem" },
+                        React.createElement("span", null, "\u652F\u51FA\u5408\u8BA1"),
+                        React.createElement("strong", null, formatCompactMoney(expenseCents)),
+                        React.createElement("small", null,
+                            items.filter((item) => item.type === 'expense').length,
+                            " \u7B14")),
+                    React.createElement("div", { className: "detail-stat", role: "listitem" },
+                        React.createElement("span", null, "\u6536\u5165\u5408\u8BA1"),
+                        React.createElement("strong", null, formatCompactMoney(incomeCents)),
+                        React.createElement("small", null,
+                            items.filter((item) => item.type === 'income').length,
+                            " \u7B14")),
+                    React.createElement("div", { className: "detail-stat", role: "listitem" },
+                        React.createElement("span", null, "\u8F6C\u8D26\u8BB0\u5F55"),
+                        React.createElement("strong", null, transferCount),
+                        React.createElement("small", null, "\u8D26\u6237\u4E4B\u95F4\u8C03\u62E8")))),
+            React.createElement("section", { className: "card card-pad detail-filter-card" },
+                React.createElement("div", { className: "card-title-row detail-filter-head" },
+                    React.createElement("div", null,
+                        React.createElement("h3", { className: "card-title" }, "\u7B5B\u9009\u4E0E\u67E5\u627E"),
+                        React.createElement("p", { className: "card-subtitle" }, "\u5148\u6309\u6708\u4EFD\u770B\uFF0C\u518D\u7528\u7C7B\u578B\u3001\u8D26\u6237\u548C\u5173\u952E\u8BCD\u6536\u7A84\u8303\u56F4\u3002"))),
+                React.createElement("div", { className: "filter-bar detail-filter-bar" },
                     React.createElement("select", { className: "select", value: this.state.type, onChange: (event) => this.changeFilter({ type: event.target.value }) },
                         React.createElement("option", { value: "" }, "\u5168\u90E8\u7C7B\u578B"),
                         React.createElement("option", { value: "expense" }, "\u652F\u51FA"),
@@ -1056,18 +1092,19 @@ class TransactionsPage extends React.Component {
                         React.createElement(Icon, { name: "search", size: 18 }),
                         React.createElement("input", { className: "input", placeholder: "\u641C\u7D22\u5546\u6237\u6216\u5907\u6CE8", value: this.state.search, onChange: (event) => this.setState({ search: event.target.value }), onKeyDown: (event) => { if (event.key === 'Enter')
                                 this.load(); } })),
-                    React.createElement("button", { className: "btn btn-secondary", onClick: () => this.load() }, "\u641C\u7D22")),
-                React.createElement("div", { className: "card-title-row" },
+                    React.createElement("button", { className: "btn btn-secondary", onClick: () => this.load() }, "\u641C\u7D22"))),
+            React.createElement("section", { className: "card card-pad detail-list-card" },
+                React.createElement("div", { className: "card-title-row detail-list-head" },
                     React.createElement("div", null,
                         React.createElement("h3", { className: "card-title" }, monthLabel(this.state.month)),
                         React.createElement("p", { className: "card-subtitle" },
                             "\u5171 ",
                             this.state.total,
-                            " \u7B14\u8BB0\u5F55"))),
+                            " \u7B14\u8BB0\u5F55\uFF0C\u6309\u65F6\u95F4\u5012\u5E8F\u6392\u5217\u3002"))),
                 this.state.loading ? React.createElement("div", { className: "stack" },
                     React.createElement("div", { className: "skeleton", style: { height: '68px' } }),
                     React.createElement("div", { className: "skeleton", style: { height: '68px' } }),
-                    React.createElement("div", { className: "skeleton", style: { height: '68px' } })) : this.state.items.length ? React.createElement("div", { className: "list" }, this.state.items.map((item, index) => React.createElement(TransactionItem, { key: item.id, item: item, index: index, editable: true, onEdit: (entry) => this.setState({ edit: entry }), onDelete: (entry) => this.remove(entry) }))) : React.createElement(EmptyState, { title: "\u6CA1\u6709\u627E\u5230\u8BB0\u5F55", message: "\u6362\u4E2A\u7B5B\u9009\u6761\u4EF6\uFF0C\u6216\u8005\u8BB0\u4E0B\u65B0\u7684\u4E00\u7B14\u3002", action: React.createElement("button", { className: "btn btn-primary", onClick: () => this.props.navigate('add') }, "\u8BB0\u4E00\u7B14") })),
+                    React.createElement("div", { className: "skeleton", style: { height: '68px' } })) : this.state.items.length ? React.createElement("div", { className: "list detail-list" }, this.state.items.map((item, index) => React.createElement(TransactionItem, { key: item.id, item: item, index: index, editable: true, onEdit: (entry) => this.setState({ edit: entry }), onDelete: (entry) => this.remove(entry) }))) : React.createElement(EmptyState, { title: "\u6CA1\u6709\u627E\u5230\u8BB0\u5F55", message: "\u6362\u4E2A\u7B5B\u9009\u6761\u4EF6\uFF0C\u6216\u8005\u8BB0\u4E0B\u65B0\u7684\u4E00\u7B14\u3002", action: React.createElement("button", { className: "btn btn-primary", onClick: () => this.props.navigate('add') }, "\u8BB0\u4E00\u7B14") })),
             React.createElement(Modal, { open: Boolean(this.state.edit), title: "\u7F16\u8F91\u8FD9\u7B14\u8BB0\u5F55", onClose: () => this.setState({ edit: null }) }, this.state.edit ? React.createElement(TransactionForm, { bootstrap: this.props.bootstrap, initial: this.state.edit, onCancel: () => this.setState({ edit: null }), onSuccess: () => { this.setState({ edit: null }); this.load(); this.props.onChanged(); this.props.onToast('已经保存修改', 'success'); } }) : null));
     }
 }
@@ -1092,16 +1129,41 @@ class StatsPage extends React.Component {
         }
     }
     render() {
-        return React.createElement("div", { className: "page stats-page-v035" },
+        const categories = this.state.categories || [];
+        const totalExpense = categories.reduce((sum, item) => sum + Number(item.amount_cents || 0), 0);
+        const topCategory = categories[0];
+        const average = totalExpense ? Math.round(totalExpense / Math.max(1, categories.length)) : 0;
+        const budgets = this.state.budgets || [];
+        const activeBudgetCount = budgets.length;
+        return React.createElement("div", { className: "page stats-page-v036" },
             React.createElement(PageHeader, { title: "\u6536\u652F\u7EDF\u8BA1", subtitle: "\u4E0D\u7528\u76EF\u7740\u6BCF\u4E00\u7B14\uFF0C\u770B\u770B\u6574\u4F53\u8282\u594F\u5C31\u597D\u3002" },
                 React.createElement(MonthSwitcher, { month: this.state.month, onChange: (month) => this.setState({ month }, () => this.load()) })),
-            this.state.loading ? React.createElement(LoadingPage, null) : React.createElement("div", { className: "stats-grid-v035" },
+            this.state.loading ? React.createElement(LoadingPage, null) : React.createElement("div", { className: "stats-grid-v036" },
                 React.createElement("section", { className: "card role-assistant role-assistant-cannon stats-hero-card" },
                     React.createElement("div", { className: "role-assistant-copy" },
-                        React.createElement("strong", null, "\u5C0F\u5766\u514B\u5DF2\u7ECF\u6574\u7406\u597D\u672C\u6708\u6570\u636E"),
+                        React.createElement("strong", null, "\u5C0F\u70AE\u53F0\u5DF2\u7ECF\u6574\u7406\u597D\u672C\u6708\u6570\u636E"),
                         React.createElement("span", null, "\u8D8B\u52BF\u3001\u5206\u7C7B\u548C\u9884\u7B97\u90FD\u5F52\u597D\u7C7B\u4E86\uFF0C\u6162\u6162\u770B\u5C31\u884C\u3002")),
                     React.createElement("div", { className: "role-assistant-mascot role-assistant-mascot-summary" },
-                        React.createElement(Mascot, { variant: "summary", label: "\u6C89\u7A33\u5C0F\u5766\u514B\u966A\u4F60\u67E5\u770B\u672C\u6708\u56FE\u8868" }))),
+                        React.createElement(Mascot, { variant: "summary", label: "\u6C89\u7A33\u5C0F\u70AE\u53F0\u966A\u4F60\u67E5\u770B\u672C\u6708\u56FE\u8868" }))),
+                React.createElement("section", { className: "stats-overview-strip", "aria-label": "\u7EDF\u8BA1\u6458\u8981" },
+                    React.createElement("article", { className: "card stats-mini-card" },
+                        React.createElement("span", null, "\u672C\u6708\u652F\u51FA"),
+                        React.createElement("strong", null, formatCompactMoney(totalExpense)),
+                        React.createElement("small", null, "\u5F53\u524D\u5206\u7C7B\u603B\u8BA1")),
+                    React.createElement("article", { className: "card stats-mini-card" },
+                        React.createElement("span", null, "\u6700\u9AD8\u5206\u7C7B"),
+                        React.createElement("strong", null, topCategory ? topCategory.name : '暂无'),
+                        React.createElement("small", null, topCategory ? `${Math.round(Number(topCategory.amount_cents || 0) / Math.max(1, totalExpense) * 100)}% · ${formatCompactMoney(topCategory.amount_cents)}` : '等待更多记录')),
+                    React.createElement("article", { className: "card stats-mini-card" },
+                        React.createElement("span", null, "\u9884\u7B97\u9879\u76EE"),
+                        React.createElement("strong", null, activeBudgetCount),
+                        React.createElement("small", null, activeBudgetCount ? '已纳入月度控制' : '还未开始设置')),
+                    React.createElement("article", { className: "card stats-mini-card" },
+                        React.createElement("span", null, "\u5355\u7C7B\u5747\u503C"),
+                        React.createElement("strong", null, formatCompactMoney(average)),
+                        React.createElement("small", null,
+                            categories.length,
+                            " \u4E2A\u652F\u51FA\u5206\u7C7B"))),
                 React.createElement("section", { className: "card card-pad stats-trend-card" },
                     React.createElement("div", { className: "card-title-row" },
                         React.createElement("div", null,
@@ -1321,7 +1383,7 @@ class InvoicesPage extends React.Component {
                         React.createElement("h2", null, "\u6BCF\u5F20\u53D1\u7968\uFF0C\u90FD\u80FD\u627E\u5230\u5BF9\u5E94\u7684\u5C0F\u8D26"),
                         React.createElement("p", null, "\u6536\u5230\u7684\u53D1\u7968\u5173\u8054\u652F\u51FA\uFF0C\u5F00\u51FA\u7684\u53D1\u7968\u5173\u8054\u6536\u5165\uFF1B\u6682\u65F6\u6CA1\u6709\u5BF9\u5E94\u8BB0\u5F55\uFF0C\u4E5F\u53EF\u4EE5\u7A0D\u540E\u8865\u5145\u3002"))),
                 React.createElement("div", { className: "invoice-hero-mascot" },
-                    React.createElement(Mascot, { variant: "invoice", label: "\u828B\u5934\u548C\u5C0F\u5766\u514B\u4E00\u8D77\u6574\u7406\u53D1\u7968", eager: true }))),
+                    React.createElement(Mascot, { variant: "invoice", label: "\u828B\u5934\u548C\u5C0F\u70AE\u53F0\u4E00\u8D77\u6574\u7406\u53D1\u7968", eager: true }))),
             React.createElement("section", { className: "invoice-summary-grid" },
                 React.createElement("button", { className: cn('invoice-summary-card received', this.state.type === 'received' && 'active'), onClick: () => this.change({ type: 'received' }) },
                     React.createElement("span", null, "\u6536\u5230\u7684\u53D1\u7968"),

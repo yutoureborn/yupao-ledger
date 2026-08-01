@@ -1,8 +1,8 @@
 {
   "name": "yupao-ledger",
   "private": true,
-  "version": "0.3.5",
-  "description": "芋炮小账本：双人家庭动态在线记账 PWA（v0.3.5 品牌图标更新、移动端专属适配、统计页重构优化）",
+  "version": "0.3.6",
+  "description": "芋炮小账本：双人家庭动态在线记账 PWA（v0.3.6 首页/明细/统计产品级优化 + 小炮台命名统一）",
   "type": "module",
   "scripts": {
     "clean": "node scripts/clean.mjs",
