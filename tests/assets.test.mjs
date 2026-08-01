@@ -47,14 +47,14 @@ test('应用产物包含动态 API 调用而非纯静态页面', async () => {
   assert.match(app, /\/api\/invoices/);
 });
 
-test('关键前端资源预加载且版本统一为 0.3.0', async () => {
+test('关键前端资源预加载且版本统一为 0.3.1', async () => {
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.0/);
-  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.0/);
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.0/);
-  assert.match(bootstrap, /app\.js\?v=0\.3\.0/);
+  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.1/);
+  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.1/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.1/);
+  assert.match(bootstrap, /app\.js\?v=0\.3\.1/);
   assert.match(worker, /yupao-shell-v10/);
 });
 

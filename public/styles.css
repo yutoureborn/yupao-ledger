@@ -1444,7 +1444,7 @@ body::before, .main::before, .page-header::after, .hero-card::after, .summary-ca
 }
 
 /* ========================================================================== */
-/* v0.3.0 — 生活感薄荷绿 × 莫兰迪粉设计系统                                  */
+/* v0.3.1 — 生活感薄荷绿 × 莫兰迪粉设计系统                                  */
 /* ========================================================================== */
 :root {
   --bg: #f5f8f5;
@@ -1697,3 +1697,77 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .hero-character { will-change: auto; }
 }
 body.reduce-motion .hero-character { will-change: auto; }
+
+
+/* ===== v0.3.1 mascot refresh + stable donut chart ===== */
+.hero-card { grid-template-columns: minmax(0, 1.08fr) minmax(300px, .92fr); align-items: center; }
+.hero-copy h2 { max-width: 14ch; }
+.hero-actions .btn + .btn { margin-left: 10px; }
+.hero-character-stage { aspect-ratio: 1.52; align-items: flex-end; }
+.hero-character-taro { width: 64%; margin-right: -10%; }
+.hero-character-tank { width: 45%; margin-bottom: 0; }
+.hero-character-stage::after {
+  content: '';
+  position: absolute;
+  inset: auto 10% 3% 10%;
+  height: 16px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(77, 96, 81, .14), rgba(77, 96, 81, 0));
+  z-index: 0;
+}
+.hero-character .mascot-svg { filter: drop-shadow(0 16px 22px rgba(74, 60, 56, .12)); }
+.hero-life-dot { background: #BFD9CB; }
+.hero-life-dot-two { background: #E7C1CD; }
+.static-mascot { gap: 8px; }
+.static-mascot .mascot-svg { max-width: 56%; }
+.static-mascot .tank-svg { margin-left: -10px; max-width: 49%; }
+.static-mascot-summary .tank-svg, .static-mascot-warning .tank-svg, .static-mascot-safe .tank-svg { max-width: 100%; margin-left: 0; }
+.role-assistant { min-height: 122px; padding-right: 198px; }
+.role-assistant-mascot, .role-assistant-mascot-summary { width: 182px; height: 110px; right: 6px; bottom: 4px; }
+.role-assistant-copy strong { color: var(--text); }
+.spending-card .card-title-row { margin-bottom: 8px; }
+.spending-card .card-title, .spending-card .card-subtitle { max-width: none; }
+.spending-card .donut-layout { display: grid; grid-template-columns: minmax(250px, 290px) minmax(320px, 1fr); align-items: center; gap: 30px; }
+.spending-card .donut-layout.compact { grid-template-columns: 1fr; gap: 18px; }
+.spending-card .donut-visual { display: flex; justify-content: center; }
+.spending-card .donut-chart-shell { width: min(270px, 100%); display: grid; justify-items: center; }
+.spending-card .donut-svg { width: 100%; max-width: 270px; height: auto; overflow: visible; }
+.spending-card .donut-sector { animation: donut-grow .48s cubic-bezier(.2,.78,.2,1) both; transform-origin: 120px 120px; }
+.spending-card .donut-center { fill: var(--text-2); font-size: 13px; font-weight: 760; letter-spacing: .02em; }
+.spending-card .donut-total { fill: var(--text); font-size: 28px; font-weight: 880; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.spending-card .donut-caption { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; color: var(--text-2); font-size: 12px; }
+.spending-card .donut-caption strong { color: var(--mint-dark); font-size: 16px; }
+.spending-card .donut-caption em { color: var(--text-3); font-style: normal; }
+.spending-card .category-ranking { width: 100%; min-width: 0; gap: 0; }
+.spending-card .rank-row { grid-template-columns: 28px 42px minmax(0, 1fr) 76px; padding: 12px 2px; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.spending-card .rank-row:first-child { padding-top: 4px; }
+.spending-card .rank-row:hover { background: #FAF8F4; transform: none; }
+.spending-card .rank-index { color: var(--text-3); font-weight: 700; text-align: center; }
+.spending-card .rank-icon { width: 40px; height: 40px; border-radius: 14px; font-size: 19px; }
+.spending-card .rank-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.spending-card .rank-label { color: var(--text); font-size: 14px; font-weight: 760; }
+.spending-card .rank-percent { color: var(--text-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.spending-card .rank-bar { height: 8px; background: #E7ECE8; border-radius: 999px; margin-top: 8px; overflow: hidden; }
+.spending-card .rank-amount { justify-self: end; font-size: 16px; color: var(--text); font-variant-numeric: tabular-nums; }
+.spending-card .rank-more { margin-top: 10px; }
+@keyframes donut-grow { from { opacity: .45; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@media (max-width: 1100px) {
+  .hero-card { grid-template-columns: 1fr; }
+  .hero-copy h2 { max-width: none; }
+  .spending-card .donut-layout { grid-template-columns: 1fr; gap: 20px; }
+  .spending-card .category-ranking { border-top: 1px solid var(--line); padding-top: 8px; }
+}
+@media (max-width: 740px) {
+  .role-assistant { padding-right: 126px; }
+  .role-assistant-mascot, .role-assistant-mascot-summary { width: 122px; height: 92px; }
+  .hero-character-stage { aspect-ratio: 1.68; }
+  .hero-character-taro { width: 60%; }
+  .hero-character-tank { width: 41%; }
+  .spending-card .donut-chart-shell { width: min(220px, 88vw); }
+  .spending-card .donut-svg { max-width: 220px; }
+  .spending-card .donut-total { font-size: 24px; }
+  .spending-card .rank-row { grid-template-columns: 40px minmax(0,1fr) 68px; }
+  .spending-card .rank-index { display: none; }
+}
+body.reduce-motion .spending-card .donut-sector { animation: none !important; }
+body.reduce-motion .hero-character .mascot-svg { filter: drop-shadow(0 8px 12px rgba(74, 60, 56, .1)); }

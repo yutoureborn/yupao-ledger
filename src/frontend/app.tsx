@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.3.1';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -121,6 +121,27 @@ function safePercent(value: number, total: number): number {
 }
 
 function invoiceTypeLabel(type: InvoiceType): string { return type === 'received' ? '收到的发票' : '开出的发票'; }
+
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number): { x: number; y: number } {
+  const angle = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+}
+
+function describeDonutSlice(cx: number, cy: number, outerR: number, innerR: number, startAngle: number, endAngle: number): string {
+  const startOuter = polarToCartesian(cx, cy, outerR, endAngle);
+  const endOuter = polarToCartesian(cx, cy, outerR, startAngle);
+  const startInner = polarToCartesian(cx, cy, innerR, startAngle);
+  const endInner = polarToCartesian(cx, cy, innerR, endAngle);
+  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+  return [
+    `M ${startOuter.x} ${startOuter.y}`,
+    `A ${outerR} ${outerR} 0 ${largeArcFlag} 0 ${endOuter.x} ${endOuter.y}`,
+    `L ${startInner.x} ${startInner.y}`,
+    `A ${innerR} ${innerR} 0 ${largeArcFlag} 1 ${endInner.x} ${endInner.y}`,
+    'Z',
+  ].join(' ');
+}
+
 function invoiceCounterpartyLabel(type: InvoiceType): string { return type === 'received' ? '开票方' : '客户名称'; }
 
 function transactionTitle(item: any): string {
@@ -303,58 +324,91 @@ function Icon(props: any): any {
   return <svg className={props.className || 'nav-icon'} width={props.size || 22} height={props.size || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{content}</svg>;
 }
 
+
 function TaroCharacter(props: any = {}): any {
   const mode = props.mode || 'ledger';
-  const showPencil = mode === 'quick' || mode === 'idle';
+  const showPencil = mode === 'quick' || mode === 'idle' || mode === 'success';
   const showLedger = mode === 'ledger' || mode === 'success' || mode === 'idle';
   const showPlus = mode === 'quick';
-  return <svg className="mascot-svg taro-svg" viewBox="0 0 180 210" aria-hidden="true">
-    <ellipse cx="90" cy="194" rx="52" ry="9" fill="#2D241E" opacity=".08"/>
-    <path d="M91 34C62 33 39 62 38 106c-1 48 20 80 53 80s56-31 54-79c-2-45-24-72-54-73Z" fill="#9A78C7" stroke="#51405F" strokeWidth="3"/>
-    <path d="M54 84c10-22 30-35 52-34 12 1 22 5 31 13-8-19-23-30-46-29-17 0-31 10-37 25Z" fill="#B99BE0" opacity=".62"/>
-    <path d="M77 37c-13-19-6-31 5-34 10 8 11 20-5 34ZM91 35c3-22 17-27 27-18-2 12-10 20-27 18Z" fill="#79924A" stroke="#4F6534" strokeWidth="2.5"/>
-    <path d="M52 75c15 3 26 2 38-3M48 99c19 4 35 4 50-2M49 124c21 4 38 2 56-3M58 151c18 3 34 2 49-3" fill="none" stroke="#8060AC" strokeWidth="3" strokeLinecap="round" opacity=".5"/>
-    <circle cx="72" cy="104" r="8" fill="#2D2534"/><circle cx="110" cy="104" r="8" fill="#2D2534"/>
-    <circle cx="69" cy="101" r="2.5" fill="#FFF"/><circle cx="107" cy="101" r="2.5" fill="#FFF"/>
-    <ellipse cx="58" cy="119" rx="10" ry="5" fill="#E6A6C2" opacity=".9"/><ellipse cx="124" cy="119" rx="10" ry="5" fill="#E6A6C2" opacity=".9"/>
-    <path d="M79 120c7 8 16 8 23 0" fill="none" stroke="#3D2E45" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M48 139c-14 5-17 14-14 20M135 137c14 5 18 13 16 19" fill="none" stroke="#51405F" strokeWidth="4" strokeLinecap="round"/>
-    <path d="M72 181c-5 11-15 13-21 8M111 181c6 11 16 13 21 7" fill="none" stroke="#51405F" strokeWidth="5" strokeLinecap="round"/>
-    {showPencil ? <g transform="translate(20 118) rotate(-10)"><rect x="0" y="0" width="17" height="72" rx="6" fill="#F0B94C" stroke="#5D4725" strokeWidth="2"/><path d="M0 11h17" stroke="#E37964" strokeWidth="8"/><path d="M3 0 8.5-14 14 0Z" fill="#EFE0BC" stroke="#5D4725" strokeWidth="2"/><path d="M7-10h3l-1.5-4Z" fill="#3B3127"/></g> : null}
-    {showLedger ? <g transform="translate(107 128) rotate(5)"><rect x="0" y="0" width="50" height="55" rx="8" fill="#F7E5B5" stroke="#6E5939" strokeWidth="2.5"/><path d="M8 13h34M8 22h28M8 31h24" stroke="#B49865" strokeWidth="2" strokeLinecap="round"/><path d="m18 42 7 7 14-16" fill="none" stroke="#78A65B" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></g> : null}
-    {showPlus ? <g transform="translate(129 50)"><circle cx="16" cy="16" r="15" fill="#EEF3E2" stroke="#7BA05D" strokeWidth="2"/><path d="M16 8v16M8 16h16" stroke="#5B8246" strokeWidth="3" strokeLinecap="round"/></g> : null}
+  return <svg className="mascot-svg taro-svg" viewBox="0 0 240 250" aria-hidden="true">
+    <defs>
+      <linearGradient id="taroBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#CDA9E7"/><stop offset="100%" stopColor="#9C79CF"/></linearGradient>
+      <linearGradient id="taroLeafL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#97BF6A"/><stop offset="100%" stopColor="#6F9651"/></linearGradient>
+      <linearGradient id="taroLeafR" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#A7CC76"/><stop offset="100%" stopColor="#7CA95B"/></linearGradient>
+    </defs>
+    <ellipse cx="120" cy="229" rx="68" ry="12" fill="#3C3141" opacity=".08"/>
+    <path d="M122 34c-40 0-67 27-72 76-5 53 16 106 72 106 53 0 77-47 73-104-4-50-32-78-73-78Z" fill="url(#taroBody)" stroke="#6A4F8E" strokeWidth="3.5"/>
+    <path d="M82 75c20-23 58-35 90-18-8-19-28-31-57-31-16 0-28 5-40 15-9 8-15 18-19 34 9-9 16-14 26-18Z" fill="#E8D6F5" opacity=".46"/>
+    <path d="M99 32c-17-20-5-34 9-37 10 11 10 24-9 37Z" fill="url(#taroLeafL)" stroke="#5C7A41" strokeWidth="2.5"/>
+    <path d="M120 29c6-24 22-30 37-18-2 16-13 24-37 18Z" fill="url(#taroLeafR)" stroke="#648547" strokeWidth="2.5"/>
+    <path d="M77 93c10-3 20-3 28 2" fill="none" stroke="#70538E" strokeWidth="4" strokeLinecap="round"/>
+    <path d="M137 92c10-5 20-4 29 0" fill="none" stroke="#70538E" strokeWidth="4" strokeLinecap="round"/>
+    <circle cx="92" cy="120" r="16" fill="#282132"/>
+    <circle cx="150" cy="120" r="16" fill="#282132"/>
+    <circle cx="98" cy="114" r="6" fill="#FFF"/>
+    <circle cx="156" cy="114" r="6" fill="#FFF"/>
+    <circle cx="102" cy="124" r="2.5" fill="#FFF" opacity=".8"/>
+    <circle cx="160" cy="124" r="2.5" fill="#FFF" opacity=".8"/>
+    <ellipse cx="74" cy="143" rx="16" ry="9" fill="#F0B0C7"/>
+    <ellipse cx="168" cy="143" rx="16" ry="9" fill="#F0B0C7"/>
+    <path d="M108 147c8 11 18 15 27 0" fill="#F2878B" stroke="#643B47" strokeWidth="3" strokeLinejoin="round"/>
+    <path d="M74 155c-18 7-24 21-21 32" fill="none" stroke="#5F497F" strokeWidth="5" strokeLinecap="round"/>
+    <path d="M171 152c19 7 24 20 22 32" fill="none" stroke="#5F497F" strokeWidth="5" strokeLinecap="round"/>
+    <path d="M94 209c-7 13-18 18-28 13" fill="none" stroke="#5F497F" strokeWidth="6" strokeLinecap="round"/>
+    <path d="M145 209c7 13 18 18 29 13" fill="none" stroke="#5F497F" strokeWidth="6" strokeLinecap="round"/>
+    {showPencil ? <g transform="translate(30 118) rotate(-7)"><rect x="0" y="6" width="22" height="88" rx="8" fill="#F3C050" stroke="#6D5324" strokeWidth="2.5"/><rect x="0" y="16" width="22" height="10" rx="4" fill="#F0907B"/><path d="M4 6 11-11 18 6Z" fill="#F7E7C9" stroke="#6D5324" strokeWidth="2.5"/><path d="M8-7h6l-3-7Z" fill="#3B302A"/></g> : null}
+    {showLedger ? <g transform="translate(142 144) rotate(6)"><rect x="0" y="0" width="56" height="64" rx="10" fill="#FFF8E8" stroke="#7B6750" strokeWidth="2.5"/><path d="M10 15h36M10 26h31M10 37h28" stroke="#C9B18B" strokeWidth="2.4" strokeLinecap="round"/><path d="M0 12h56" stroke="#E8D7B7" strokeWidth="2" opacity=".7"/><path d="m18 48 8 8 15-17" fill="none" stroke="#75AB63" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/></g> : null}
+    {showPlus ? <g transform="translate(174 64)"><circle cx="18" cy="18" r="17" fill="#F7FBF0" stroke="#8AAF68" strokeWidth="3"/><path d="M18 10v16M10 18h16" stroke="#5D8552" strokeWidth="3.5" strokeLinecap="round"/></g> : null}
   </svg>;
 }
+
 
 function TankCharacter(props: any = {}): any {
   const mode = props.mode || 'organize';
   const showChart = mode === 'summary';
   const showShield = mode === 'safe';
   const showAlert = mode === 'warning';
-  return <svg className="mascot-svg tank-svg" viewBox="0 0 250 205" aria-hidden="true">
-    <ellipse cx="128" cy="188" rx="84" ry="11" fill="#25231F" opacity=".08"/>
-    <path d="M55 94c0-23 19-41 42-41h44c10 0 19 3 27 8l28 19c9 6 15 17 15 28v16c0 16-13 29-29 29H85c-17 0-30-13-30-29Z" fill="#86A55F" stroke="#34432B" strokeWidth="3"/>
-    <path d="M65 102c18-24 71-35 116-15-9-19-27-27-57-27-28 0-47 10-59 42Z" fill="#A9C56E" opacity=".72"/>
-    <path d="M143 72h27c8 0 14 6 14 14v8h-41Z" fill="#F0C34A" stroke="#87671B" strokeWidth="3"/>
-    <path d="M168 83 213 71c10-3 21 4 24 15l1 4c3 11-4 22-15 24l-55 9Z" fill="#252927" stroke="#111411" strokeWidth="4"/>
-    <ellipse cx="225" cy="92" rx="8" ry="13" fill="#474B47" transform="rotate(-10 225 92)"/>
-    <path d="M86 82h58" stroke="#F0C34A" strokeWidth="7" strokeLinecap="round"/>
-    <circle cx="103" cy="108" r="7" fill="#243022"/><circle cx="137" cy="108" r="7" fill="#243022"/>
-    <circle cx="100" cy="105" r="2.2" fill="#FFF"/><circle cx="134" cy="105" r="2.2" fill="#FFF"/>
-    <ellipse cx="91" cy="121" rx="8" ry="4.5" fill="#EAB0A2" opacity=".9"/><ellipse cx="149" cy="121" rx="8" ry="4.5" fill="#EAB0A2" opacity=".9"/>
-    <path d="M112 122c7 7 15 7 22 0" fill="none" stroke="#2B3329" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M72 121c-18 3-25-5-28-14M208 120c13 1 22-7 25-18" fill="none" stroke="#34432B" strokeWidth="4" strokeLinecap="round"/>
-    <circle cx="39" cy="105" r="7" fill="#F0C34A" stroke="#34432B" strokeWidth="2"/><circle cx="235" cy="98" r="7" fill="#F0C34A" stroke="#34432B" strokeWidth="2"/>
-    <path d="M77 145h111c12 0 21 10 21 21v4H56v-4c0-11 9-21 21-21Z" fill="#252927" stroke="#111411" strokeWidth="3"/>
-    <path d="M89 148h20M121 148h20M153 148h20" stroke="#5B615B" strokeWidth="4" strokeLinecap="round" opacity=".8"/>
-    <circle cx="92" cy="167" r="23" fill="#252927" stroke="#111411" strokeWidth="3"/><circle cx="173" cy="167" r="23" fill="#252927" stroke="#111411" strokeWidth="3"/>
-    <circle cx="92" cy="167" r="10" fill="#F0C34A"/><circle cx="173" cy="167" r="10" fill="#F0C34A"/>
-    <circle cx="92" cy="167" r="4" fill="#70805D"/><circle cx="173" cy="167" r="4" fill="#70805D"/>
-    <path d="M149 54c-2-10 4-19 14-22 8 4 12 12 6 22" fill="#A9C56E" stroke="#5E7640" strokeWidth="2.5"/>
-    <circle cx="165" cy="41" r="4" fill="#F0C34A" stroke="#5E7640" strokeWidth="2"/>
-    {showChart ? <g transform="translate(8 18)"><rect x="0" y="0" width="76" height="60" rx="10" fill="#FFFDF8" stroke="#5D6E53" strokeWidth="2"/><rect x="14" y="35" width="10" height="13" rx="2" fill="#89A95F"/><rect x="31" y="25" width="10" height="23" rx="2" fill="#F0BE3F"/><rect x="48" y="16" width="10" height="32" rx="2" fill="#303330"/><path d="M12 12h47" stroke="#C8C1B5" strokeWidth="2"/></g> : null}
-    {showShield ? <g transform="translate(10 18)"><path d="M35 0 67 12v24c0 25-16 38-32 46C20 74 3 61 3 36V12Z" fill="#EEF3E5" stroke="#63814B" strokeWidth="3"/><rect x="24" y="32" width="22" height="19" rx="5" fill="#F0BE3F"/><path d="M29 32v-7a6 6 0 0 1 12 0v7" fill="none" stroke="#34432B" strokeWidth="3"/></g> : null}
-    {showAlert ? <g transform="translate(16 22)"><circle cx="26" cy="26" r="23" fill="#FFF4D8" stroke="#D59D2F" strokeWidth="3"/><path d="M26 13v18M26 39h.1" stroke="#A9761F" strokeWidth="4" strokeLinecap="round"/></g> : null}
+  return <svg className="mascot-svg tank-svg" viewBox="0 0 280 230" aria-hidden="true">
+    <defs>
+      <linearGradient id="tankBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#AFCC79"/><stop offset="100%" stopColor="#7FA35E"/></linearGradient>
+      <linearGradient id="tankTurret" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#BFE08B"/><stop offset="100%" stopColor="#87AE62"/></linearGradient>
+      <linearGradient id="tankYellow" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#F7D362"/><stop offset="100%" stopColor="#E7B63D"/></linearGradient>
+      <linearGradient id="tankBlack" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#303536"/><stop offset="100%" stopColor="#161918"/></linearGradient>
+    </defs>
+    <ellipse cx="140" cy="205" rx="88" ry="13" fill="#2A271F" opacity=".08"/>
+    <path d="M61 117c0-17 13-30 30-30h103c18 0 32 14 32 32v17c0 22-18 40-40 40H100c-22 0-39-17-39-39Z" fill="url(#tankBody)" stroke="#496442" strokeWidth="3.5"/>
+    <path d="M82 88c12-34 42-52 85-49 24 1 42 8 56 21-7-24-37-48-78-48-39 0-69 21-84 76 8-1 13-1 21 0Z" fill="#DCEBB8" opacity=".38"/>
+    <path d="M78 79c0-28 21-50 48-50h43c27 0 48 22 48 50v9H78Z" fill="url(#tankTurret)" stroke="#55734A" strokeWidth="3.5"/>
+    <path d="M90 79c18-18 61-25 104-14-7-15-27-24-52-24-24 0-41 5-52 13-6 4-11 10-14 18 5 1 9 2 14 7Z" fill="#EDF7D8" opacity=".34"/>
+    <path d="M88 86h120c6 0 12 4 13 9l1 6H89l-1-6c-1-5 4-9 10-9Z" fill="url(#tankYellow)" stroke="#A97718" strokeWidth="3"/>
+    <circle cx="113" cy="84" r="18" fill="#FFFFFF" stroke="#617F52" strokeWidth="3"/>
+    <circle cx="182" cy="84" r="18" fill="#FFFFFF" stroke="#617F52" strokeWidth="3"/>
+    <circle cx="117" cy="86" r="11" fill="#1D2B24"/>
+    <circle cx="178" cy="86" r="11" fill="#1D2B24"/>
+    <circle cx="121" cy="80" r="4" fill="#FFF"/>
+    <circle cx="182" cy="80" r="4" fill="#FFF"/>
+    <g>
+      <circle cx="148" cy="93" r="13" fill="#18201E"/>
+      <circle cx="148" cy="93" r="8" fill="#3B4A44"/>
+      <path d="M148 80h71c7 0 13 5 15 12l2 5c3 8-2 16-10 19l-64 18V80Z" fill="url(#tankBlack)" stroke="#121514" strokeWidth="4" strokeLinejoin="round"/>
+      <ellipse cx="236" cy="99" rx="10" ry="15" fill="#444B48" transform="rotate(-10 236 99)"/>
+      <path d="M148 80c-5 0-10 4-10 10v7c0 6 5 10 10 10s10-4 10-10v-7c0-6-5-10-10-10Z" fill="#26302D" stroke="#131817" strokeWidth="3"/>
+    </g>
+    <ellipse cx="103" cy="106" rx="11" ry="6" fill="#EABAA8" opacity=".9"/>
+    <ellipse cx="191" cy="106" rx="11" ry="6" fill="#EABAA8" opacity=".9"/>
+    <path d="M79 114c-20 1-30-10-33-20" fill="none" stroke="#4A6542" strokeWidth="4.5" strokeLinecap="round"/>
+    <path d="M224 115c16 1 25-8 29-19" fill="none" stroke="#4A6542" strokeWidth="4.5" strokeLinecap="round"/>
+    <path d="M88 146h114c17 0 30 13 30 30v4H59v-4c0-17 13-30 29-30Z" fill="url(#tankBlack)" stroke="#121514" strokeWidth="3.5"/>
+    <path d="M96 150h32M140 150h32M184 150h20" stroke="#535A58" strokeWidth="5" strokeLinecap="round" opacity=".86"/>
+    <circle cx="97" cy="178" r="27" fill="#202524" stroke="#101313" strokeWidth="3.5"/>
+    <circle cx="195" cy="178" r="27" fill="#202524" stroke="#101313" strokeWidth="3.5"/>
+    <circle cx="97" cy="178" r="12" fill="url(#tankYellow)"/><circle cx="195" cy="178" r="12" fill="url(#tankYellow)"/>
+    <circle cx="97" cy="178" r="4.5" fill="#78905C"/><circle cx="195" cy="178" r="4.5" fill="#78905C"/>
+    <path d="M192 34c-4-15 4-25 18-29 10 5 13 15 6 28" fill="#AED27B" stroke="#64844C" strokeWidth="2.5"/>
+    <circle cx="211" cy="18" r="6" fill="#F2C94B" stroke="#64844C" strokeWidth="2"/>
+    {showChart ? <g transform="translate(10 18)"><rect x="0" y="0" width="86" height="64" rx="12" fill="#FFFDF8" stroke="#6D7D60" strokeWidth="2.4"/><path d="M14 16h56" stroke="#CEC6BC" strokeWidth="2.2" strokeLinecap="round"/><rect x="16" y="36" width="12" height="14" rx="3" fill="#8FB35F"/><rect x="36" y="28" width="12" height="22" rx="3" fill="#F0C34A"/><rect x="56" y="20" width="12" height="30" rx="3" fill="#2E3434"/></g> : null}
+    {showShield ? <g transform="translate(12 16)"><path d="M40 0 76 14v25c0 28-19 43-36 52C22 82 4 67 4 39V14Z" fill="#F5F9EF" stroke="#6C8955" strokeWidth="3"/><path d="M30 41v-8a10 10 0 0 1 20 0v8" fill="none" stroke="#425242" strokeWidth="4"/><rect x="22" y="41" width="36" height="28" rx="7" fill="#F0C34A" stroke="#A97718" strokeWidth="3"/></g> : null}
+    {showAlert ? <g transform="translate(10 18)"><circle cx="30" cy="30" r="27" fill="#FFF3D8" stroke="#D6A33A" strokeWidth="3"/><path d="M30 16v19M30 44h.1" stroke="#A97718" strokeWidth="4" strokeLinecap="round"/></g> : null}
   </svg>;
 }
 
@@ -369,18 +423,22 @@ function HeroMascots(props: any = {}): any {
   </div>;
 }
 
+
 function LogoMark(): any {
   return <svg viewBox="0 0 72 72" width="44" height="44" aria-hidden="true">
     <rect width="72" height="72" rx="18" fill="#FAF7F1"/>
-    <path d="M27 16c-10 0-18 10-18 25 0 14 7 22 18 22s18-8 18-22c0-15-8-25-18-25Z" fill="#9A78C7" stroke="#51405F" strokeWidth="2"/>
-    <path d="M22 18c-5-8-1-13 4-14 4 5 4 9-4 14ZM29 17c2-9 8-11 13-6-2 5-5 8-13 6Z" fill="#79924A"/>
-    <circle cx="22" cy="39" r="2.5" fill="#2D2534"/><circle cx="31" cy="39" r="2.5" fill="#2D2534"/>
-    <path d="M23 46c3 3 6 3 9 0" fill="none" stroke="#3D2E45" strokeWidth="2" strokeLinecap="round"/>
-    <rect x="40" y="38" width="19" height="12" rx="6" fill="#86A55F" stroke="#34432B" strokeWidth="2"/>
-    <path d="M49 35h8c3 0 5 2 5 5v2H49Z" fill="#F0C34A" stroke="#87671B" strokeWidth="2"/>
-    <path d="M55 39 69 36c3-1 5 1 6 4 1 3-1 6-4 7l-15 2Z" fill="#252927" stroke="#111411" strokeWidth="2"/>
-    <circle cx="45" cy="55" r="6" fill="#252927"/><circle cx="58" cy="55" r="6" fill="#252927"/>
-    <circle cx="45" cy="55" r="2.5" fill="#F0BE3F"/><circle cx="58" cy="55" r="2.5" fill="#F0BE3F"/>
+    <path d="M26 16c-10 0-17 9-18 22-1 14 6 25 18 25 13 0 20-10 19-25-1-14-8-22-19-22Z" fill="#A882D3" stroke="#6A4F8E" strokeWidth="2"/>
+    <path d="M22 17c-5-7-1-12 4-13 5 5 5 8-4 13ZM29 16c2-8 8-10 12-6-1 5-5 7-12 6Z" fill="#7DA35D"/>
+    <circle cx="21" cy="38" r="3" fill="#2D2534"/><circle cx="31" cy="38" r="3" fill="#2D2534"/>
+    <path d="M22 45c3 4 6 4 9 0" fill="#F2878B" stroke="#5B3A48" strokeWidth="2"/>
+    <path d="M42 40c0-6 5-11 11-11h7c6 0 11 5 11 11v8c0 7-6 12-12 12H53c-6 0-11-5-11-11Z" fill="#92B467" stroke="#506A43" strokeWidth="2"/>
+    <path d="M46 26h15c5 0 9 4 9 9v2H46Z" fill="#B0D083" stroke="#64844C" strokeWidth="2"/>
+    <circle cx="53" cy="35" r="4" fill="#FFF" stroke="#60784E" strokeWidth="1.5"/><circle cx="62" cy="35" r="4" fill="#FFF" stroke="#60784E" strokeWidth="1.5"/>
+    <circle cx="54" cy="36" r="2" fill="#1D2B24"/><circle cx="61" cy="36" r="2" fill="#1D2B24"/>
+    <circle cx="58" cy="39" r="3" fill="#1C2321"/>
+    <path d="M58 36h13c4 0 6 3 6 6 0 4-2 6-5 7l-14 3Z" fill="#252927" stroke="#111411" strokeWidth="2"/>
+    <circle cx="51" cy="57" r="5" fill="#252927"/><circle cx="63" cy="57" r="5" fill="#252927"/>
+    <circle cx="51" cy="57" r="2" fill="#F0BE3F"/><circle cx="63" cy="57" r="2" fill="#F0BE3F"/>
   </svg>;
 }
 
@@ -498,31 +556,36 @@ function TrendChart(props: any): any {
   </div>;
 }
 
+
 function DonutChart(props: any): any {
   const items = (props.items || []).slice(0, props.compact ? 5 : 7);
   const total = items.reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
   if (!items.length || !total) return <EmptyState title="分类还是空的" message="本月有支出后，这里会显示钱都花去了哪里。"/>;
-  const radius = 58, circumference = 2 * Math.PI * radius;
-  let offset = 0;
+  const cx = 120, cy = 120, outerR = props.compact ? 82 : 88, innerR = props.compact ? 52 : 56;
+  let currentAngle = 0;
+  const gapAngle = items.length > 1 ? 2.2 : 0;
+  const topItem = items[0];
   return <div className={cn('donut-layout', props.compact && 'compact')}>
     <div className="donut-visual">
-      <svg className="chart-svg donut-svg" viewBox="0 0 190 190" role="img" aria-label="支出分类占比">
-        <circle cx="95" cy="95" r={radius} fill="none" stroke="#F2E9DF" strokeWidth="28"/>
-        {items.map((item: any, index: number) => {
-          const value = Number(item.amount_cents || 0);
-          const rawLength = value / total * circumference;
-          const gap = items.length > 1 ? Math.min(4.5, rawLength * .09) : 0;
-          const length = Math.max(0, rawLength - gap);
-          const current = offset;
-          offset += rawLength;
-          const color = WARM_CHART_COLORS[index % WARM_CHART_COLORS.length];
-          return <circle key={item.category_id || item.name} cx="95" cy="95" r={radius} fill="none" stroke={color} strokeWidth="28" strokeLinecap="round" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-current} transform="rotate(-90 95 95)" className="donut-segment"><title>{`${item.name} ${formatMoney(value)}`}</title></circle>;
-        })}
-        <circle cx="95" cy="95" r="40" fill="#FFFDF9"/>
-        <text className="donut-center" x="95" y="89" textAnchor="middle">本月支出</text>
-        <text className="donut-total" x="95" y="117" textAnchor="middle">{formatCompactMoney(total)}</text>
-      </svg>
-      <div className="donut-caption"><strong>{items.length}</strong><span>个支出分类</span></div>
+      <div className="donut-chart-shell">
+        <svg className="chart-svg donut-svg" viewBox="0 0 240 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="支出分类占比">
+          <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#F0E8DD" strokeWidth={outerR - innerR}/>
+          {items.map((item: any, index: number) => {
+            const value = Number(item.amount_cents || 0);
+            const sweep = total > 0 ? value / total * 360 : 0;
+            const visibleSweep = Math.max(0.8, sweep - gapAngle);
+            const start = currentAngle + gapAngle / 2;
+            const end = currentAngle + visibleSweep;
+            currentAngle += sweep;
+            const color = WARM_CHART_COLORS[index % WARM_CHART_COLORS.length];
+            return <path key={item.category_id || item.name} d={describeDonutSlice(cx, cy, outerR, innerR, start, end)} fill={color} className="donut-sector"><title>{`${item.name} ${formatMoney(value)}`}</title></path>;
+          })}
+          <circle cx={cx} cy={cy} r={innerR - 4} fill="#FFFDFA"/>
+          <text className="donut-center" x={cx} y={cy - 12} textAnchor="middle">本月支出</text>
+          <text className="donut-total" x={cx} y={cy + 18} textAnchor="middle">{formatCompactMoney(total)}</text>
+        </svg>
+        <div className="donut-caption"><strong>{items.length}</strong><span>个支出分类</span>{topItem ? <em>最高：{topItem.name}</em> : null}</div>
+      </div>
     </div>
     <div className="category-ranking" role="list" aria-label="支出分类排行">
       {items.map((item: any, index: number) => {
@@ -530,10 +593,10 @@ function DonutChart(props: any): any {
         const color = WARM_CHART_COLORS[index % WARM_CHART_COLORS.length];
         return <div className="rank-row" role="listitem" key={item.category_id || item.name}>
           <div className="rank-index" aria-hidden="true">{index + 1}</div>
-          <div className="rank-icon" style={{ background: `${color}20`, color }}>{CATEGORY_EMOJI[item.icon] || '✨'}</div>
+          <div className="rank-icon" style={{ background: `${color}18`, color }}>{CATEGORY_EMOJI[item.icon] || '✨'}</div>
           <div className="rank-main">
             <div className="rank-copy"><span className="rank-label" title={item.name}>{item.name}</span><span className="rank-percent">{percent}%</span></div>
-            <div className="rank-bar" aria-hidden="true"><span style={{ width: `${Math.max(3, percent)}%`, background: color }}/></div>
+            <div className="rank-bar" aria-hidden="true"><span style={{ width: `${Math.max(4, percent)}%`, background: color }}/></div>
           </div>
           <strong className="rank-amount">{formatCompactMoney(item.amount_cents)}</strong>
         </div>;
@@ -1001,7 +1064,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.3.0 · 薄荷绿与莫兰迪粉生活感 UI</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.3.1 · 新角色资产与稳定统计图</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {

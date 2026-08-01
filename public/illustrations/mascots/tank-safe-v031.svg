@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 340" fill="none">
+  <rect width="460" height="340" rx="28" fill="#F5F8F0"/>
+  <image href="tank-front-v031.svg" x="120" y="70" width="220" height="180"/>
+  <g transform="translate(36 52)">
+    <path d="M84 0 160 29v53c0 58-39 90-76 108C47 172 8 140 8 82V29Z" fill="#FDFDF8" stroke="#6C8955" stroke-width="4"/>
+    <path d="M64 87V69a21 21 0 0 1 42 0v18" stroke="#425242" stroke-width="7" stroke-linecap="round"/>
+    <rect x="48" y="87" width="72" height="58" rx="14" fill="#F0C34A" stroke="#A97718" stroke-width="4"/>
+  </g>
+</svg>

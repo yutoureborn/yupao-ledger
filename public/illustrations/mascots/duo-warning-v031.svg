@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="28" fill="#FAF7F1"/>
+  <image href="hero-duo-v031.svg" x="12" y="28" width="420" height="295"/>
+  <g transform="translate(448 74)">
+    <circle cx="70" cy="70" r="58" fill="#FFF3D8" stroke="#E2B151" stroke-width="4"/>
+    <path d="M70 40v42M70 96h.1" stroke="#AA7C22" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

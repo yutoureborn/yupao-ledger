@@ -1,23 +1,18 @@
-# 芋炮小账本 v0.3.0
+# 芋炮小账本 v0.3.1 角色资产 + 扇形图修复补丁
 
-双人家庭使用的在线记账 PWA。
+本补丁基于 v0.3.0 升级，内容包括：
+- 新版“大芋头 + 小坦克”角色方案
+- 前端可直接复用的 SVG 角色资产
+- PC 端支出扇形图/环形图显示问题修复
+- 相关样式与版本号更新
 
-## 本版方向
+## 使用方式
+1. 将补丁中的同路径文件覆盖到 v0.3.0 项目
+2. 执行 `npm run build`
+3. 如需验证，执行 `node --test tests/*.test.mjs`
 
-- 生活气息、简单可爱
-- 清淡薄荷绿 + 莫兰迪粉
-- 活泼的大芋头 + 沉稳的小坦克
-- 轻量 WAAPI 微交互，不引入额外动画依赖
-- 分层 PWA 缓存和关键资源预加载
-- 保留收入、支出、转账、预算、发票和双账号登录
-
-## 性能原则
-
-- 角色动画只使用 `transform`
-- 页面进入动画只使用 `opacity + transform`
-- 尊重 `prefers-reduced-motion`
-- API 不进入 Service Worker 缓存
-- 导航页面网络优先，版本资源缓存优先
-- 首屏后模块使用 `content-visibility` 降低初始渲染开销
-
-详见 `docs/`。
+## 关键文件
+- `src/frontend/app.tsx`
+- `public/styles.css`
+- `public/illustrations/mascots/*`
+- `docs/MASCOT-ASSET-PLAN-v0.3.1.md`

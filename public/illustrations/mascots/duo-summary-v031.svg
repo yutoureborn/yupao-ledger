@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="28" fill="#FAF7F1"/>
+  <image href="hero-duo-v031.svg" x="10" y="28" width="420" height="295"/>
+  <g transform="translate(430 55)">
+    <rect width="170" height="126" rx="18" fill="#FFFDF8" stroke="#D9E4DA" stroke-width="2"/>
+    <path d="M24 28h86" stroke="#D1C6BB" stroke-width="3" stroke-linecap="round"/>
+    <rect x="26" y="68" width="18" height="26" rx="5" fill="#90B160"/><rect x="57" y="53" width="18" height="41" rx="5" fill="#F0C34A"/><rect x="88" y="39" width="18" height="55" rx="5" fill="#2D3232"/>
+    <path d="M126 48c8 0 15 7 15 16 0 8-7 15-15 15-9 0-16-7-16-15 0-9 7-16 16-16Z" fill="#F7EFE0" stroke="#DCCFB6" stroke-width="2"/>
+    <path d="M122 63h8M126 59v8" stroke="#86A55F" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
