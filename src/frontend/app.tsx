@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.2.9';
+const APP_VERSION = '0.3.0';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -228,6 +228,56 @@ function registerServiceWorker(onUpdate: () => void): void {
   });
 }
 
+
+type MotionHandle = Animation;
+const motionRegistry: MotionHandle[] = [];
+
+function motionDisabled(): boolean {
+  return document.body.classList.contains('reduce-motion') || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function clearMotionRegistry(): void {
+  while (motionRegistry.length) motionRegistry.pop()?.cancel();
+}
+
+function playMotion(target: Element | null, keyframes: Keyframe[], options: KeyframeAnimationOptions): Animation | null {
+  if (!target || motionDisabled() || typeof (target as HTMLElement).animate !== 'function') return null;
+  const animation = (target as HTMLElement).animate(keyframes, options);
+  motionRegistry.push(animation);
+  return animation;
+}
+
+function runPageMotion(): void {
+  clearMotionRegistry();
+  if (motionDisabled()) return;
+  const page = document.querySelector('.page');
+  if (!page) return;
+  const targets = Array.from(page.querySelectorAll('.hero-card, .summary-card, .dashboard-grid > .stack > section, .page-header'));
+  targets.slice(0, 12).forEach((target, index) => {
+    playMotion(target, [
+      { opacity: 0, transform: 'translateY(12px)' },
+      { opacity: 1, transform: 'translateY(0)' },
+    ], { duration: 360, delay: index * 38, easing: 'cubic-bezier(.2,.78,.2,1)', fill: 'both' });
+  });
+
+  const taro = page.querySelector('[data-mascot-motion="taro"]');
+  const tank = page.querySelector('[data-mascot-motion="tank"]');
+  playMotion(taro, [
+    { transform: 'translateY(0) rotate(-1deg)' },
+    { transform: 'translateY(-7px) rotate(2deg)' },
+    { transform: 'translateY(0) rotate(-1deg)' },
+  ], { duration: 3600, iterations: Infinity, easing: 'ease-in-out' });
+  playMotion(tank, [
+    { transform: 'translateY(0)' },
+    { transform: 'translateY(-3px)' },
+    { transform: 'translateY(0)' },
+  ], { duration: 5200, delay: 400, iterations: Infinity, easing: 'ease-in-out' });
+}
+
+function schedulePageMotion(): void {
+  window.requestAnimationFrame(() => window.requestAnimationFrame(runPageMotion));
+}
+
 function Icon(props: any): any {
   let content: any;
   switch (props.name) {
@@ -276,12 +326,12 @@ function TaroCharacter(props: any = {}): any {
   </svg>;
 }
 
-function CannonCharacter(props: any = {}): any {
+function TankCharacter(props: any = {}): any {
   const mode = props.mode || 'organize';
   const showChart = mode === 'summary';
   const showShield = mode === 'safe';
   const showAlert = mode === 'warning';
-  return <svg className="mascot-svg cannon-svg" viewBox="0 0 250 205" aria-hidden="true">
+  return <svg className="mascot-svg tank-svg" viewBox="0 0 250 205" aria-hidden="true">
     <ellipse cx="128" cy="188" rx="84" ry="11" fill="#25231F" opacity=".08"/>
     <path d="M55 94c0-23 19-41 42-41h44c10 0 19 3 27 8l28 19c9 6 15 17 15 28v16c0 16-13 29-29 29H85c-17 0-30-13-30-29Z" fill="#86A55F" stroke="#34432B" strokeWidth="3"/>
     <path d="M65 102c18-24 71-35 116-15-9-19-27-27-57-27-28 0-47 10-59 42Z" fill="#A9C56E" opacity=".72"/>
@@ -308,6 +358,17 @@ function CannonCharacter(props: any = {}): any {
   </svg>;
 }
 
+function CannonCharacter(props: any = {}): any { return <TankCharacter {...props}/>; }
+
+function HeroMascots(props: any = {}): any {
+  return <div className="hero-character-stage" aria-label="活泼的大芋头和沉稳的小坦克">
+    <div className="hero-character hero-character-taro" data-mascot-motion="taro"><TaroCharacter mode="quick"/></div>
+    <div className="hero-character hero-character-tank" data-mascot-motion="tank"><TankCharacter mode={props.warning ? 'warning' : 'organize'}/></div>
+    <span className="hero-life-dot hero-life-dot-one" aria-hidden="true"/>
+    <span className="hero-life-dot hero-life-dot-two" aria-hidden="true"/>
+  </div>;
+}
+
 function LogoMark(): any {
   return <svg viewBox="0 0 72 72" width="44" height="44" aria-hidden="true">
     <rect width="72" height="72" rx="18" fill="#FAF7F1"/>
@@ -330,11 +391,11 @@ function Mascot(props: any): any {
   const onlyTaro = variant === 'empty' || variant === 'success';
   const onlyCannon = variant === 'summary' || variant === 'safe' || variant === 'warning';
   const labelMap: Record<string, string> = {
-    idle: '芋头与绿黄黑坦克小助手一起守着小账本', loading: '芋头与坦克小助手正在整理数据', empty: '芋头拿着铅笔邀请你记账', success: '芋头抱着账本完成记账', warning: '坦克小助手提醒预算接近上限', safe: '坦克小助手守护账户安全', summary: '坦克小助手展示本月统计结果',
+    idle: '活泼的大芋头和沉稳的小坦克一起守着小账本', loading: '大芋头和小坦克正在整理数据', empty: '芋头拿着铅笔邀请你记账', success: '芋头抱着账本完成记账', warning: '沉稳的小坦克提醒预算接近上限', safe: '沉稳的小坦克守护账户安全', summary: '沉稳的小坦克展示本月统计结果',
   };
   return <div className={cn('static-mascot', `static-mascot-${variant}`)} role="img" aria-label={props.label || labelMap[variant] || labelMap.idle}>
     {!onlyCannon ? <TaroCharacter mode={taroMode}/> : null}
-    {!onlyTaro ? <CannonCharacter mode={cannonMode}/> : null}
+    {!onlyTaro ? <TankCharacter mode={cannonMode}/> : null}
   </div>;
 }
 
@@ -543,8 +604,8 @@ class DashboardPage extends React.Component<any, any> {
     return <div className="page">
       <PageHeader title={`${greeting}，${userName}`} subtitle="两个人的小日子，都记在这里。"><MonthSwitcher month={this.props.month} onChange={this.props.onMonthChange}/><button className="icon-btn" onClick={() => this.load()} title="刷新"><Icon name="refresh" size={18}/></button></PageHeader>
       <section className="hero-card card">
-        <div className="hero-copy"><span className="hero-kicker">{monthLabel(this.props.month)}的小账</span><h2>{data.expenseCents > 0 ? '这个月的生活，已经有迹可循啦' : '先记下这个月的第一笔吧'}</h2><p>{data.expenseCents > 0 ? `目前支出 ${formatMoney(data.expenseCents)}，结余 ${formatMoney(data.balanceCents)}。慢慢记，不用一次做得很复杂。` : '从一杯饮料、一顿饭开始，小账本会慢慢长成你们的生活地图。'}</p><div className="hero-actions"><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/>记一笔</button><button className="btn btn-secondary" onClick={() => this.props.navigate('transactions')}>看看明细</button></div></div>
-        <div className="hero-mascot"><Mascot variant={data.budgetCents > 0 && budgetPercent >= 90 ? 'warning' : 'idle'}/></div>
+        <div className="hero-copy"><span className="hero-kicker">{monthLabel(this.props.month)} · 家庭生活簿</span><h2>{data.expenseCents > 0 ? '把平常的小日子，轻轻记下来' : '从今天的一笔小事开始'}</h2><p>{data.expenseCents > 0 ? `这个月支出 ${formatMoney(data.expenseCents)}，结余 ${formatMoney(data.balanceCents)}。大芋头负责马上记，小坦克负责慢慢整理。` : '一顿饭、一杯饮料、一次出行，都是你们共同生活的一部分。'}</p><div className="hero-actions"><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/>记一笔</button><button className="btn btn-secondary" onClick={() => this.props.navigate('transactions')}>看看明细</button></div><div className="hero-gentle-note"><span/>今天也不用记得很完美，重要的先留下。</div></div>
+        <div className="hero-mascot"><HeroMascots warning={data.budgetCents > 0 && budgetPercent >= 90}/></div>
       </section>
       <section className="grid grid-4 summary-grid" style={{ marginTop: '18px' }}>
         <SummaryMetric tone="income" icon="wallet" label="本月收入" value={data.incomeCents} note={`上月 ${formatCompactMoney(data.previousIncomeCents)}`}/>
@@ -627,7 +688,7 @@ class TransactionForm extends React.Component<any, any> {
 class AddPage extends React.Component<any, any> {
   constructor(props: any) { super(props); this.state = { success: false, savedType: 'expense' }; }
   render(): any {
-    return <div className="page"><PageHeader title="记一笔" subtitle="不用填得很复杂，先把重要的记下来。"/><section className="card card-pad add-form-card" style={{ maxWidth: '820px', margin: '0 auto' }}><div className="role-assistant role-assistant-taro"><div className="role-assistant-copy"><strong>芋头准备好啦</strong><span>填好金额，它会马上把这笔记进来。</span></div><div className="role-assistant-mascot"><Mascot variant="idle" label="芋头拿着铅笔准备记账，炮台打开归档槽"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(_: any, type: TransactionType) => { this.setState({ success: true, savedType: type }); this.props.onChanged(); window.setTimeout(() => { this.setState({ success: false }); this.props.navigate('home'); }, 1350); }}/></section>{this.state.success ? <div className="success-overlay"><div className="success-box"><Mascot variant="success" label="芋头举起收据，炮台显示已整理"/><h2>这笔记好啦</h2><p>{this.state.savedType === 'income' ? '芋头已经记下收入，炮台也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，炮台已经同步两个账户' : '芋头已经记下这笔，炮台也整理好了'}</p></div></div> : null}</div>;
+    return <div className="page"><PageHeader title="记一笔" subtitle="不用填得很复杂，先把重要的记下来。"/><section className="card card-pad add-form-card" style={{ maxWidth: '820px', margin: '0 auto' }}><div className="role-assistant role-assistant-taro"><div className="role-assistant-copy"><strong>芋头准备好啦</strong><span>填好金额，它会马上把这笔记进来。</span></div><div className="role-assistant-mascot"><Mascot variant="idle" label="芋头拿着铅笔准备记账，小坦克打开归档槽"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(_: any, type: TransactionType) => { this.setState({ success: true, savedType: type }); this.props.onChanged(); window.setTimeout(() => { this.setState({ success: false }); this.props.navigate('home'); }, 1350); }}/></section>{this.state.success ? <div className="success-overlay"><div className="success-box"><Mascot variant="success" label="芋头举起收据，小坦克显示已整理"/><h2>这笔记好啦</h2><p>{this.state.savedType === 'income' ? '芋头已经记下收入，小坦克也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，小坦克已经同步两个账户' : '芋头已经记下这笔，小坦克也整理好了'}</p></div></div> : null}</div>;
   }
 }
 
@@ -685,7 +746,7 @@ class StatsPage extends React.Component<any, any> {
     } catch (error: any) { this.setState({ loading: false }); this.props.onError(error.message); }
   }
   render(): any {
-    return <div className="page"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="grid grid-2"><section className="card role-assistant role-assistant-cannon form-span"><div className="role-assistant-copy"><strong>炮台已经整理好本月数据</strong><span>趋势、分类和预算都归好类了，慢慢看就行。</span></div><div className="role-assistant-mascot role-assistant-mascot-summary"><Mascot variant="summary" label="绿黑炮台投影本月图表，芋头在旁边查看"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
+    return <div className="page"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="grid grid-2"><section className="card role-assistant role-assistant-cannon form-span"><div className="role-assistant-copy"><strong>小坦克已经整理好本月数据</strong><span>趋势、分类和预算都归好类了，慢慢看就行。</span></div><div className="role-assistant-mascot role-assistant-mascot-summary"><Mascot variant="summary" label="绿黑炮台投影本月图表，芋头在旁边查看"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
   }
 }
 
@@ -940,7 +1001,7 @@ class SecuritySettings extends React.Component<any, any> {
 
 function SettingsPage(props: any): any {
   const reduceMotion = props.reduceMotion;
-  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.2.9 · 轻量组件化 UI 与坦克拟人 SVG 角色</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
+  return <div className="page"><PageHeader title="设置" subtitle="调整小账本的使用方式和数据管理。"/><div className="grid grid-2"><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">你们的小账本</h3><p className="card-subtitle">当前登录与家庭空间</p></div></div><div className="setting-row"><div><h4>{props.bootstrap.household.name}</h4><p>{props.bootstrap.user.displayName} · {props.bootstrap.user.role === 'owner' ? '管理员' : '家庭成员'}</p></div><div className="avatar">{props.bootstrap.user.displayName.slice(0, 1)}</div></div><div className="setting-row"><div><h4>轻动画</h4><p>关闭后会减少角色、图表和页面转场动画</p></div><button className={cn('switch', !reduceMotion && 'on')} onClick={() => props.onMotionChange(!reduceMotion)} aria-label="切换动画"><span/></button></div><div className="setting-row"><div><h4>账户管理</h4><p>添加、修改或归档常用账户</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('accounts')}>打开</button></div><div className="setting-row"><div><h4>预算管理</h4><p>设置每月总预算和分类预算</p></div><button className="btn btn-secondary btn-sm" onClick={() => props.navigate('budgets')}>打开</button></div></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">账号与安全</h3><p className="card-subtitle">密码、恢复码和设备会话</p></div></div><SecuritySettings email={props.bootstrap.user.email} onLogout={props.onLogout} onToast={props.onToast}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">数据导出</h3><p className="card-subtitle">建议定期留一份自己能读取的副本</p></div></div><div className="settings-list"><div className="setting-row"><div><h4>CSV 表格</h4><p>适合用 Excel 或其他表格工具打开</p></div><a className="btn btn-secondary btn-sm" href="/api/export/csv"><Icon name="download" size={16}/>导出</a></div><div className="setting-row"><div><h4>JSON 完整数据</h4><p>适合迁移、恢复或程序读取</p></div><a className="btn btn-secondary btn-sm" href="/api/export/json"><Icon name="download" size={16}/>导出</a></div></div><div className="divider"/><div className="card-title-row"><div><h3 className="card-title">关于芋炮小账本</h3><p className="card-subtitle">版本 0.3.0 · 薄荷绿与莫兰迪粉生活感 UI</p></div></div><p style={{ color: 'var(--text-2)', lineHeight: 1.8, fontSize: '13px' }}>没有广告和第三方行为追踪。密码在浏览器内使用 PBKDF2 和独立盐值处理，服务端再结合 Pepper 保存验证值；登录会话只保存在安全 Cookie 中。</p><div style={{ width: '230px', margin: '8px auto 0' }}><Mascot variant="safe"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">分类管理</h3><p className="card-subtitle">新增分类或归档暂时不用的分类</p></div></div><CategoryManager bootstrap={props.bootstrap} onChanged={props.onChanged} onToast={props.onToast}/></section></div></div>;
 }
 
 class App extends React.Component<any, any> {
@@ -960,7 +1021,10 @@ class App extends React.Component<any, any> {
     this.initializeAuth();
     registerServiceWorker(() => this.showToast('小账本有新版本，刷新页面即可更新', 'default'));
   }
-  componentWillUnmount(): void { window.removeEventListener('hashchange', this.onHashChange); window.removeEventListener('online', this.onOnline); window.removeEventListener('offline', this.onOffline); authExpiredHandler = null; }
+  componentDidUpdate(_: any, prevState: any): void {
+    if (prevState.route !== this.state.route || prevState.authPhase !== this.state.authPhase || prevState.loading !== this.state.loading || prevState.refreshToken !== this.state.refreshToken) schedulePageMotion();
+  }
+  componentWillUnmount(): void { window.removeEventListener('hashchange', this.onHashChange); window.removeEventListener('online', this.onOnline); window.removeEventListener('offline', this.onOffline); clearMotionRegistry(); authExpiredHandler = null; }
   onHashChange(): void { this.setState({ route: this.routeFromHash() }); window.scrollTo(0, 0); }
   onOnline(): void { this.setState({ online: true }); this.showToast('网络已经恢复', 'success'); }
   onOffline(): void { this.setState({ online: false }); }
@@ -989,7 +1053,7 @@ class App extends React.Component<any, any> {
   async logout(): Promise<void> { try { await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }); } catch {} this.endSession(); }
   changed(): void { this.setState({ refreshToken: this.state.refreshToken + 1 }, () => this.loadBootstrap()); }
   showToast(message: string, kind: 'default' | 'success' | 'error' = 'default', actionLabel?: string, action?: () => void): void { if (this.toastTimer) window.clearTimeout(this.toastTimer); this.setState({ toast: { message, kind, actionLabel, action } }); this.toastTimer = window.setTimeout(() => this.setState({ toast: null }), action ? 6500 : 3200); }
-  applyMotion(reduce: boolean): void { document.body.classList.toggle('reduce-motion', reduce); }
+  applyMotion(reduce: boolean): void { document.body.classList.toggle('reduce-motion', reduce); if (reduce) clearMotionRegistry(); else schedulePageMotion(); }
   changeMotion(reduce: boolean): void { localStorage.setItem('yupao-reduce-motion', String(reduce)); this.applyMotion(reduce); this.setState({ reduceMotion: reduce }); }
   renderPage(): any {
     const common = { bootstrap: this.state.bootstrap, month: this.state.month, refreshToken: this.state.refreshToken, navigate: (route: RouteKey) => this.navigate(route), onChanged: () => this.changed(), onError: (message: string) => this.showToast(message, 'error'), onToast: (message: string, kind?: any, actionLabel?: string, action?: () => void) => this.showToast(message, kind, actionLabel, action) };
