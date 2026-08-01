@@ -47,15 +47,15 @@ test('应用产物包含动态 API 调用而非纯静态页面', async () => {
   assert.match(app, /\/api\/invoices/);
 });
 
-test('关键前端资源预加载且版本统一为 0.3.1', async () => {
+test('关键前端资源预加载且版本统一为 0.3.2', async () => {
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.1/);
-  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.1/);
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.1/);
-  assert.match(bootstrap, /app\.js\?v=0\.3\.1/);
-  assert.match(worker, /yupao-shell-v10/);
+  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.2/);
+  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.2/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.2/);
+  assert.match(bootstrap, /app\.js\?v=0\.3\.2/);
+  assert.match(worker, /yupao-shell-v11/);
 });
 
 test('PWA 缓存按导航、版本资源和普通静态资源分层处理', async () => {
@@ -68,16 +68,17 @@ test('PWA 缓存按导航、版本资源和普通静态资源分层处理', asyn
   assert.match(worker, /cache: ['"]no-store['"]/);
 });
 
-test('支出分类卡片在侧栏和完整统计中均展示分类列表', async () => {
+test('支出分类模块在侧栏和完整统计中使用重构后的概览布局', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
-  assert.match(css, /\.donut-layout\.compact\s*\{[^}]*grid-template-columns:\s*1fr/);
-  assert.match(css, /grid-template-columns:\s*22px\s+40px\s+minmax\(0,1fr\)\s+72px/);
-  assert.match(css, /\.rank-label[^}]*white-space:\s*nowrap/);
-  assert.match(css, /@container spending/);
-  assert.match(app, /compact/);
+  assert.match(css, /\.expense-module-head/);
+  assert.match(css, /\.expense-chart-panel/);
+  assert.match(css, /\.expense-list-panel/);
+  assert.match(css, /\.expense-rank-row/);
+  assert.match(app, /function describeDonutSlice/);
+  assert.match(app, /expense-module/);
+  assert.match(app, /expense-donut-svg/);
   assert.match(app, /查看全部分类/);
-  assert.match(app, /category-ranking/);
 });
 
 test('大芋头与小坦克使用内联 SVG，并提供轻量 WAAPI 动效与减少动态降级', async () => {

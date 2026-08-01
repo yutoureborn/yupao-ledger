@@ -1,11 +1,11 @@
-const CACHE_NAME = 'yupao-shell-v10';
+const CACHE_NAME = 'yupao-shell-v11';
 const APP_SHELL = [
   '/index.html',
-  '/styles.css?v=0.3.1',
-  '/app.js?v=0.3.1',
-  '/manifest.webmanifest?v=0.3.1',
+  '/styles.css?v=0.3.2',
+  '/app.js?v=0.3.2',
+  '/manifest.webmanifest?v=0.3.2',
   '/vendor/preact.mjs',
-  '/vendor/preact-bootstrap.mjs?v=0.3.1',
+  '/vendor/preact-bootstrap.mjs?v=0.3.2',
   '/icons/favicon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

@@ -1,18 +1,25 @@
-# 芋炮小账本 v0.3.1 角色资产 + 扇形图修复补丁
+# 芋炮小账本 v0.3.2 升级补丁
 
-本补丁基于 v0.3.0 升级，内容包括：
-- 新版“大芋头 + 小坦克”角色方案
-- 前端可直接复用的 SVG 角色资产
-- PC 端支出扇形图/环形图显示问题修复
-- 相关样式与版本号更新
+这次不是继续做局部修补，而是对 **“钱花去了哪里 / 支出分类” 模块进行整体重构**。
 
-## 使用方式
-1. 将补丁中的同路径文件覆盖到 v0.3.0 项目
-2. 执行 `npm run build`
-3. 如需验证，执行 `node --test tests/*.test.mjs`
+## 主要内容
+- 重构支出分类模块整体布局
+- 扇形图改为 SVG path 扇区绘制
+- 新增摘要头部、侧边概览卡、完整分类排行列表
+- 更新前端资源版本号与 Service Worker 缓存版本
+- 更新自动化测试断言
 
-## 关键文件
+## 如何使用
+1. 以你当前稳定项目为基底
+2. 将本补丁中的同路径文件覆盖到项目中
+3. 执行：
+   - `npm run build`
+   - `node --test tests/*.test.mjs`
+4. 重新上传 GitHub / Cloudflare Workers Builds 部署
+
+## 核心变更文件
 - `src/frontend/app.tsx`
 - `public/styles.css`
-- `public/illustrations/mascots/*`
-- `docs/MASCOT-ASSET-PLAN-v0.3.1.md`
+- `public/index.html`
+- `public/sw.js`
+- `tests/assets.test.mjs`
