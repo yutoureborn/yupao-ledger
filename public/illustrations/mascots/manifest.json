@@ -1,0 +1,68 @@
+{
+  "version": "0.3.4",
+  "assets": [
+    {
+      "name": "hero-duo-v033",
+      "png": "hero-duo-v033.png",
+      "webp": "hero-duo-v033.webp",
+      "size": [
+        960,
+        642
+      ]
+    },
+    {
+      "name": "taro-entry-v033",
+      "png": "taro-entry-v033.png",
+      "webp": "taro-entry-v033.webp",
+      "size": [
+        960,
+        640
+      ]
+    },
+    {
+      "name": "duo-success-v033",
+      "png": "duo-success-v033.png",
+      "webp": "duo-success-v033.webp",
+      "size": [
+        960,
+        642
+      ]
+    },
+    {
+      "name": "tank-summary-v033",
+      "png": "tank-summary-v033.png",
+      "webp": "tank-summary-v033.webp",
+      "size": [
+        960,
+        642
+      ]
+    },
+    {
+      "name": "tank-safe-v033",
+      "png": "tank-safe-v033.png",
+      "webp": "tank-safe-v033.webp",
+      "size": [
+        960,
+        642
+      ]
+    },
+    {
+      "name": "tank-warning-v033",
+      "png": "tank-warning-v033.png",
+      "webp": "tank-warning-v033.webp",
+      "size": [
+        960,
+        642
+      ]
+    },
+    {
+      "name": "duo-invoice-v033",
+      "png": "duo-invoice-v033.png",
+      "webp": "duo-invoice-v033.webp",
+      "size": [
+        960,
+        642
+      ]
+    }
+  ]
+}

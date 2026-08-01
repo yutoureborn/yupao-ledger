@@ -47,15 +47,15 @@ test('应用产物包含动态 API 调用而非纯静态页面', async () => {
   assert.match(app, /\/api\/invoices/);
 });
 
-test('关键前端资源预加载且版本统一为 0.3.2', async () => {
+test('关键前端资源预加载且版本统一为 0.3.4', async () => {
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.2/);
-  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.2/);
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.2/);
-  assert.match(bootstrap, /app\.js\?v=0\.3\.2/);
-  assert.match(worker, /yupao-shell-v11/);
+  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.4/);
+  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.4/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.4/);
+  assert.match(bootstrap, /app\.js\?v=0\.3\.4/);
+  assert.match(worker, /yupao-shell-v13/);
 });
 
 test('PWA 缓存按导航、版本资源和普通静态资源分层处理', async () => {
@@ -81,28 +81,47 @@ test('支出分类模块在侧栏和完整统计中使用重构后的概览布�
   assert.match(app, /查看全部分类/);
 });
 
-test('大芋头与小坦克使用内联 SVG，并提供轻量 WAAPI 动效与减少动态降级', async () => {
+test('大芋头与小坦克改为正式角色资产，并通过统一映射接入页面场景', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
+  await access(path.join(dist, 'illustrations/mascots/hero-duo-v033.webp'));
+  await access(path.join(dist, 'illustrations/mascots/taro-entry-v033.webp'));
+  await access(path.join(dist, 'illustrations/mascots/duo-success-v033.webp'));
+  await access(path.join(dist, 'illustrations/mascots/tank-summary-v033.webp'));
+  await access(path.join(dist, 'illustrations/mascots/tank-safe-v033.webp'));
+  await access(path.join(dist, 'illustrations/mascots/tank-warning-v033.webp'));
+  await access(path.join(dist, 'illustrations/mascots/duo-invoice-v033.webp'));
 
-  assert.match(app, /function TaroCharacter/);
-  assert.match(app, /function TankCharacter/);
   assert.match(app, /function HeroMascots/);
-  assert.match(app, /mascot-svg taro-svg/);
-  assert.match(app, /mascot-svg tank-svg/);
-  assert.match(app, /hero-character-taro/);
-  assert.match(app, /hero-character-tank/);
+  assert.doesNotMatch(app, /function TaroCharacter/);
+  assert.doesNotMatch(app, /function TankCharacter/);
+  assert.match(app, /const MASCOT_ASSETS/);
+  assert.match(app, /function MascotPicture/);
+  assert.match(app, /hero-duo-v033/);
+  assert.match(app, /duo-invoice-v033/);
+  assert.match(app, /Mascot variant="invoice"/);
   assert.match(app, /playMotion/);
-  assert.match(app, /\.animate\(keyframes, options\)/);
   assert.match(app, /prefers-reduced-motion/);
-  assert.match(app, /芋头准备好啦/);
-  assert.match(app, /小坦克已经整理好本月数据/);
-  assert.doesNotMatch(app, /\/illustrations\//);
 
-  assert.match(css, /\.hero-character-taro[^}]*width:\s*64%/);
-  assert.match(css, /\.hero-character-tank[^}]*width:\s*43%/);
-  assert.match(css, /\.static-mascot \.tank-svg/);
+  assert.match(css, /\.mascot-asset-img/);
+  assert.match(css, /\.hero-alert-badge/);
+  assert.match(css, /\.invoice-hero-mascot/);
   assert.match(css, /prefers-reduced-motion/);
+});
+
+test('桌面首页使用完整宽度与十二列响应式 Bento 布局', async () => {
+  const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
+  const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
+  assert.match(app, /dashboard-page-v034/);
+  assert.match(app, /dashboard-bento/);
+  assert.match(app, /dashboard-card-trend/);
+  assert.match(app, /dashboard-card-spending/);
+  assert.match(app, /dashboard-card-invoice/);
+  assert.match(app, /expense-compact/);
+  assert.match(css, /grid-template-columns:\s*repeat\(12, minmax\(0, 1fr\)\)/);
+  assert.match(css, /--content-max:\s*1520px/);
+  assert.match(css, /max-width:\s*var\(--content-max\)/);
+  assert.match(css, /min-height:\s*44px/);
 });
 
 test('薄荷绿与莫兰迪粉设计系统进入构建产物', async () => {
@@ -123,7 +142,7 @@ test('发票页面与轻量生活感主题进入构建产物', async () => {
   assert.match(app, /收到的发票只能关联支出/);
   assert.match(app, /开出的发票只能关联收入/);
   assert.match(app, /invoice-journal-hero/);
-  assert.match(app, /invoice-hero-icon/);
+  assert.match(app, /invoice-hero-mascot/);
   assert.match(css, /\.invoice-card/);
   assert.match(css, /\.invoice-pocket-card/);
 });

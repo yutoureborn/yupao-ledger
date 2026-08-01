@@ -1,8 +1,8 @@
 {
   "name": "yupao-ledger",
   "private": true,
-  "version": "0.3.2",
-  "description": "芋炮小账本：双人家庭动态在线记账 PWA（薄荷绿、莫兰迪粉生活感 UI、轻量 WAAPI 动效、内联 SVG 角色与发票关联）",
+  "version": "0.3.4",
+  "description": "芋炮小账本：双人家庭动态在线记账 PWA（薄荷绿、莫兰迪粉生活感 UI、轻量 WAAPI 动效、正式角色资产、响应式桌面布局与发票关联）",
   "type": "module",
   "scripts": {
     "clean": "node scripts/clean.mjs",
