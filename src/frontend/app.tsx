@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.4';
+const APP_VERSION = '0.3.5';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -57,14 +57,14 @@ const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8'
 type MascotAssetKey = 'hero' | 'idle' | 'empty' | 'success' | 'summary' | 'safe' | 'warning' | 'invoice';
 
 const MASCOT_ASSETS: Record<MascotAssetKey, { png: string; webp: string }> = {
-  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.4', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.4' },
-  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.4', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.4' },
-  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.4', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.4' },
-  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.4', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.4' },
-  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.4', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.4' },
-  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.4', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.4' },
-  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.4', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.4' },
-  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.4', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.4' },
+  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.5', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.5' },
+  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.5', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.5' },
+  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.5', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.5' },
+  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.5', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.5' },
+  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.5' },
+  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.5' },
+  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.5' },
+  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.5', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.5' },
 };
 
 function MascotPicture(props: { asset: MascotAssetKey; alt?: string; className?: string; eager?: boolean }): any {
@@ -347,17 +347,26 @@ function HeroMascots(props: any = {}): any {
 }
 
 function LogoMark(): any {
-  return <svg viewBox="0 0 72 72" width="44" height="44" aria-hidden="true">
-    <rect width="72" height="72" rx="18" fill="#FAF7F1"/>
-    <path d="M27 16c-10 0-18 10-18 25 0 14 7 22 18 22s18-8 18-22c0-15-8-25-18-25Z" fill="#9A78C7" stroke="#51405F" strokeWidth="2"/>
-    <path d="M22 18c-5-8-1-13 4-14 4 5 4 9-4 14ZM29 17c2-9 8-11 13-6-2 5-5 8-13 6Z" fill="#79924A"/>
-    <circle cx="22" cy="39" r="2.5" fill="#2D2534"/><circle cx="31" cy="39" r="2.5" fill="#2D2534"/>
-    <path d="M23 46c3 3 6 3 9 0" fill="none" stroke="#3D2E45" strokeWidth="2" strokeLinecap="round"/>
-    <rect x="40" y="38" width="19" height="12" rx="6" fill="#86A55F" stroke="#34432B" strokeWidth="2"/>
-    <path d="M49 35h8c3 0 5 2 5 5v2H49Z" fill="#F0C34A" stroke="#87671B" strokeWidth="2"/>
-    <path d="M55 39 69 36c3-1 5 1 6 4 1 3-1 6-4 7l-15 2Z" fill="#252927" stroke="#111411" strokeWidth="2"/>
-    <circle cx="45" cy="55" r="6" fill="#252927"/><circle cx="58" cy="55" r="6" fill="#252927"/>
-    <circle cx="45" cy="55" r="2.5" fill="#F0BE3F"/><circle cx="58" cy="55" r="2.5" fill="#F0BE3F"/>
+  return <svg viewBox="0 0 88 72" width="48" height="40" aria-hidden="true" className="brand-logo-svg">
+    <rect x="2" y="4" width="84" height="64" rx="20" fill="#FFFEFC" stroke="#D9E6DE" strokeWidth="2"/>
+    <ellipse cx="29" cy="40" rx="17" ry="21" fill="#9C7BD1" stroke="#5A4773" strokeWidth="2"/>
+    <path d="M20 19c-5-8 1-13 7-13 2 6-1 10-7 13Zm13 0c1-8 7-12 13-8-1 6-5 9-13 8Z" fill="#7FA04C" stroke="#5C7437" strokeWidth="1.4" strokeLinejoin="round"/>
+    <ellipse cx="24" cy="38" rx="3.7" ry="4.3" fill="#2E2435"/>
+    <ellipse cx="35" cy="38" rx="3.7" ry="4.3" fill="#2E2435"/>
+    <circle cx="22.8" cy="36.7" r="1" fill="#fff"/><circle cx="33.8" cy="36.7" r="1" fill="#fff"/>
+    <ellipse cx="18.5" cy="45.2" rx="4.2" ry="2.2" fill="#EAB3C0"/>
+    <ellipse cx="40.2" cy="45.2" rx="4.2" ry="2.2" fill="#EAB3C0"/>
+    <path d="M25 48.5c3 3 8 3 11 0" fill="none" stroke="#4A3754" strokeWidth="2.2" strokeLinecap="round"/>
+    <path d="M11 59c2-3 4-5 6-6" fill="none" stroke="#4A3754" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M37 59c2-3 4-5 6-6" fill="none" stroke="#4A3754" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M52 53h22a6 6 0 0 0 6-6v-3H52z" fill="#1F2422" stroke="#151917" strokeWidth="2" strokeLinejoin="round"/>
+    <rect x="50" y="37" width="19" height="14" rx="7" fill="#99BA69" stroke="#5A7742" strokeWidth="2"/>
+    <path d="M61 35h8c3 0 5 2 5 5v2H61Z" fill="#F0C44D" stroke="#9C7D23" strokeWidth="2"/>
+    <circle cx="55.5" cy="43.5" r="2.1" fill="#263129"/><circle cx="63.5" cy="43.5" r="2.1" fill="#263129"/>
+    <circle cx="54.8" cy="42.8" r="0.7" fill="#fff"/><circle cx="62.8" cy="42.8" r="0.7" fill="#fff"/>
+    <path d="M58 47c2.8 1.6 5.8 1.6 8.6 0" fill="none" stroke="#2B352E" strokeWidth="1.8" strokeLinecap="round"/>
+    <circle cx="53" cy="59" r="6.4" fill="#2A2F2D"/><circle cx="68" cy="59" r="6.4" fill="#2A2F2D"/>
+    <circle cx="53" cy="59" r="2.4" fill="#EFC54D"/><circle cx="68" cy="59" r="2.4" fill="#EFC54D"/>
   </svg>;
 }
 
@@ -796,7 +805,7 @@ class StatsPage extends React.Component<any, any> {
     } catch (error: any) { this.setState({ loading: false }); this.props.onError(error.message); }
   }
   render(): any {
-    return <div className="page"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="grid grid-2"><section className="card role-assistant role-assistant-cannon form-span"><div className="role-assistant-copy"><strong>小坦克已经整理好本月数据</strong><span>趋势、分类和预算都归好类了，慢慢看就行。</span></div><div className="role-assistant-mascot role-assistant-mascot-summary"><Mascot variant="summary" label="绿黑炮台投影本月图表，芋头在旁边查看"/></div></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad form-span"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
+    return <div className="page stats-page-v035"><PageHeader title="收支统计" subtitle="不用盯着每一笔，看看整体节奏就好。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.setState({ month }, () => this.load())}/></PageHeader>{this.state.loading ? <LoadingPage/> : <div className="stats-grid-v035"><section className="card role-assistant role-assistant-cannon stats-hero-card"><div className="role-assistant-copy"><strong>小坦克已经整理好本月数据</strong><span>趋势、分类和预算都归好类了，慢慢看就行。</span></div><div className="role-assistant-mascot role-assistant-mascot-summary"><Mascot variant="summary" label="沉稳小坦克陪你查看本月图表"/></div></section><section className="card card-pad stats-trend-card"><div className="card-title-row"><div><h3 className="card-title">本月趋势</h3><p className="card-subtitle">每天的收入与支出</p></div></div><TrendChart items={this.state.trend}/></section><section className="card card-pad spending-card stats-spending-card"><div className="card-title-row"><div><h3 className="card-title">支出分类</h3><p className="card-subtitle">钱主要花在了哪里</p></div></div><DonutChart items={this.state.categories}/></section><section className="card card-pad stats-budget-card"><div className="card-title-row"><div><h3 className="card-title">分类预算</h3><p className="card-subtitle">预算与实际支出</p></div></div><BudgetProgressList items={this.state.budgets} onSetup={() => this.props.navigate('budgets')}/></section><section className="card card-pad stats-months-card"><div className="card-title-row"><div><h3 className="card-title">近六个月</h3><p className="card-subtitle">收入和支出的月度变化</p></div></div><MonthlyBars items={this.state.months}/></section></div>}</div>;
   }
 }
 

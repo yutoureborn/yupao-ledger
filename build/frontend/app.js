@@ -1,7 +1,7 @@
 "use strict";
 /* global React, ReactDOM */
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.4';
+const APP_VERSION = '0.3.5';
 let authExpiredHandler = null;
 function setClientAuth(csrfToken = '') {
     currentCsrfToken = csrfToken;
@@ -24,14 +24,14 @@ const CATEGORY_EMOJI = {
 };
 const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8', '#9BCED4', '#E9A58F'];
 const MASCOT_ASSETS = {
-    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.4', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.4' },
-    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.4', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.4' },
-    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.4', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.4' },
-    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.4', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.4' },
-    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.4', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.4' },
-    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.4', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.4' },
-    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.4', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.4' },
-    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.4', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.4' },
+    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.5', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.5' },
+    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.5', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.5' },
+    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.5', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.5' },
+    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.5', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.5' },
+    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.5' },
+    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.5' },
+    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.5', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.5' },
+    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.5', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.5' },
 };
 function MascotPicture(props) {
     const asset = MASCOT_ASSETS[props.asset] || MASCOT_ASSETS.hero;
@@ -362,20 +362,31 @@ function HeroMascots(props = {}) {
         React.createElement("span", { className: "hero-life-dot hero-life-dot-two", "aria-hidden": "true" }));
 }
 function LogoMark() {
-    return React.createElement("svg", { viewBox: "0 0 72 72", width: "44", height: "44", "aria-hidden": "true" },
-        React.createElement("rect", { width: "72", height: "72", rx: "18", fill: "#FAF7F1" }),
-        React.createElement("path", { d: "M27 16c-10 0-18 10-18 25 0 14 7 22 18 22s18-8 18-22c0-15-8-25-18-25Z", fill: "#9A78C7", stroke: "#51405F", strokeWidth: "2" }),
-        React.createElement("path", { d: "M22 18c-5-8-1-13 4-14 4 5 4 9-4 14ZM29 17c2-9 8-11 13-6-2 5-5 8-13 6Z", fill: "#79924A" }),
-        React.createElement("circle", { cx: "22", cy: "39", r: "2.5", fill: "#2D2534" }),
-        React.createElement("circle", { cx: "31", cy: "39", r: "2.5", fill: "#2D2534" }),
-        React.createElement("path", { d: "M23 46c3 3 6 3 9 0", fill: "none", stroke: "#3D2E45", strokeWidth: "2", strokeLinecap: "round" }),
-        React.createElement("rect", { x: "40", y: "38", width: "19", height: "12", rx: "6", fill: "#86A55F", stroke: "#34432B", strokeWidth: "2" }),
-        React.createElement("path", { d: "M49 35h8c3 0 5 2 5 5v2H49Z", fill: "#F0C34A", stroke: "#87671B", strokeWidth: "2" }),
-        React.createElement("path", { d: "M55 39 69 36c3-1 5 1 6 4 1 3-1 6-4 7l-15 2Z", fill: "#252927", stroke: "#111411", strokeWidth: "2" }),
-        React.createElement("circle", { cx: "45", cy: "55", r: "6", fill: "#252927" }),
-        React.createElement("circle", { cx: "58", cy: "55", r: "6", fill: "#252927" }),
-        React.createElement("circle", { cx: "45", cy: "55", r: "2.5", fill: "#F0BE3F" }),
-        React.createElement("circle", { cx: "58", cy: "55", r: "2.5", fill: "#F0BE3F" }));
+    return React.createElement("svg", { viewBox: "0 0 88 72", width: "48", height: "40", "aria-hidden": "true", className: "brand-logo-svg" },
+        React.createElement("rect", { x: "2", y: "4", width: "84", height: "64", rx: "20", fill: "#FFFEFC", stroke: "#D9E6DE", strokeWidth: "2" }),
+        React.createElement("ellipse", { cx: "29", cy: "40", rx: "17", ry: "21", fill: "#9C7BD1", stroke: "#5A4773", strokeWidth: "2" }),
+        React.createElement("path", { d: "M20 19c-5-8 1-13 7-13 2 6-1 10-7 13Zm13 0c1-8 7-12 13-8-1 6-5 9-13 8Z", fill: "#7FA04C", stroke: "#5C7437", strokeWidth: "1.4", strokeLinejoin: "round" }),
+        React.createElement("ellipse", { cx: "24", cy: "38", rx: "3.7", ry: "4.3", fill: "#2E2435" }),
+        React.createElement("ellipse", { cx: "35", cy: "38", rx: "3.7", ry: "4.3", fill: "#2E2435" }),
+        React.createElement("circle", { cx: "22.8", cy: "36.7", r: "1", fill: "#fff" }),
+        React.createElement("circle", { cx: "33.8", cy: "36.7", r: "1", fill: "#fff" }),
+        React.createElement("ellipse", { cx: "18.5", cy: "45.2", rx: "4.2", ry: "2.2", fill: "#EAB3C0" }),
+        React.createElement("ellipse", { cx: "40.2", cy: "45.2", rx: "4.2", ry: "2.2", fill: "#EAB3C0" }),
+        React.createElement("path", { d: "M25 48.5c3 3 8 3 11 0", fill: "none", stroke: "#4A3754", strokeWidth: "2.2", strokeLinecap: "round" }),
+        React.createElement("path", { d: "M11 59c2-3 4-5 6-6", fill: "none", stroke: "#4A3754", strokeWidth: "2", strokeLinecap: "round" }),
+        React.createElement("path", { d: "M37 59c2-3 4-5 6-6", fill: "none", stroke: "#4A3754", strokeWidth: "2", strokeLinecap: "round" }),
+        React.createElement("path", { d: "M52 53h22a6 6 0 0 0 6-6v-3H52z", fill: "#1F2422", stroke: "#151917", strokeWidth: "2", strokeLinejoin: "round" }),
+        React.createElement("rect", { x: "50", y: "37", width: "19", height: "14", rx: "7", fill: "#99BA69", stroke: "#5A7742", strokeWidth: "2" }),
+        React.createElement("path", { d: "M61 35h8c3 0 5 2 5 5v2H61Z", fill: "#F0C44D", stroke: "#9C7D23", strokeWidth: "2" }),
+        React.createElement("circle", { cx: "55.5", cy: "43.5", r: "2.1", fill: "#263129" }),
+        React.createElement("circle", { cx: "63.5", cy: "43.5", r: "2.1", fill: "#263129" }),
+        React.createElement("circle", { cx: "54.8", cy: "42.8", r: "0.7", fill: "#fff" }),
+        React.createElement("circle", { cx: "62.8", cy: "42.8", r: "0.7", fill: "#fff" }),
+        React.createElement("path", { d: "M58 47c2.8 1.6 5.8 1.6 8.6 0", fill: "none", stroke: "#2B352E", strokeWidth: "1.8", strokeLinecap: "round" }),
+        React.createElement("circle", { cx: "53", cy: "59", r: "6.4", fill: "#2A2F2D" }),
+        React.createElement("circle", { cx: "68", cy: "59", r: "6.4", fill: "#2A2F2D" }),
+        React.createElement("circle", { cx: "53", cy: "59", r: "2.4", fill: "#EFC54D" }),
+        React.createElement("circle", { cx: "68", cy: "59", r: "2.4", fill: "#EFC54D" }));
 }
 function Mascot(props) {
     const variant = (props.variant || 'idle');
@@ -1081,35 +1092,35 @@ class StatsPage extends React.Component {
         }
     }
     render() {
-        return React.createElement("div", { className: "page" },
+        return React.createElement("div", { className: "page stats-page-v035" },
             React.createElement(PageHeader, { title: "\u6536\u652F\u7EDF\u8BA1", subtitle: "\u4E0D\u7528\u76EF\u7740\u6BCF\u4E00\u7B14\uFF0C\u770B\u770B\u6574\u4F53\u8282\u594F\u5C31\u597D\u3002" },
                 React.createElement(MonthSwitcher, { month: this.state.month, onChange: (month) => this.setState({ month }, () => this.load()) })),
-            this.state.loading ? React.createElement(LoadingPage, null) : React.createElement("div", { className: "grid grid-2" },
-                React.createElement("section", { className: "card role-assistant role-assistant-cannon form-span" },
+            this.state.loading ? React.createElement(LoadingPage, null) : React.createElement("div", { className: "stats-grid-v035" },
+                React.createElement("section", { className: "card role-assistant role-assistant-cannon stats-hero-card" },
                     React.createElement("div", { className: "role-assistant-copy" },
                         React.createElement("strong", null, "\u5C0F\u5766\u514B\u5DF2\u7ECF\u6574\u7406\u597D\u672C\u6708\u6570\u636E"),
                         React.createElement("span", null, "\u8D8B\u52BF\u3001\u5206\u7C7B\u548C\u9884\u7B97\u90FD\u5F52\u597D\u7C7B\u4E86\uFF0C\u6162\u6162\u770B\u5C31\u884C\u3002")),
                     React.createElement("div", { className: "role-assistant-mascot role-assistant-mascot-summary" },
-                        React.createElement(Mascot, { variant: "summary", label: "\u7EFF\u9ED1\u70AE\u53F0\u6295\u5F71\u672C\u6708\u56FE\u8868\uFF0C\u828B\u5934\u5728\u65C1\u8FB9\u67E5\u770B" }))),
-                React.createElement("section", { className: "card card-pad form-span" },
+                        React.createElement(Mascot, { variant: "summary", label: "\u6C89\u7A33\u5C0F\u5766\u514B\u966A\u4F60\u67E5\u770B\u672C\u6708\u56FE\u8868" }))),
+                React.createElement("section", { className: "card card-pad stats-trend-card" },
                     React.createElement("div", { className: "card-title-row" },
                         React.createElement("div", null,
                             React.createElement("h3", { className: "card-title" }, "\u672C\u6708\u8D8B\u52BF"),
                             React.createElement("p", { className: "card-subtitle" }, "\u6BCF\u5929\u7684\u6536\u5165\u4E0E\u652F\u51FA"))),
                     React.createElement(TrendChart, { items: this.state.trend })),
-                React.createElement("section", { className: "card card-pad spending-card" },
+                React.createElement("section", { className: "card card-pad spending-card stats-spending-card" },
                     React.createElement("div", { className: "card-title-row" },
                         React.createElement("div", null,
                             React.createElement("h3", { className: "card-title" }, "\u652F\u51FA\u5206\u7C7B"),
                             React.createElement("p", { className: "card-subtitle" }, "\u94B1\u4E3B\u8981\u82B1\u5728\u4E86\u54EA\u91CC"))),
                     React.createElement(DonutChart, { items: this.state.categories })),
-                React.createElement("section", { className: "card card-pad" },
+                React.createElement("section", { className: "card card-pad stats-budget-card" },
                     React.createElement("div", { className: "card-title-row" },
                         React.createElement("div", null,
                             React.createElement("h3", { className: "card-title" }, "\u5206\u7C7B\u9884\u7B97"),
                             React.createElement("p", { className: "card-subtitle" }, "\u9884\u7B97\u4E0E\u5B9E\u9645\u652F\u51FA"))),
                     React.createElement(BudgetProgressList, { items: this.state.budgets, onSetup: () => this.props.navigate('budgets') })),
-                React.createElement("section", { className: "card card-pad form-span" },
+                React.createElement("section", { className: "card card-pad stats-months-card" },
                     React.createElement("div", { className: "card-title-row" },
                         React.createElement("div", null,
                             React.createElement("h3", { className: "card-title" }, "\u8FD1\u516D\u4E2A\u6708"),

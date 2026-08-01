@@ -2353,3 +2353,283 @@ button, .btn, .icon-btn, .month-switcher button, .nav-item, .bottom-nav button {
   .dashboard-hero .hero-character-duo { will-change: auto; }
 }
 body.reduce-motion .dashboard-hero .hero-character-duo { will-change: auto; }
+
+/* ===== v0.3.5 brand refresh + mobile-first adaptation + stats refinement ===== */
+.brand-mark {
+  width: 52px;
+  height: 44px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.brand-logo-svg {
+  display: block;
+  width: 48px;
+  height: 40px;
+}
+.mobile-brand .brand-logo-svg { width: 44px; height: 36px; }
+.auth-brand .brand-logo-svg { width: 48px; height: 40px; }
+.brand-copy strong, .mobile-brand span { letter-spacing: .01em; }
+
+.stats-page-v035 { max-width: var(--content-max); }
+.stats-grid-v035 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+.stats-hero-card,
+.stats-trend-card,
+.stats-months-card { grid-column: 1 / -1; }
+.stats-spending-card { grid-column: span 7; }
+.stats-budget-card { grid-column: span 5; }
+.stats-budget-card .empty-state { min-height: 380px; }
+.stats-budget-card .empty-state > div { max-width: 360px; }
+
+.expense-module-head {
+  grid-template-columns: minmax(0, .92fr) minmax(320px, 1.08fr);
+  align-items: start;
+}
+.expense-head-copy strong {
+  font-size: clamp(24px, 2vw, 30px);
+  line-height: 1.24;
+}
+.expense-head-copy small { max-width: 38ch; }
+.expense-head-pills { gap: 12px; }
+.expense-pill {
+  min-height: 104px;
+  align-content: start;
+}
+.expense-module-body { gap: 16px; }
+.expense-chart-panel {
+  grid-template-columns: minmax(320px, 1fr) minmax(240px, .82fr);
+  align-items: start;
+}
+.expense-chart-shell { min-height: 360px; }
+.expense-donut-svg { width: min(280px, 100%); }
+.expense-chart-aside { gap: 14px; }
+.expense-side-card { min-width: 0; }
+.expense-side-highlight { min-height: 128px; }
+.expense-side-main {
+  align-items: center;
+  gap: 12px;
+}
+.expense-side-main strong {
+  min-width: 0;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-height: 1.22;
+}
+.expense-side-card small {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+.expense-mini-legend { gap: 12px; }
+.expense-mini-item { gap: 10px; }
+.expense-mini-name { font-size: 15px; }
+.expense-list-panel { padding-top: 18px; }
+.expense-rank-row {
+  grid-template-columns: 28px 44px minmax(0, 1fr) 86px;
+  min-height: 64px;
+}
+.expense-rank-bar { height: 10px; }
+.expense-module-footer { justify-content: stretch; }
+.expense-more-btn { width: 100%; min-width: 0; }
+
+.transactions-page-v035 .filter-bar,
+.filter-bar {
+  align-items: stretch;
+}
+.search-wrap { min-width: 0; }
+
+@media (max-width: 1180px) {
+  .stats-spending-card,
+  .stats-budget-card { grid-column: 1 / -1; }
+  .expense-chart-panel {
+    grid-template-columns: minmax(280px, .95fr) minmax(220px, 1.05fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .mobile-topbar { height: 64px; padding: 10px 14px; }
+  .mobile-brand { gap: 10px; }
+  .mobile-brand span { font-size: 14px; font-weight: 800; }
+  .main { padding-top: 82px; padding-bottom: 106px; }
+  .page-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 14px;
+  }
+  .header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .header-actions .btn,
+  .header-actions .month-switcher { width: 100%; }
+  .month-switcher {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    width: 100%;
+  }
+  .month-label {
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dashboard-page-v034 .page-header {
+    margin-bottom: 14px;
+  }
+  .dashboard-page-v034 .header-actions {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+  .dashboard-hero {
+    padding: 18px 16px 16px;
+    gap: 12px;
+    min-height: 0;
+    border-radius: 20px;
+  }
+  .dashboard-hero .hero-copy h2 {
+    max-width: none;
+    font-size: 25px;
+    line-height: 1.16;
+  }
+  .dashboard-hero .hero-copy p {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .dashboard-hero .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .dashboard-hero .hero-actions .btn {
+    min-width: 0;
+    padding-inline: 0;
+    justify-content: center;
+  }
+  .dashboard-hero .hero-gentle-note {
+    margin-top: 14px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .dashboard-hero .hero-mascot {
+    height: 154px;
+  }
+  .dashboard-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .dashboard-summary .summary-card {
+    min-height: 102px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .dashboard-summary .summary-value { font-size: 22px; }
+  .dashboard-bento { gap: 12px; }
+  .dashboard-card { border-radius: 20px; }
+  .dashboard-card-trend .chart-wrap { min-height: 230px; }
+  .dashboard-invoice-head {
+    display: grid;
+    gap: 12px;
+    align-items: start;
+  }
+  .dashboard-invoice-head .btn { width: 100%; }
+
+  .stats-grid-v035 {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .stats-hero-card,
+  .stats-trend-card,
+  .stats-spending-card,
+  .stats-budget-card,
+  .stats-months-card { grid-column: 1; }
+  .stats-hero-card {
+    padding-right: 12px;
+  }
+  .stats-budget-card .empty-state { min-height: 300px; }
+  .spending-card .card-title-row {
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+  }
+  .expense-module {
+    gap: 14px;
+  }
+  .expense-module-head,
+  .expense-chart-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .expense-head-copy strong {
+    font-size: 22px;
+  }
+  .expense-head-pills {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .expense-pill {
+    min-height: 88px;
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .expense-pill strong { font-size: 16px; }
+  .expense-chart-shell {
+    min-height: 0;
+    padding: 14px 12px 10px;
+  }
+  .expense-donut-svg { width: min(236px, 100%); }
+  .expense-side-highlight { min-height: 0; }
+  .expense-side-main strong { font-size: 17px; }
+  .expense-list-panel {
+    padding: 14px 14px 10px;
+    border-radius: 18px;
+  }
+  .expense-list-head {
+    display: grid;
+    gap: 4px;
+    align-items: start;
+  }
+  .expense-rank-row {
+    grid-template-columns: 40px minmax(0, 1fr) 72px;
+    gap: 10px;
+    min-height: 58px;
+  }
+  .expense-rank-order { display: none; }
+
+  .filter-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .filter-bar .search-wrap,
+  .filter-bar .btn { grid-column: 1 / -1; }
+  .transaction-item {
+    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-areas: 'icon main' '. side';
+    row-gap: 8px;
+  }
+  .transaction-icon { grid-area: icon; }
+  .transaction-main { grid-area: main; }
+  .transaction-side {
+    grid-area: side;
+    justify-self: start;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-mark { width: 48px; height: 40px; }
+  .page-title { font-size: 23px; }
+  .dashboard-summary { grid-template-columns: 1fr; }
+  .dashboard-hero .hero-actions { grid-template-columns: 1fr; }
+  .expense-head-pills { grid-template-columns: 1fr; }
+  .expense-rank-amount { font-size: 15px; }
+}
