@@ -1,10 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 96" role="img" aria-labelledby="title desc">
-  <title id="title">芋炮小账本</title>
-  <desc id="desc">大芋头和小炮台品牌组合标识</desc>
-  <rect width="420" height="96" rx="24" fill="none"/>
-  <image href="brand-mark-v037.svg" x="0" y="8" width="100" height="80"/>
-  <g fill="#2C3932">
-    <text x="118" y="46" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="31" font-weight="800" letter-spacing="1">芋炮小账本</text>
-    <text x="120" y="72" font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#6F7E76" letter-spacing="2">两个人的小日子</text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 502" role="img" aria-labelledby="title desc">
+  <title id="title">芋炮小账本联名品牌标识</title>
+  <desc id="desc">经确认的大芋头、小炮台、芋炮小账本与两个人的小日子组合标识</desc>
+  <image href="approved-brand-lockup-v038.webp" x="0" y="0" width="1200" height="502" preserveAspectRatio="xMidYMid meet"/>
 </svg>

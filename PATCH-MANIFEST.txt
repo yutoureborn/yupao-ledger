@@ -1,12 +1,9 @@
-v0.3.4 UI rebuild patch
-- src/frontend/app.tsx
-- public/styles.css
-- public/index.html
-- public/sw.js
-- public/vendor/preact-bootstrap.mjs
-- public/illustrations/mascots/*
-- tests/assets.test.mjs
-- design-system/yupao-ledger/*
-- docs/*v0.3.4.md
-- build/ and dist/ outputs
-- package.json / README / RELEASE-NOTES
+芋炮小账本 v0.3.8
+
+核心变更：
+- 已确认联名品牌资源正式接入
+- 移动端记账流程重构
+- 首页与统计移动结构优化
+- PWA 缓存与图标升级
+
+不包含新的数据库迁移。

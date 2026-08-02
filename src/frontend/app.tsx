@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.7';
+const APP_VERSION = '0.3.8';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -57,14 +57,14 @@ const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8'
 type MascotAssetKey = 'hero' | 'idle' | 'empty' | 'success' | 'summary' | 'safe' | 'warning' | 'invoice';
 
 const MASCOT_ASSETS: Record<MascotAssetKey, { png: string; webp: string }> = {
-  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.7', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.7' },
-  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.7', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.7' },
-  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.7', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.7' },
-  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.7', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.7' },
-  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.7', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.7' },
-  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.7', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.7' },
-  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.7', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.7' },
-  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.7', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.7' },
+  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.8', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.8' },
+  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.8', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.8' },
+  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.8', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.8' },
+  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.8', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.8' },
+  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.8' },
+  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.8' },
+  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.8' },
+  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.8', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.8' },
 };
 
 function MascotPicture(props: { asset: MascotAssetKey; alt?: string; className?: string; eager?: boolean }): any {
@@ -347,7 +347,11 @@ function HeroMascots(props: any = {}): any {
 }
 
 function LogoMark(): any {
-  return <img className="brand-logo-img" src="/brand/brand-mark-v037.svg?v=0.3.7" alt="" aria-hidden="true" decoding="async"/>;
+  return <img className="brand-logo-img" src="/brand/brand-mark-v038.svg?v=0.3.8" alt="" aria-hidden="true" decoding="async"/>;
+}
+
+function BrandLockup(): any {
+  return <img className="brand-lockup-img" src="/brand/brand-lockup-v038.svg?v=0.3.8" alt="芋炮小账本，两个人的小日子" decoding="async"/>;
 }
 
 function Mascot(props: any): any {
@@ -625,18 +629,20 @@ function MobileDashboardView(props: any): any {
   const data = props.data;
   const budgetPercent = safePercent(data.budgetUsedCents, data.budgetCents);
   const recent = (data.recent || []).slice(0, 4);
-  return <div className="mobile-product-view mobile-dashboard-v037">
+  return <div className="mobile-product-view mobile-dashboard-v038">
     <section className="mobile-home-hero card">
-      <div className="mobile-home-hero-copy"><span>{monthLabel(props.month)} · 家庭生活簿</span><h2>{data.expenseCents > 0 ? '把今天的小日子记下来' : '从今天的一笔小事开始'}</h2><p>大芋头负责快速记录，小炮台负责安静整理。</p></div>
-      <div className="mobile-home-hero-mascot"><MascotPicture asset="hero" eager alt=""/></div>
+      <div className="mobile-home-hero-body">
+        <div className="mobile-home-hero-copy"><span>{monthLabel(props.month)} · 家庭生活簿</span><h2>{data.expenseCents > 0 ? '把今天的小日子记下来' : '从今天的一笔小事开始'}</h2><p>大芋头负责快速记录，小炮台负责安静整理。</p></div>
+        <div className="mobile-home-hero-mascot"><MascotPicture asset="hero" eager alt=""/></div>
+      </div>
       <button className="mobile-primary-action" type="button" onClick={() => props.navigate('add')}><Icon name="plus" size={20}/>记一笔</button>
     </section>
     <section className="mobile-section-block">
       <div className="mobile-section-head"><div><span>本月概览</span><small>收入、支出与结余</small></div><button type="button" onClick={() => props.navigate('stats')}>看统计<Icon name="chevron-right" size={15}/></button></div>
-      <div className="mobile-money-grid">
+      <div className="mobile-money-grid mobile-money-grid-v038">
         <article className="mobile-money-card income"><span>收入</span><strong>{formatCompactMoney(data.incomeCents)}</strong><small>上月 {formatCompactMoney(data.previousIncomeCents)}</small></article>
         <article className="mobile-money-card expense"><span>支出</span><strong>{formatCompactMoney(data.expenseCents)}</strong><small>上月 {formatCompactMoney(data.previousExpenseCents)}</small></article>
-        <article className="mobile-money-card balance"><span>结余</span><strong>{formatCompactMoney(data.balanceCents)}</strong><small>收入减支出</small></article>
+        <article className="mobile-money-card balance mobile-money-balance"><span>本月结余</span><strong>{formatCompactMoney(data.balanceCents)}</strong><small>收入减去支出</small></article>
       </div>
     </section>
     <section className="mobile-section-block">
@@ -679,17 +685,29 @@ function MobileTransactionsView(props: any): any {
   </div>;
 }
 
+function MobileMonthlyBars(props: any): any {
+  const items = (props.items || []).slice(-6);
+  if (!items.length) return <EmptyState title="还没有月度对比" message="有了几个月的数据以后，会更容易看出变化。"/>;
+  const max = Math.max(1, ...items.map((item: any) => Math.max(Number(item.income_cents || 0), Number(item.expense_cents || 0))));
+  return <div className="mobile-monthly-list">{items.map((item: any) => {
+    const income = Number(item.income_cents || 0);
+    const expense = Number(item.expense_cents || 0);
+    return <article className="mobile-monthly-row" key={item.month}><div className="mobile-monthly-head"><strong>{item.month.slice(5)}月</strong><span>收入 {formatCompactMoney(income)} · 支出 {formatCompactMoney(expense)}</span></div><div className="mobile-monthly-bars"><div><i className="income" style={{ width: `${Math.max(3, income / max * 100)}%` }}/></div><div><i className="expense" style={{ width: `${Math.max(3, expense / max * 100)}%` }}/></div></div></article>;
+  })}</div>;
+}
+
 function MobileStatsView(props: any): any {
   const categories = props.categories || [];
   const total = categories.reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
   const top = categories[0];
-  return <div className="mobile-product-view mobile-stats-v037">
+  const budgetCount = (props.budgets || []).length;
+  return <div className="mobile-product-view mobile-stats-v038">
     <div className="mobile-page-title"><div><h1>统计</h1><p>看看这个月的钱都去了哪里。</p></div></div>
     <div className="mobile-month-bar"><MonthSwitcher month={props.month} onChange={props.onMonthChange}/></div>
-    <section className="mobile-stats-summary card"><div className="mobile-section-head"><div><span>月度总览</span><small>{monthLabel(props.month)}</small></div></div><div className="mobile-stats-summary-grid"><div><span>支出</span><strong>{formatCompactMoney(total)}</strong></div><div><span>分类</span><strong>{categories.length}</strong></div><div><span>最高</span><strong>{top ? top.name : '暂无'}</strong></div></div></section>
+    <section className="mobile-stats-summary card"><div className="mobile-section-head"><div><span>月度总览</span><small>{monthLabel(props.month)}</small></div></div><div className="mobile-stats-summary-grid mobile-stats-summary-v038"><div className="primary"><span>本月支出</span><strong>{formatCompactMoney(total)}</strong><small>{categories.length} 个分类</small></div><div><span>最高分类</span><strong>{top ? top.name : '暂无'}</strong><small>{top ? formatCompactMoney(top.amount_cents) : '等待记录'}</small></div><div><span>预算项目</span><strong>{budgetCount}</strong><small>{budgetCount ? '正在跟踪' : '还未设置'}</small></div></div></section>
     <section className="mobile-panel card mobile-donut-panel"><div className="mobile-section-head"><div><span>支出占比</span><small>从高到低查看</small></div></div><DonutChart items={categories} compact/></section>
     <section className="mobile-panel card"><div className="mobile-section-head"><div><span>分类预算</span><small>预算与实际支出</small></div><button type="button" onClick={() => props.navigate('budgets')}>管理<Icon name="chevron-right" size={15}/></button></div><BudgetProgressList items={props.budgets} onSetup={() => props.navigate('budgets')}/></section>
-    <section className="mobile-panel card"><div className="mobile-section-head"><div><span>近六个月</span><small>收入和支出的变化</small></div></div><MonthlyBars items={props.months}/></section>
+    <section className="mobile-panel card"><div className="mobile-section-head"><div><span>近六个月</span><small>收入和支出的变化</small></div></div><MobileMonthlyBars items={props.months}/></section>
   </div>;
 }
 
@@ -782,11 +800,13 @@ class TransactionForm extends React.Component<any, any> {
       this.props.onSuccess(saved, this.state.type);
     } catch (error: any) { this.setState({ submitting: false, error: error.message || '保存失败，请稍后再试' }); }
   }
-  render(): any {
-    const categories = this.categories();
-    return <form onSubmit={(event: any) => this.submit(event)}>
-      <div className="type-switch"><button type="button" className={cn(this.state.type === 'expense' && 'active expense')} onClick={() => this.setType('expense')}>支出</button><button type="button" className={cn(this.state.type === 'income' && 'active income')} onClick={() => this.setType('income')}>收入</button><button type="button" className={cn(this.state.type === 'transfer' && 'active transfer')} onClick={() => this.setType('transfer')}>转账</button></div>
-      <div className="amount-field"><div className="amount-input-wrap"><span className="currency-symbol">¥</span><input className="amount-input" inputMode="decimal" autoFocus={!this.props.initial} placeholder="0.00" value={this.state.amount} onChange={(event: any) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })}/></div></div>
+  typeSwitch(className = ''): any {
+    return <div className={cn('type-switch', className)}><button type="button" className={cn(this.state.type === 'expense' && 'active expense')} onClick={() => this.setType('expense')}>支出</button><button type="button" className={cn(this.state.type === 'income' && 'active income')} onClick={() => this.setType('income')}>收入</button><button type="button" className={cn(this.state.type === 'transfer' && 'active transfer')} onClick={() => this.setType('transfer')}>转账</button></div>;
+  }
+  renderDesktop(categories: any[]): any {
+    return <div className="desktop-transaction-form">
+      {this.typeSwitch()}
+      <div className="amount-field"><div className="amount-input-wrap"><span className="currency-symbol">¥</span><input className="amount-input" inputMode="decimal" placeholder="0.00" value={this.state.amount} onChange={(event: any) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })}/></div></div>
       {this.state.type !== 'transfer' ? <div className="field form-span" style={{ marginBottom: '15px' }}><label>分类</label><div className="category-grid">{categories.map((item: any) => <button type="button" key={item.id} className={cn('category-chip', this.state.categoryId === item.id && 'active')} onClick={() => this.setState({ categoryId: item.id })}><span className="emoji">{CATEGORY_EMOJI[item.icon] || '✨'}</span><span>{item.name}</span></button>)}</div></div> : null}
       <div className="form-grid">
         <div className="field"><label>{this.state.type === 'transfer' ? '转出账户' : '账户'}</label><select className="select" value={this.state.accountId} onChange={(event: any) => this.setState({ accountId: event.target.value })}>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
@@ -796,14 +816,30 @@ class TransactionForm extends React.Component<any, any> {
       </div>
       {this.state.error ? <p className="error-text">{this.state.error}</p> : null}
       <div className="form-actions">{this.props.onCancel ? <button type="button" className="btn btn-ghost" onClick={this.props.onCancel}>取消</button> : null}<button className="btn btn-primary" type="submit" disabled={this.state.submitting}>{this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : '收进小账本'}</button></div>
-    </form>;
+    </div>;
+  }
+  renderMobile(categories: any[]): any {
+    return <div className="mobile-transaction-form-v038">
+      {this.typeSwitch('mobile-add-type-switch')}
+      <section className="mobile-add-amount-card"><span>金额</span><div className="mobile-add-amount-wrap"><b>¥</b><input inputMode="decimal" placeholder="0.00" aria-label="金额" value={this.state.amount} onChange={(event: any) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })}/></div></section>
+      {this.state.type !== 'transfer' ? <section className="mobile-add-section"><div className="mobile-add-section-head"><strong>选择分类</strong><small>左右滑动查看更多</small></div><div className="mobile-category-scroll">{categories.map((item: any) => <button type="button" key={item.id} className={cn('mobile-category-chip', this.state.categoryId === item.id && 'active')} onClick={() => this.setState({ categoryId: item.id })}><span>{CATEGORY_EMOJI[item.icon] || '✨'}</span><b>{item.name}</b></button>)}</div></section> : null}
+      <section className="mobile-add-section mobile-add-essential"><div className="mobile-add-section-head"><strong>必要信息</strong><small>确认账户和日期</small></div><div className="mobile-add-fields-grid"><label className="mobile-add-field"><span>{this.state.type === 'transfer' ? '转出账户' : '账户'}</span><select value={this.state.accountId} onChange={(event: any) => this.setState({ accountId: event.target.value })}>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{this.state.type === 'transfer' ? <label className="mobile-add-field"><span>转入账户</span><select value={this.state.targetAccountId} onChange={(event: any) => this.setState({ targetAccountId: event.target.value })}>{this.props.bootstrap.accounts.filter((item: any) => item.id !== this.state.accountId).map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <label className="mobile-add-field"><span>日期</span><input type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></label>}{this.state.type === 'transfer' ? <label className="mobile-add-field mobile-add-field-wide"><span>日期</span><input type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></label> : null}</div></section>
+      <details className="mobile-add-optional" open={Boolean(this.state.merchant || this.state.note)}><summary><span>补充信息</span><small>商户和备注都可以稍后补</small></summary><div className="mobile-add-optional-body">{this.state.type !== 'transfer' ? <label className="mobile-add-field mobile-add-field-wide"><span>商户 / 来源</span><input maxLength={80} placeholder={this.state.type === 'income' ? '例如：公司、客户' : '例如：超市、餐厅'} value={this.state.merchant} onChange={(event: any) => this.setState({ merchant: event.target.value })}/></label> : null}<label className="mobile-add-field mobile-add-field-wide"><span>备注</span><textarea maxLength={300} rows={3} placeholder="简单记一下这笔钱的用途" value={this.state.note} onChange={(event: any) => this.setState({ note: event.target.value })}/></label></div></details>
+      {this.state.error ? <p className="error-text mobile-add-error">{this.state.error}</p> : null}
+      <div className="mobile-add-submit-bar">{this.props.onCancel ? <button type="button" className="mobile-add-cancel" onClick={this.props.onCancel}>取消</button> : null}<button className="mobile-add-submit" type="submit" disabled={this.state.submitting}><span>{this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : '收进小账本'}</span><small>{this.state.type === 'expense' ? '记录一笔支出' : this.state.type === 'income' ? '记录一笔收入' : '完成账户转账'}</small></button></div>
+    </div>;
+  }
+  render(): any {
+    const categories = this.categories();
+    return <form className="transaction-form-v038" onSubmit={(event: any) => this.submit(event)}>{this.renderDesktop(categories)}{this.renderMobile(categories)}</form>;
   }
 }
 
 class AddPage extends React.Component<any, any> {
   constructor(props: any) { super(props); this.state = { success: false, savedType: 'expense' }; }
+  successHandler(_: any, type: TransactionType): void { this.setState({ success: true, savedType: type }); this.props.onChanged(); window.setTimeout(() => { this.setState({ success: false }); this.props.navigate('home'); }, 1350); }
   render(): any {
-    return <div className="page"><PageHeader title="记一笔" subtitle="不用填得很复杂，先把重要的记下来。"/><section className="card card-pad add-form-card" style={{ maxWidth: '820px', margin: '0 auto' }}><div className="role-assistant role-assistant-taro"><div className="role-assistant-copy"><strong>芋头准备好啦</strong><span>填好金额，它会马上把这笔记进来。</span></div><div className="role-assistant-mascot"><Mascot variant="idle" label="芋头拿着铅笔准备记账，小炮台打开归档槽"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(_: any, type: TransactionType) => { this.setState({ success: true, savedType: type }); this.props.onChanged(); window.setTimeout(() => { this.setState({ success: false }); this.props.navigate('home'); }, 1350); }}/></section>{this.state.success ? <div className="success-overlay"><div className="success-box"><Mascot variant="success" label="芋头举起收据，小炮台显示已整理"/><h2>这笔记好啦</h2><p>{this.state.savedType === 'income' ? '芋头已经记下收入，小炮台也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，小炮台已经同步两个账户' : '芋头已经记下这笔，小炮台也整理好了'}</p></div></div> : null}</div>;
+    return <div className="page add-page-v038"><div className="desktop-product-view"><PageHeader title="记一笔" subtitle="不用填得很复杂，先把重要的记下来。"/><section className="card card-pad add-form-card" style={{ maxWidth: '820px', margin: '0 auto' }}><div className="role-assistant role-assistant-taro"><div className="role-assistant-copy"><strong>芋头准备好啦</strong><span>填好金额，它会马上把这笔记进来。</span></div><div className="role-assistant-mascot"><Mascot variant="idle" label="芋头拿着铅笔准备记账，小炮台打开归档槽"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(saved: any, type: TransactionType) => this.successHandler(saved, type)}/></section></div><div className="mobile-product-view mobile-add-page-v038"><div className="mobile-add-page-head"><div><span>快速记账</span><h1>记一笔</h1><p>先填金额和分类，其他内容可以慢慢补。</p></div><div className="mobile-add-page-mascot"><Mascot variant="empty" label="大芋头准备记录，小炮台在旁边整理"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(saved: any, type: TransactionType) => this.successHandler(saved, type)}/></div>{this.state.success ? <div className="success-overlay"><div className="success-box"><Mascot variant="success" label="芋头举起收据，小炮台显示已整理"/><h2>这笔记好啦</h2><p>{this.state.savedType === 'income' ? '芋头已经记下收入，小炮台也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，小炮台已经同步两个账户' : '芋头已经记下这笔，小炮台也整理好了'}</p></div></div> : null}</div>;
   }
 }
 
@@ -1019,7 +1055,7 @@ function AuthFrame(props: any): any {
       <div className="auth-visual-copy"><span className="auth-kicker">芋炮小账本</span><h1>两个人的小日子，<br/>都认真记下来。</h1><p>数据只存进你自己的 Cloudflare D1，不使用第三方登录服务。</p></div>
       <Mascot variant={props.variant || 'idle'} label="芋头和小炮台守护小账本"/>
     </section>
-    <section className="auth-panel"><div className="auth-card"><div className="auth-brand"><LogoMark/><div><strong>芋炮小账本</strong><span>{props.subtitle || '两个人的小日子'}</span></div></div>{props.children}</div></section>
+    <section className="auth-panel"><div className="auth-card"><div className="auth-brand auth-brand-approved"><BrandLockup/></div>{props.children}</div></section>
   </main>;
 }
 
