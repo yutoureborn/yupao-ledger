@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.8';
+const APP_VERSION = '0.3.9';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -45,11 +45,51 @@ const ROUTES: Array<{ key: RouteKey; label: string; icon: string; mobile: boolea
 ];
 
 const CATEGORY_EMOJI: Record<string, string> = {
-  bowl: '🍜', basket: '🥬', cup: '🧋', bag: '🧴', car: '🚗', home: '🏠', bolt: '💡', paw: '🐾',
-  shopping: '🛍️', game: '🎮', medical: '🩹', plane: '✈️', gift: '🎁', dots: '✨', wallet: '💰',
-  star: '⭐', receipt: '🧾', briefcase: '💼', store: '🏪', trend: '📈', cash: '💵', wechat: '💬',
-  alipay: '🔵', card: '💳', bank: '🏦', credit: '💳', stored: '🎫', other: '🧺',
+  bowl: '🍜', takeaway: '🥡', basket: '🥬', cup: '🧋', bag: '🧴', bolt: '💡', phone: '📱', subscription: '🔁',
+  home: '🏠', building: '🏢', sofa: '🛋️', device: '📺', car: '🚗', metro: '🚇', taxi: '🚕', fuel: '⛽', parking: '🅿️', road: '🛣️',
+  shopping: '🛍️', clothes: '👕', beauty: '🧴', tech: '💻', hobby: '🎨', medical: '🩹', medicine: '💊', fitness: '🏃', care: '🧘',
+  paw: '🐾', petfood: '🐟', petmedical: '🏥', pettoy: '🧶', game: '🎮', movie: '🎬', party: '🥂', gift: '🎁', redpacket: '🧧',
+  study: '📚', software: '🧩', office: '🗂️', insurance: '🛡️', tax: '🧾', fee: '🏦', plane: '✈️', dots: '✨', wallet: '💰',
+  star: '⭐', receipt: '🧾', briefcase: '💼', store: '🏪', trend: '📈', cash: '💵', wechat: '💬', alipay: '🔵', card: '💳', bank: '🏦', credit: '💳', stored: '🎫', other: '🧺',
 };
+
+const EXPENSE_CATEGORY_GROUPS = [
+  { label: '日常生活', names: ['餐饮', '外卖', '买菜', '零食饮品', '日用百货', '水电燃气', '通讯网络', '订阅会员'] },
+  { label: '居住家庭', names: ['房租房贷', '物业费', '家居家装', '数码家电'] },
+  { label: '交通出行', names: ['交通出行', '公共交通', '打车', '加油', '停车', '车辆养护', '旅行'] },
+  { label: '购物消费', names: ['购物', '服饰鞋包', '美妆护肤', '数码产品', '网购'] },
+  { label: '健康', names: ['医疗', '药品', '健身运动', '保健护理'] },
+  { label: '宠物', names: ['宠物', '宠物食品', '猫砂日用品', '宠物医疗', '宠物玩具'] },
+  { label: '娱乐生活', names: ['娱乐', '电影演出', '兴趣爱好'] },
+  { label: '人情社交', names: ['人情往来', '礼物', '红包'] },
+  { label: '学习工作', names: ['学习培训', '软件工具', '办公用品'] },
+  { label: '金融其他', names: ['保险', '税费', '银行手续费', '其他支出'] },
+] as const;
+
+function categoryGroups(categories: any[], type: TransactionType): Array<{ label: string; items: any[] }> {
+  if (type !== 'expense') return [{ label: type === 'income' ? '收入分类' : '分类', items: categories }];
+  const used = new Set<string>();
+  const groups: Array<{ label: string; items: any[] }> = EXPENSE_CATEGORY_GROUPS.map((group) => {
+    const items = group.names.map((name) => categories.find((item: any) => item.name === name)).filter(Boolean);
+    items.forEach((item: any) => used.add(item.id));
+    return { label: group.label, items };
+  }).filter((group) => group.items.length);
+  const other = categories.filter((item: any) => !used.has(item.id));
+  if (other.length) groups.push({ label: '其他', items: other });
+  return groups;
+}
+
+function safeStorageGet<T>(key: string, fallback: T): T {
+  try { const raw = window.localStorage.getItem(key); return raw ? JSON.parse(raw) as T : fallback; } catch { return fallback; }
+}
+function safeStorageSet(key: string, value: unknown): void {
+  try { window.localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage is optional */ }
+}
+function yesterdayDate(): string {
+  const date = new Date(); date.setDate(date.getDate() - 1);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
 
 const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8', '#9BCED4', '#E9A58F'];
 
@@ -57,14 +97,14 @@ const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8'
 type MascotAssetKey = 'hero' | 'idle' | 'empty' | 'success' | 'summary' | 'safe' | 'warning' | 'invoice';
 
 const MASCOT_ASSETS: Record<MascotAssetKey, { png: string; webp: string }> = {
-  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.8', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.8' },
-  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.8', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.8' },
-  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.8', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.8' },
-  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.8', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.8' },
-  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.8' },
-  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.8' },
-  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.8' },
-  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.8', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.8' },
+  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
+  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
+  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.9', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.9' },
+  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.9' },
+  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.9' },
+  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.9' },
+  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.9' },
+  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.9' },
 };
 
 function MascotPicture(props: { asset: MascotAssetKey; alt?: string; className?: string; eager?: boolean }): any {
@@ -347,11 +387,11 @@ function HeroMascots(props: any = {}): any {
 }
 
 function LogoMark(): any {
-  return <img className="brand-logo-img" src="/brand/brand-mark-v038.svg?v=0.3.8" alt="" aria-hidden="true" decoding="async"/>;
+  return <img className="brand-logo-img" src="/brand/brand-mark-v038.svg?v=0.3.9" alt="" aria-hidden="true" decoding="async"/>;
 }
 
 function BrandLockup(): any {
-  return <img className="brand-lockup-img" src="/brand/brand-lockup-v038.svg?v=0.3.8" alt="芋炮小账本，两个人的小日子" decoding="async"/>;
+  return <img className="brand-lockup-img" src="/brand/brand-lockup-v038.svg?v=0.3.9" alt="芋炮小账本，两个人的小日子" decoding="async"/>;
 }
 
 function Mascot(props: any): any {
@@ -765,18 +805,62 @@ class TransactionForm extends React.Component<any, any> {
   constructor(props: any) {
     super(props);
     const initial = props.initial || {};
+    const initialType: TransactionType = initial.type || 'expense';
+    const savedAccountId = safeStorageGet<string>(`yupao:last-account:${initialType}`, '');
+    const initialAccountId = initial.account_id || (props.bootstrap.accounts.some((item: any) => item.id === savedAccountId) ? savedAccountId : props.bootstrap.accounts[0]?.id || '');
     this.state = {
-      type: initial.type || 'expense', amount: initial.amount_cents ? (initial.amount_cents / 100).toFixed(2) : '',
-      accountId: initial.account_id || props.bootstrap.accounts[0]?.id || '', targetAccountId: initial.target_account_id || props.bootstrap.accounts[1]?.id || '',
-      categoryId: initial.category_id || '', occurredAt: initial.occurred_at ? initial.occurred_at.slice(0, 10) : today(),
+      type: initialType,
+      amount: initial.amount_cents ? (initial.amount_cents / 100).toFixed(2) : '',
+      accountId: initialAccountId,
+      targetAccountId: initial.target_account_id || props.bootstrap.accounts.find((item: any) => item.id !== initialAccountId)?.id || '',
+      categoryId: initial.category_id || '',
+      occurredAt: initial.occurred_at ? initial.occurred_at.slice(0, 10) : today(),
       merchant: initial.merchant || '', note: initial.note || '', submitting: false, error: '',
+      recentCategoryIds: safeStorageGet<string[]>(`yupao:recent-categories:${initialType}`, []),
+      recentTransactions: [], sheet: '', showNote: Boolean(initial.note), merchantInput: false,
     };
   }
   categories(): any[] { return this.props.bootstrap.categories.filter((item: any) => item.type === this.state.type && !item.is_archived); }
-  componentDidMount(): void { if (!this.state.categoryId && this.categories()[0]) this.setState({ categoryId: this.categories()[0].id }); }
+  commonCategories(categories = this.categories()): any[] {
+    const recentIds = this.state.recentCategoryIds || [];
+    const popularNames = this.state.type === 'expense' ? ['餐饮', '外卖', '买菜', '零食饮品', '日用百货', '公共交通', '网购', '猫砂日用品'] : ['工资', '生意收入', '报销', '奖金', '兼职'];
+    const output: any[] = [];
+    for (const id of recentIds) { const item = categories.find((entry: any) => entry.id === id); if (item && !output.some((entry) => entry.id === item.id)) output.push(item); }
+    for (const name of popularNames) { const item = categories.find((entry: any) => entry.name === name); if (item && !output.some((entry) => entry.id === item.id)) output.push(item); }
+    for (const item of categories) { if (output.length >= 6) break; if (!output.some((entry) => entry.id === item.id)) output.push(item); }
+    return output.slice(0, 6);
+  }
+  merchantSuggestions(): string[] {
+    const local = safeStorageGet<string[]>(`yupao:recent-merchants:${this.state.type}`, []);
+    const fromTransactions = (this.state.recentTransactions || []).filter((item: any) => item.type === this.state.type && item.merchant).map((item: any) => String(item.merchant).trim()).filter(Boolean);
+    return Array.from(new Set([...local, ...fromTransactions])).slice(0, 12);
+  }
+  selectedCategory(): any { return this.categories().find((item: any) => item.id === this.state.categoryId); }
+  selectedAccount(): any { return this.props.bootstrap.accounts.find((item: any) => item.id === this.state.accountId); }
+  selectedTargetAccount(): any { return this.props.bootstrap.accounts.find((item: any) => item.id === this.state.targetAccountId); }
+  componentDidMount(): void {
+    if (!this.state.categoryId && this.categories()[0]) this.setState({ categoryId: this.commonCategories()[0]?.id || this.categories()[0].id });
+    apiRequest('/api/transactions?limit=150').then((data: any) => this.setState({ recentTransactions: data.items || [] })).catch(() => undefined);
+  }
   setType(type: TransactionType): void {
-    const category = this.props.bootstrap.categories.find((item: any) => item.type === type && !item.is_archived);
-    this.setState({ type, categoryId: type === 'transfer' ? '' : category?.id || '' });
+    const categories = this.props.bootstrap.categories.filter((item: any) => item.type === type && !item.is_archived);
+    const recentCategoryIds = safeStorageGet<string[]>(`yupao:recent-categories:${type}`, []);
+    const savedAccount = safeStorageGet<string>(`yupao:last-account:${type}`, '');
+    const accountId = this.props.bootstrap.accounts.some((item: any) => item.id === savedAccount) ? savedAccount : this.state.accountId;
+    const recentFirst = recentCategoryIds.map((id) => categories.find((item: any) => item.id === id)).find(Boolean);
+    this.setState({ type, categoryId: type === 'transfer' ? '' : recentFirst?.id || categories[0]?.id || '', recentCategoryIds, accountId, sheet: '', merchant: '', merchantInput: false });
+  }
+  rememberChoices(): void {
+    safeStorageSet(`yupao:last-account:${this.state.type}`, this.state.accountId);
+    if (this.state.categoryId) {
+      const recent = [this.state.categoryId, ...(this.state.recentCategoryIds || []).filter((id: string) => id !== this.state.categoryId)].slice(0, 6);
+      safeStorageSet(`yupao:recent-categories:${this.state.type}`, recent);
+      this.setState({ recentCategoryIds: recent });
+    }
+    if (this.state.merchant.trim()) {
+      const stored = safeStorageGet<string[]>(`yupao:recent-merchants:${this.state.type}`, []);
+      safeStorageSet(`yupao:recent-merchants:${this.state.type}`, [this.state.merchant.trim(), ...stored.filter((item) => item !== this.state.merchant.trim())].slice(0, 10));
+    }
   }
   async submit(event: any): Promise<void> {
     event.preventDefault();
@@ -790,48 +874,68 @@ class TransactionForm extends React.Component<any, any> {
       type: this.state.type, amountCents, accountId: this.state.accountId,
       targetAccountId: this.state.type === 'transfer' ? this.state.targetAccountId : null,
       categoryId: this.state.type === 'transfer' ? null : this.state.categoryId,
-      occurredAt: this.state.occurredAt, merchant: this.state.merchant, note: this.state.note,
+      occurredAt: this.state.occurredAt, merchant: this.state.merchant.trim(), note: this.state.note,
       ...(this.props.initial ? { version: this.props.initial.version } : {}),
     };
     try {
       const path = this.props.initial ? `/api/transactions/${this.props.initial.id}` : '/api/transactions';
       const saved = await apiRequest(path, { method: this.props.initial ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
-      this.setState({ submitting: false });
-      this.props.onSuccess(saved, this.state.type);
+      this.rememberChoices(); this.setState({ submitting: false }); this.props.onSuccess(saved, this.state.type);
     } catch (error: any) { this.setState({ submitting: false, error: error.message || '保存失败，请稍后再试' }); }
   }
   typeSwitch(className = ''): any {
     return <div className={cn('type-switch', className)}><button type="button" className={cn(this.state.type === 'expense' && 'active expense')} onClick={() => this.setType('expense')}>支出</button><button type="button" className={cn(this.state.type === 'income' && 'active income')} onClick={() => this.setType('income')}>收入</button><button type="button" className={cn(this.state.type === 'transfer' && 'active transfer')} onClick={() => this.setType('transfer')}>转账</button></div>;
   }
+  categoryOptions(categories: any[]): any {
+    return categoryGroups(categories, this.state.type).map((group) => <optgroup key={group.label} label={group.label}>{group.items.map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup>);
+  }
   renderDesktop(categories: any[]): any {
-    return <div className="desktop-transaction-form">
+    const merchants = this.merchantSuggestions();
+    return <div className="desktop-transaction-form desktop-transaction-form-v039">
       {this.typeSwitch()}
       <div className="amount-field"><div className="amount-input-wrap"><span className="currency-symbol">¥</span><input className="amount-input" inputMode="decimal" placeholder="0.00" value={this.state.amount} onChange={(event: any) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })}/></div></div>
-      {this.state.type !== 'transfer' ? <div className="field form-span" style={{ marginBottom: '15px' }}><label>分类</label><div className="category-grid">{categories.map((item: any) => <button type="button" key={item.id} className={cn('category-chip', this.state.categoryId === item.id && 'active')} onClick={() => this.setState({ categoryId: item.id })}><span className="emoji">{CATEGORY_EMOJI[item.icon] || '✨'}</span><span>{item.name}</span></button>)}</div></div> : null}
-      <div className="form-grid">
+      <div className="form-grid compact-choice-grid">
+        {this.state.type !== 'transfer' ? <div className="field form-span"><label>分类</label><select className="select" value={this.state.categoryId} onChange={(event: any) => this.setState({ categoryId: event.target.value })}>{this.categoryOptions(categories)}</select></div> : null}
         <div className="field"><label>{this.state.type === 'transfer' ? '转出账户' : '账户'}</label><select className="select" value={this.state.accountId} onChange={(event: any) => this.setState({ accountId: event.target.value })}>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
-        {this.state.type === 'transfer' ? <div className="field"><label>转入账户</label><select className="select" value={this.state.targetAccountId} onChange={(event: any) => this.setState({ targetAccountId: event.target.value })}>{this.props.bootstrap.accounts.filter((item: any) => item.id !== this.state.accountId).map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div> : <div className="field"><label>日期</label><input className="input" type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></div>}
-        {this.state.type === 'transfer' ? <div className="field"><label>日期</label><input className="input" type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></div> : <div className="field"><label>商户/来源（可选）</label><input className="input" maxLength={80} placeholder={this.state.type === 'income' ? '例如：公司、客户' : '例如：超市、餐厅'} value={this.state.merchant} onChange={(event: any) => this.setState({ merchant: event.target.value })}/></div>}
-        <div className={cn('field', this.state.type !== 'transfer' && 'form-span')}><label>备注（可选）</label><textarea className="textarea" maxLength={300} placeholder="简单记一下这笔钱的用途" value={this.state.note} onChange={(event: any) => this.setState({ note: event.target.value })}/></div>
+        {this.state.type === 'transfer' ? <div className="field"><label>转入账户</label><select className="select" value={this.state.targetAccountId} onChange={(event: any) => this.setState({ targetAccountId: event.target.value })}>{this.props.bootstrap.accounts.filter((item: any) => item.id !== this.state.accountId).map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div> : <div className="field"><label>日期</label><div className="desktop-date-quick"><button type="button" className={cn(this.state.occurredAt === today() && 'active')} onClick={() => this.setState({ occurredAt: today() })}>今天</button><button type="button" className={cn(this.state.occurredAt === yesterdayDate() && 'active')} onClick={() => this.setState({ occurredAt: yesterdayDate() })}>昨天</button><input className="input" type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></div></div>}
+        {this.state.type === 'transfer' ? <div className="field"><label>日期</label><input className="input" type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></div> : <div className="field"><label>商户 / 来源（可选）</label><input className="input" list="merchant-history-v039" maxLength={80} placeholder="选择历史商户，或输入新商户" value={this.state.merchant} onChange={(event: any) => this.setState({ merchant: event.target.value })}/><datalist id="merchant-history-v039">{merchants.map((name) => <option key={name} value={name}/>)}</datalist></div>}
       </div>
+      <details className="desktop-optional-v039" open={Boolean(this.state.note)}><summary>＋ 添加备注</summary><div className="field"><textarea className="textarea" maxLength={300} placeholder="简单记一下这笔钱的用途" value={this.state.note} onChange={(event: any) => this.setState({ note: event.target.value })}/></div></details>
       {this.state.error ? <p className="error-text">{this.state.error}</p> : null}
       <div className="form-actions">{this.props.onCancel ? <button type="button" className="btn btn-ghost" onClick={this.props.onCancel}>取消</button> : null}<button className="btn btn-primary" type="submit" disabled={this.state.submitting}>{this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : '收进小账本'}</button></div>
     </div>;
   }
+  renderSheet(categories: any[]): any {
+    if (!this.state.sheet) return null;
+    const close = () => this.setState({ sheet: '', merchantInput: false });
+    const groups = categoryGroups(categories, this.state.type);
+    const merchants = this.merchantSuggestions();
+    return <div className="mobile-choice-overlay" role="presentation" onClick={close}><section className="mobile-choice-sheet" role="dialog" aria-modal="true" onClick={(event: any) => event.stopPropagation()}><div className="mobile-choice-handle"/><header><div><strong>{this.state.sheet === 'category' ? '选择分类' : this.state.sheet === 'account' ? '选择账户' : this.state.sheet === 'targetAccount' ? '选择转入账户' : this.state.sheet === 'merchant' ? '选择商户 / 来源' : '选择日期'}</strong><small>{this.state.sheet === 'category' ? '按生活场景归好类，找到后点一下即可' : '减少输入，直接选择常用项'}</small></div><button type="button" onClick={close} aria-label="关闭">×</button></header>
+      {this.state.sheet === 'category' ? <div className="mobile-choice-scroll">{groups.map((group) => <div className="mobile-choice-group" key={group.label}><h4>{group.label}</h4><div className="mobile-choice-grid">{group.items.map((item: any) => <button type="button" key={item.id} className={cn(this.state.categoryId === item.id && 'active')} onClick={() => this.setState({ categoryId: item.id, sheet: '' })}><span>{CATEGORY_EMOJI[item.icon] || '✨'}</span><b>{item.name}</b></button>)}</div></div>)}</div> : null}
+      {this.state.sheet === 'account' ? <div className="mobile-choice-list">{this.props.bootstrap.accounts.map((item: any) => <button type="button" key={item.id} className={cn(this.state.accountId === item.id && 'active')} onClick={() => this.setState({ accountId: item.id, sheet: '' })}><span>{CATEGORY_EMOJI[item.icon] || '💳'}</span><b>{item.name}</b>{this.state.accountId === item.id ? <em>已选</em> : null}</button>)}</div> : null}
+      {this.state.sheet === 'targetAccount' ? <div className="mobile-choice-list">{this.props.bootstrap.accounts.filter((item: any) => item.id !== this.state.accountId).map((item: any) => <button type="button" key={item.id} className={cn(this.state.targetAccountId === item.id && 'active')} onClick={() => this.setState({ targetAccountId: item.id, sheet: '' })}><span>{CATEGORY_EMOJI[item.icon] || '💳'}</span><b>{item.name}</b>{this.state.targetAccountId === item.id ? <em>已选</em> : null}</button>)}</div> : null}
+      {this.state.sheet === 'merchant' ? <div className="mobile-choice-scroll"><div className="mobile-choice-list">{merchants.length ? merchants.map((name) => <button type="button" key={name} className={cn(this.state.merchant === name && 'active')} onClick={() => this.setState({ merchant: name, sheet: '' })}><span>🏪</span><b>{name}</b></button>) : <div className="mobile-choice-empty">还没有历史商户，第一次输入后会自动记住。</div>}<button type="button" className="mobile-choice-new" onClick={() => this.setState({ merchantInput: true })}><span>＋</span><b>输入新商户</b></button></div>{this.state.merchantInput ? <div className="mobile-choice-input"><input autoFocus maxLength={80} placeholder="例如：盒马、滴滴、淘宝" value={this.state.merchant} onChange={(event: any) => this.setState({ merchant: event.target.value })}/><button type="button" onClick={() => this.setState({ sheet: '', merchantInput: false })}>确定</button></div> : null}</div> : null}
+      {this.state.sheet === 'date' ? <div className="mobile-date-sheet"><button type="button" className={cn(this.state.occurredAt === today() && 'active')} onClick={() => this.setState({ occurredAt: today(), sheet: '' })}><strong>今天</strong><small>{dateLabel(today())}</small></button><button type="button" className={cn(this.state.occurredAt === yesterdayDate() && 'active')} onClick={() => this.setState({ occurredAt: yesterdayDate(), sheet: '' })}><strong>昨天</strong><small>{dateLabel(yesterdayDate())}</small></button><label><span>其他日期</span><input type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value, sheet: '' })}/></label></div> : null}
+    </section></div>;
+  }
   renderMobile(categories: any[]): any {
-    return <div className="mobile-transaction-form-v038">
+    const common = this.commonCategories(categories);
+    const selectedCategory = this.selectedCategory();
+    const selectedAccount = this.selectedAccount();
+    const selectedTarget = this.selectedTargetAccount();
+    return <div className="mobile-transaction-form-v039">
       {this.typeSwitch('mobile-add-type-switch')}
-      <section className="mobile-add-amount-card"><span>金额</span><div className="mobile-add-amount-wrap"><b>¥</b><input inputMode="decimal" placeholder="0.00" aria-label="金额" value={this.state.amount} onChange={(event: any) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })}/></div></section>
-      {this.state.type !== 'transfer' ? <section className="mobile-add-section"><div className="mobile-add-section-head"><strong>选择分类</strong><small>左右滑动查看更多</small></div><div className="mobile-category-scroll">{categories.map((item: any) => <button type="button" key={item.id} className={cn('mobile-category-chip', this.state.categoryId === item.id && 'active')} onClick={() => this.setState({ categoryId: item.id })}><span>{CATEGORY_EMOJI[item.icon] || '✨'}</span><b>{item.name}</b></button>)}</div></section> : null}
-      <section className="mobile-add-section mobile-add-essential"><div className="mobile-add-section-head"><strong>必要信息</strong><small>确认账户和日期</small></div><div className="mobile-add-fields-grid"><label className="mobile-add-field"><span>{this.state.type === 'transfer' ? '转出账户' : '账户'}</span><select value={this.state.accountId} onChange={(event: any) => this.setState({ accountId: event.target.value })}>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{this.state.type === 'transfer' ? <label className="mobile-add-field"><span>转入账户</span><select value={this.state.targetAccountId} onChange={(event: any) => this.setState({ targetAccountId: event.target.value })}>{this.props.bootstrap.accounts.filter((item: any) => item.id !== this.state.accountId).map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label> : <label className="mobile-add-field"><span>日期</span><input type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></label>}{this.state.type === 'transfer' ? <label className="mobile-add-field mobile-add-field-wide"><span>日期</span><input type="date" value={this.state.occurredAt} onChange={(event: any) => this.setState({ occurredAt: event.target.value })}/></label> : null}</div></section>
-      <details className="mobile-add-optional" open={Boolean(this.state.merchant || this.state.note)}><summary><span>补充信息</span><small>商户和备注都可以稍后补</small></summary><div className="mobile-add-optional-body">{this.state.type !== 'transfer' ? <label className="mobile-add-field mobile-add-field-wide"><span>商户 / 来源</span><input maxLength={80} placeholder={this.state.type === 'income' ? '例如：公司、客户' : '例如：超市、餐厅'} value={this.state.merchant} onChange={(event: any) => this.setState({ merchant: event.target.value })}/></label> : null}<label className="mobile-add-field mobile-add-field-wide"><span>备注</span><textarea maxLength={300} rows={3} placeholder="简单记一下这笔钱的用途" value={this.state.note} onChange={(event: any) => this.setState({ note: event.target.value })}/></label></div></details>
+      <section className="mobile-add-amount-card mobile-add-amount-card-v039"><span>{this.state.type === 'expense' ? '这次花了多少' : this.state.type === 'income' ? '这次收到多少' : '转账金额'}</span><div className="mobile-add-amount-wrap"><b>¥</b><input inputMode="decimal" placeholder="0.00" aria-label="金额" value={this.state.amount} onChange={(event: any) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') })}/></div></section>
+      {this.state.type !== 'transfer' ? <section className="mobile-add-section mobile-common-category-v039"><div className="mobile-add-section-head"><strong>常用分类</strong><button type="button" className="mobile-text-action" onClick={() => this.setState({ sheet: 'category' })}>全部分类 ›</button></div><div className="mobile-common-category-grid">{common.map((item: any) => <button type="button" key={item.id} className={cn(this.state.categoryId === item.id && 'active')} onClick={() => this.setState({ categoryId: item.id })}><span>{CATEGORY_EMOJI[item.icon] || '✨'}</span><b>{item.name}</b></button>)}</div>{selectedCategory && !common.some((item: any) => item.id === selectedCategory.id) ? <button type="button" className="mobile-selected-category" onClick={() => this.setState({ sheet: 'category' })}><span>{CATEGORY_EMOJI[selectedCategory.icon] || '✨'}</span><b>{selectedCategory.name}</b><small>当前分类 · 点击更换</small></button> : null}</section> : null}
+      <section className="mobile-add-section mobile-choice-summary-v039"><div className="mobile-add-section-head"><strong>必要信息</strong><small>点一下直接选择</small></div><button type="button" className="mobile-choice-row" onClick={() => this.setState({ sheet: 'account' })}><span className="mobile-choice-row-icon">💳</span><div><small>{this.state.type === 'transfer' ? '转出账户' : '账户'}</small><strong>{selectedAccount?.name || '选择账户'}</strong></div><Icon name="chevron-right" size={18}/></button>{this.state.type === 'transfer' ? <button type="button" className="mobile-choice-row" onClick={() => this.setState({ sheet: 'targetAccount' })}><span className="mobile-choice-row-icon">↔️</span><div><small>转入账户</small><strong>{selectedTarget?.name || '选择账户'}</strong></div><Icon name="chevron-right" size={18}/></button> : null}<button type="button" className="mobile-choice-row" onClick={() => this.setState({ sheet: 'date' })}><span className="mobile-choice-row-icon">📅</span><div><small>日期</small><strong>{this.state.occurredAt === today() ? '今天' : this.state.occurredAt === yesterdayDate() ? '昨天' : dateLabel(this.state.occurredAt)}</strong></div><Icon name="chevron-right" size={18}/></button>{this.state.type !== 'transfer' ? <button type="button" className="mobile-choice-row" onClick={() => this.setState({ sheet: 'merchant' })}><span className="mobile-choice-row-icon">🏪</span><div><small>商户 / 来源（可选）</small><strong>{this.state.merchant || '从历史商户中选择'}</strong></div><Icon name="chevron-right" size={18}/></button> : null}<button type="button" className="mobile-choice-row" onClick={() => this.setState({ showNote: !this.state.showNote })}><span className="mobile-choice-row-icon">📝</span><div><small>备注（可选）</small><strong>{this.state.note ? '已添加备注' : '添加备注'}</strong></div><span className="mobile-note-toggle">{this.state.showNote ? '收起' : '展开'}</span></button>{this.state.showNote ? <textarea className="mobile-note-input" maxLength={300} rows={3} placeholder="简单记一下这笔钱的用途" value={this.state.note} onChange={(event: any) => this.setState({ note: event.target.value })}/> : null}</section>
       {this.state.error ? <p className="error-text mobile-add-error">{this.state.error}</p> : null}
-      <div className="mobile-add-submit-bar">{this.props.onCancel ? <button type="button" className="mobile-add-cancel" onClick={this.props.onCancel}>取消</button> : null}<button className="mobile-add-submit" type="submit" disabled={this.state.submitting}><span>{this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : '收进小账本'}</span><small>{this.state.type === 'expense' ? '记录一笔支出' : this.state.type === 'income' ? '记录一笔收入' : '完成账户转账'}</small></button></div>
+      <div className="mobile-add-submit-bar mobile-add-submit-bar-v039">{this.props.onCancel ? <button type="button" className="mobile-add-cancel" onClick={this.props.onCancel}>取消</button> : null}<button className="mobile-add-submit" type="submit" disabled={this.state.submitting}><span>{this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : this.state.type === 'expense' ? '保存这笔支出' : this.state.type === 'income' ? '保存这笔收入' : '完成转账'}</span><small>{this.state.type === 'transfer' ? `${selectedAccount?.name || ''} → ${selectedTarget?.name || ''}` : `${selectedCategory?.name || '请选择分类'} · ${selectedAccount?.name || '请选择账户'}`}</small></button></div>
+      {this.renderSheet(categories)}
     </div>;
   }
   render(): any {
     const categories = this.categories();
-    return <form className="transaction-form-v038" onSubmit={(event: any) => this.submit(event)}>{this.renderDesktop(categories)}{this.renderMobile(categories)}</form>;
+    return <form className="transaction-form-v039" onSubmit={(event: any) => this.submit(event)}>{this.renderDesktop(categories)}{this.renderMobile(categories)}</form>;
   }
 }
 
@@ -839,7 +943,7 @@ class AddPage extends React.Component<any, any> {
   constructor(props: any) { super(props); this.state = { success: false, savedType: 'expense' }; }
   successHandler(_: any, type: TransactionType): void { this.setState({ success: true, savedType: type }); this.props.onChanged(); window.setTimeout(() => { this.setState({ success: false }); this.props.navigate('home'); }, 1350); }
   render(): any {
-    return <div className="page add-page-v038"><div className="desktop-product-view"><PageHeader title="记一笔" subtitle="不用填得很复杂，先把重要的记下来。"/><section className="card card-pad add-form-card" style={{ maxWidth: '820px', margin: '0 auto' }}><div className="role-assistant role-assistant-taro"><div className="role-assistant-copy"><strong>芋头准备好啦</strong><span>填好金额，它会马上把这笔记进来。</span></div><div className="role-assistant-mascot"><Mascot variant="idle" label="芋头拿着铅笔准备记账，小炮台打开归档槽"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(saved: any, type: TransactionType) => this.successHandler(saved, type)}/></section></div><div className="mobile-product-view mobile-add-page-v038"><div className="mobile-add-page-head"><div><span>快速记账</span><h1>记一笔</h1><p>先填金额和分类，其他内容可以慢慢补。</p></div><div className="mobile-add-page-mascot"><Mascot variant="empty" label="大芋头准备记录，小炮台在旁边整理"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(saved: any, type: TransactionType) => this.successHandler(saved, type)}/></div>{this.state.success ? <div className="success-overlay"><div className="success-box"><Mascot variant="success" label="芋头举起收据，小炮台显示已整理"/><h2>这笔记好啦</h2><p>{this.state.savedType === 'income' ? '芋头已经记下收入，小炮台也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，小炮台已经同步两个账户' : '芋头已经记下这笔，小炮台也整理好了'}</p></div></div> : null}</div>;
+    return <div className="page add-page-v039"><div className="desktop-product-view"><PageHeader title="记一笔" subtitle="不用填得很复杂，先把重要的记下来。"/><section className="card card-pad add-form-card" style={{ maxWidth: '820px', margin: '0 auto' }}><div className="role-assistant role-assistant-taro"><div className="role-assistant-copy"><strong>芋头准备好啦</strong><span>填好金额，它会马上把这笔记进来。</span></div><div className="role-assistant-mascot"><Mascot variant="idle" label="芋头拿着铅笔准备记账，小炮台打开归档槽"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(saved: any, type: TransactionType) => this.successHandler(saved, type)}/></section></div><div className="mobile-product-view mobile-add-page-v039"><div className="mobile-add-page-head"><div><span>快速记账</span><h1>记一笔</h1><p>先填金额和分类，其他内容可以慢慢补。</p></div><div className="mobile-add-page-mascot"><Mascot variant="empty" label="大芋头准备记录，小炮台在旁边整理"/></div></div><TransactionForm bootstrap={this.props.bootstrap} onSuccess={(saved: any, type: TransactionType) => this.successHandler(saved, type)}/></div>{this.state.success ? <div className="success-overlay"><div className="success-box"><Mascot variant="success" label="芋头举起收据，小炮台显示已整理"/><h2>这笔记好啦</h2><p>{this.state.savedType === 'income' ? '芋头已经记下收入，小炮台也整理好了' : this.state.savedType === 'transfer' ? '芋头记下转账，小炮台已经同步两个账户' : '芋头已经记下这笔，小炮台也整理好了'}</p></div></div> : null}</div>;
   }
 }
 

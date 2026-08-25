@@ -106,6 +106,10 @@ test('bootstrap creates the private household, accounts and categories', async (
   assert.equal(payload.data.household.name, '测试之家');
   assert.ok(payload.data.accounts.length >= 4);
   assert.ok(payload.data.categories.some((item) => item.name === '餐饮'));
+  assert.ok(payload.data.categories.some((item) => item.name === '外卖'));
+  assert.ok(payload.data.categories.some((item) => item.name === '宠物医疗'));
+  assert.ok(payload.data.categories.some((item) => item.name === '软件工具'));
+  assert.ok(payload.data.categories.filter((item) => item.type === 'expense').length >= 40);
 });
 
 test('create, update, delete and restore a transaction', async () => {

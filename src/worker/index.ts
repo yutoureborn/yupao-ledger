@@ -419,13 +419,18 @@ async function run(db: D1Database, sql: string, ...params: unknown[]): Promise<D
 }
 
 const DEFAULT_EXPENSE_CATEGORIES = [
-  ['餐饮', 'bowl', '#EFA67C'], ['买菜', 'basket', '#7BBE91'], ['零食饮品', 'cup', '#D89CC8'],
-  ['日用百货', 'bag', '#E4B65E'], ['交通出行', 'car', '#76A9D8'], ['房租房贷', 'home', '#9D8BD7'],
-  ['水电燃气', 'bolt', '#77BFC6'], ['宠物', 'paw', '#C49473'], ['购物', 'shopping', '#E58A9B'],
-  ['娱乐', 'game', '#8F9FDE'], ['医疗', 'medical', '#E57878'], ['旅行', 'plane', '#6FC2B0'],
-  ['人情往来', 'gift', '#D79C64'], ['其他支出', 'dots', '#AAA2B3'],
+  ['餐饮', 'bowl', '#EFA67C'], ['外卖', 'takeaway', '#E99173'], ['买菜', 'basket', '#7BBE91'], ['零食饮品', 'cup', '#D89CC8'],
+  ['日用百货', 'bag', '#E4B65E'], ['水电燃气', 'bolt', '#77BFC6'], ['通讯网络', 'phone', '#79AFC7'], ['订阅会员', 'subscription', '#A996C7'],
+  ['房租房贷', 'home', '#9D8BD7'], ['物业费', 'building', '#8DA5B8'], ['家居家装', 'sofa', '#C3997A'], ['数码家电', 'device', '#879CB6'],
+  ['公共交通', 'metro', '#76A9D8'], ['打车', 'taxi', '#E5B34E'], ['加油', 'fuel', '#D49A5D'], ['停车', 'parking', '#8DA1AD'], ['车辆养护', 'car', '#7C9FB8'], ['旅行', 'plane', '#6FC2B0'],
+  ['服饰鞋包', 'clothes', '#D88FA6'], ['美妆护肤', 'beauty', '#E7A2B3'], ['数码产品', 'tech', '#8793C6'], ['网购', 'shopping', '#E58A9B'],
+  ['医疗', 'medical', '#E57878'], ['药品', 'medicine', '#D88989'], ['健身运动', 'fitness', '#78B690'], ['保健护理', 'care', '#A8B990'],
+  ['宠物食品', 'petfood', '#C49473'], ['猫砂日用品', 'paw', '#BE9C7E'], ['宠物医疗', 'petmedical', '#D49187'], ['宠物玩具', 'pettoy', '#D4A867'],
+  ['娱乐', 'game', '#8F9FDE'], ['电影演出', 'movie', '#B58BC4'], ['兴趣爱好', 'hobby', '#B79B6F'],
+  ['人情往来', 'gift', '#D79C64'], ['礼物', 'gift', '#D69E7D'], ['红包', 'redpacket', '#D88176'],
+  ['学习培训', 'study', '#799AC7'], ['软件工具', 'software', '#8495B8'], ['办公用品', 'office', '#9CA98A'],
+  ['保险', 'insurance', '#79A58D'], ['税费', 'tax', '#B09185'], ['银行手续费', 'fee', '#8A9DA6'], ['其他支出', 'dots', '#AAA2B3'],
 ] as const;
-
 const DEFAULT_INCOME_CATEGORIES = [
   ['工资', 'wallet', '#55A77A'], ['奖金', 'star', '#65B98B'], ['报销', 'receipt', '#6EB399'],
   ['兼职', 'briefcase', '#8DBB74'], ['生意收入', 'store', '#4E9D7C'], ['理财收益', 'trend', '#73AFA1'],
@@ -433,13 +438,18 @@ const DEFAULT_INCOME_CATEGORIES = [
 ] as const;
 
 async function seedHousehold(db: D1Database, householdId: string): Promise<void> {
-  const categoryCount = await queryFirst<{ count: number }>(db, 'SELECT COUNT(*) AS count FROM categories WHERE household_id = ?', householdId);
-  if ((categoryCount?.count ?? 0) === 0) {
-    for (const [name, icon, color] of DEFAULT_EXPENSE_CATEGORIES) {
-      await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'expense', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, DEFAULT_EXPENSE_CATEGORIES.findIndex((item) => item[0] === name));
+  const existingCategories = await queryAll<{ type: string; name: string }>(db, 'SELECT type, name FROM categories WHERE household_id = ?', householdId);
+  const existingCategoryKeys = new Set(existingCategories.map((item) => `${item.type}:${item.name}`));
+  for (let index = 0; index < DEFAULT_EXPENSE_CATEGORIES.length; index += 1) {
+    const [name, icon, color] = DEFAULT_EXPENSE_CATEGORIES[index];
+    if (!existingCategoryKeys.has(`expense:${name}`)) {
+      await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'expense', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, index);
     }
-    for (const [name, icon, color] of DEFAULT_INCOME_CATEGORIES) {
-      await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'income', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, DEFAULT_INCOME_CATEGORIES.findIndex((item) => item[0] === name));
+  }
+  for (let index = 0; index < DEFAULT_INCOME_CATEGORIES.length; index += 1) {
+    const [name, icon, color] = DEFAULT_INCOME_CATEGORIES[index];
+    if (!existingCategoryKeys.has(`income:${name}`)) {
+      await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'income', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, index);
     }
   }
 

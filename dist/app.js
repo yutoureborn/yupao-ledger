@@ -1,7 +1,7 @@
 "use strict";
 /* global React, ReactDOM */
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.8';
+const APP_VERSION = '0.3.9';
 let authExpiredHandler = null;
 function setClientAuth(csrfToken = '') {
     currentCsrfToken = csrfToken;
@@ -17,21 +17,70 @@ const ROUTES = [
     { key: 'settings', label: '设置', icon: 'settings', mobile: false },
 ];
 const CATEGORY_EMOJI = {
-    bowl: '🍜', basket: '🥬', cup: '🧋', bag: '🧴', car: '🚗', home: '🏠', bolt: '💡', paw: '🐾',
-    shopping: '🛍️', game: '🎮', medical: '🩹', plane: '✈️', gift: '🎁', dots: '✨', wallet: '💰',
-    star: '⭐', receipt: '🧾', briefcase: '💼', store: '🏪', trend: '📈', cash: '💵', wechat: '💬',
-    alipay: '🔵', card: '💳', bank: '🏦', credit: '💳', stored: '🎫', other: '🧺',
+    bowl: '🍜', takeaway: '🥡', basket: '🥬', cup: '🧋', bag: '🧴', bolt: '💡', phone: '📱', subscription: '🔁',
+    home: '🏠', building: '🏢', sofa: '🛋️', device: '📺', car: '🚗', metro: '🚇', taxi: '🚕', fuel: '⛽', parking: '🅿️', road: '🛣️',
+    shopping: '🛍️', clothes: '👕', beauty: '🧴', tech: '💻', hobby: '🎨', medical: '🩹', medicine: '💊', fitness: '🏃', care: '🧘',
+    paw: '🐾', petfood: '🐟', petmedical: '🏥', pettoy: '🧶', game: '🎮', movie: '🎬', party: '🥂', gift: '🎁', redpacket: '🧧',
+    study: '📚', software: '🧩', office: '🗂️', insurance: '🛡️', tax: '🧾', fee: '🏦', plane: '✈️', dots: '✨', wallet: '💰',
+    star: '⭐', receipt: '🧾', briefcase: '💼', store: '🏪', trend: '📈', cash: '💵', wechat: '💬', alipay: '🔵', card: '💳', bank: '🏦', credit: '💳', stored: '🎫', other: '🧺',
 };
+const EXPENSE_CATEGORY_GROUPS = [
+    { label: '日常生活', names: ['餐饮', '外卖', '买菜', '零食饮品', '日用百货', '水电燃气', '通讯网络', '订阅会员'] },
+    { label: '居住家庭', names: ['房租房贷', '物业费', '家居家装', '数码家电'] },
+    { label: '交通出行', names: ['交通出行', '公共交通', '打车', '加油', '停车', '车辆养护', '旅行'] },
+    { label: '购物消费', names: ['购物', '服饰鞋包', '美妆护肤', '数码产品', '网购'] },
+    { label: '健康', names: ['医疗', '药品', '健身运动', '保健护理'] },
+    { label: '宠物', names: ['宠物', '宠物食品', '猫砂日用品', '宠物医疗', '宠物玩具'] },
+    { label: '娱乐生活', names: ['娱乐', '电影演出', '兴趣爱好'] },
+    { label: '人情社交', names: ['人情往来', '礼物', '红包'] },
+    { label: '学习工作', names: ['学习培训', '软件工具', '办公用品'] },
+    { label: '金融其他', names: ['保险', '税费', '银行手续费', '其他支出'] },
+];
+function categoryGroups(categories, type) {
+    if (type !== 'expense')
+        return [{ label: type === 'income' ? '收入分类' : '分类', items: categories }];
+    const used = new Set();
+    const groups = EXPENSE_CATEGORY_GROUPS.map((group) => {
+        const items = group.names.map((name) => categories.find((item) => item.name === name)).filter(Boolean);
+        items.forEach((item) => used.add(item.id));
+        return { label: group.label, items };
+    }).filter((group) => group.items.length);
+    const other = categories.filter((item) => !used.has(item.id));
+    if (other.length)
+        groups.push({ label: '其他', items: other });
+    return groups;
+}
+function safeStorageGet(key, fallback) {
+    try {
+        const raw = window.localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+    }
+    catch {
+        return fallback;
+    }
+}
+function safeStorageSet(key, value) {
+    try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+    }
+    catch { /* storage is optional */ }
+}
+function yesterdayDate() {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+}
 const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8', '#9BCED4', '#E9A58F'];
 const MASCOT_ASSETS = {
-    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.8', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.8' },
-    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.8', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.8' },
-    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.8', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.8' },
-    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.8', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.8' },
-    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.8' },
-    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.8' },
-    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.8', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.8' },
-    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.8', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.8' },
+    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
+    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
+    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.9', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.9' },
+    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.9' },
+    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.9' },
+    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.9' },
+    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.9' },
+    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.9' },
 };
 function MascotPicture(props) {
     const asset = MASCOT_ASSETS[props.asset] || MASCOT_ASSETS.hero;
@@ -362,10 +411,10 @@ function HeroMascots(props = {}) {
         React.createElement("span", { className: "hero-life-dot hero-life-dot-two", "aria-hidden": "true" }));
 }
 function LogoMark() {
-    return React.createElement("img", { className: "brand-logo-img", src: "/brand/brand-mark-v038.svg?v=0.3.8", alt: "", "aria-hidden": "true", decoding: "async" });
+    return React.createElement("img", { className: "brand-logo-img", src: "/brand/brand-mark-v038.svg?v=0.3.9", alt: "", "aria-hidden": "true", decoding: "async" });
 }
 function BrandLockup() {
-    return React.createElement("img", { className: "brand-lockup-img", src: "/brand/brand-lockup-v038.svg?v=0.3.8", alt: "\u828B\u70AE\u5C0F\u8D26\u672C\uFF0C\u4E24\u4E2A\u4EBA\u7684\u5C0F\u65E5\u5B50", decoding: "async" });
+    return React.createElement("img", { className: "brand-lockup-img", src: "/brand/brand-lockup-v038.svg?v=0.3.9", alt: "\u828B\u70AE\u5C0F\u8D26\u672C\uFF0C\u4E24\u4E2A\u4EBA\u7684\u5C0F\u65E5\u5B50", decoding: "async" });
 }
 function Mascot(props) {
     const variant = (props.variant || 'idle');
@@ -1080,19 +1129,78 @@ class TransactionForm extends React.Component {
         var _a, _b;
         super(props);
         const initial = props.initial || {};
+        const initialType = initial.type || 'expense';
+        const savedAccountId = safeStorageGet(`yupao:last-account:${initialType}`, '');
+        const initialAccountId = initial.account_id || (props.bootstrap.accounts.some((item) => item.id === savedAccountId) ? savedAccountId : ((_a = props.bootstrap.accounts[0]) === null || _a === void 0 ? void 0 : _a.id) || '');
         this.state = {
-            type: initial.type || 'expense', amount: initial.amount_cents ? (initial.amount_cents / 100).toFixed(2) : '',
-            accountId: initial.account_id || ((_a = props.bootstrap.accounts[0]) === null || _a === void 0 ? void 0 : _a.id) || '', targetAccountId: initial.target_account_id || ((_b = props.bootstrap.accounts[1]) === null || _b === void 0 ? void 0 : _b.id) || '',
-            categoryId: initial.category_id || '', occurredAt: initial.occurred_at ? initial.occurred_at.slice(0, 10) : today(),
+            type: initialType,
+            amount: initial.amount_cents ? (initial.amount_cents / 100).toFixed(2) : '',
+            accountId: initialAccountId,
+            targetAccountId: initial.target_account_id || ((_b = props.bootstrap.accounts.find((item) => item.id !== initialAccountId)) === null || _b === void 0 ? void 0 : _b.id) || '',
+            categoryId: initial.category_id || '',
+            occurredAt: initial.occurred_at ? initial.occurred_at.slice(0, 10) : today(),
             merchant: initial.merchant || '', note: initial.note || '', submitting: false, error: '',
+            recentCategoryIds: safeStorageGet(`yupao:recent-categories:${initialType}`, []),
+            recentTransactions: [], sheet: '', showNote: Boolean(initial.note), merchantInput: false,
         };
     }
     categories() { return this.props.bootstrap.categories.filter((item) => item.type === this.state.type && !item.is_archived); }
-    componentDidMount() { if (!this.state.categoryId && this.categories()[0])
-        this.setState({ categoryId: this.categories()[0].id }); }
+    commonCategories(categories = this.categories()) {
+        const recentIds = this.state.recentCategoryIds || [];
+        const popularNames = this.state.type === 'expense' ? ['餐饮', '外卖', '买菜', '零食饮品', '日用百货', '公共交通', '网购', '猫砂日用品'] : ['工资', '生意收入', '报销', '奖金', '兼职'];
+        const output = [];
+        for (const id of recentIds) {
+            const item = categories.find((entry) => entry.id === id);
+            if (item && !output.some((entry) => entry.id === item.id))
+                output.push(item);
+        }
+        for (const name of popularNames) {
+            const item = categories.find((entry) => entry.name === name);
+            if (item && !output.some((entry) => entry.id === item.id))
+                output.push(item);
+        }
+        for (const item of categories) {
+            if (output.length >= 6)
+                break;
+            if (!output.some((entry) => entry.id === item.id))
+                output.push(item);
+        }
+        return output.slice(0, 6);
+    }
+    merchantSuggestions() {
+        const local = safeStorageGet(`yupao:recent-merchants:${this.state.type}`, []);
+        const fromTransactions = (this.state.recentTransactions || []).filter((item) => item.type === this.state.type && item.merchant).map((item) => String(item.merchant).trim()).filter(Boolean);
+        return Array.from(new Set([...local, ...fromTransactions])).slice(0, 12);
+    }
+    selectedCategory() { return this.categories().find((item) => item.id === this.state.categoryId); }
+    selectedAccount() { return this.props.bootstrap.accounts.find((item) => item.id === this.state.accountId); }
+    selectedTargetAccount() { return this.props.bootstrap.accounts.find((item) => item.id === this.state.targetAccountId); }
+    componentDidMount() {
+        var _a;
+        if (!this.state.categoryId && this.categories()[0])
+            this.setState({ categoryId: ((_a = this.commonCategories()[0]) === null || _a === void 0 ? void 0 : _a.id) || this.categories()[0].id });
+        apiRequest('/api/transactions?limit=150').then((data) => this.setState({ recentTransactions: data.items || [] })).catch(() => undefined);
+    }
     setType(type) {
-        const category = this.props.bootstrap.categories.find((item) => item.type === type && !item.is_archived);
-        this.setState({ type, categoryId: type === 'transfer' ? '' : (category === null || category === void 0 ? void 0 : category.id) || '' });
+        var _a;
+        const categories = this.props.bootstrap.categories.filter((item) => item.type === type && !item.is_archived);
+        const recentCategoryIds = safeStorageGet(`yupao:recent-categories:${type}`, []);
+        const savedAccount = safeStorageGet(`yupao:last-account:${type}`, '');
+        const accountId = this.props.bootstrap.accounts.some((item) => item.id === savedAccount) ? savedAccount : this.state.accountId;
+        const recentFirst = recentCategoryIds.map((id) => categories.find((item) => item.id === id)).find(Boolean);
+        this.setState({ type, categoryId: type === 'transfer' ? '' : (recentFirst === null || recentFirst === void 0 ? void 0 : recentFirst.id) || ((_a = categories[0]) === null || _a === void 0 ? void 0 : _a.id) || '', recentCategoryIds, accountId, sheet: '', merchant: '', merchantInput: false });
+    }
+    rememberChoices() {
+        safeStorageSet(`yupao:last-account:${this.state.type}`, this.state.accountId);
+        if (this.state.categoryId) {
+            const recent = [this.state.categoryId, ...(this.state.recentCategoryIds || []).filter((id) => id !== this.state.categoryId)].slice(0, 6);
+            safeStorageSet(`yupao:recent-categories:${this.state.type}`, recent);
+            this.setState({ recentCategoryIds: recent });
+        }
+        if (this.state.merchant.trim()) {
+            const stored = safeStorageGet(`yupao:recent-merchants:${this.state.type}`, []);
+            safeStorageSet(`yupao:recent-merchants:${this.state.type}`, [this.state.merchant.trim(), ...stored.filter((item) => item !== this.state.merchant.trim())].slice(0, 10));
+        }
     }
     async submit(event) {
         event.preventDefault();
@@ -1118,12 +1226,13 @@ class TransactionForm extends React.Component {
             type: this.state.type, amountCents, accountId: this.state.accountId,
             targetAccountId: this.state.type === 'transfer' ? this.state.targetAccountId : null,
             categoryId: this.state.type === 'transfer' ? null : this.state.categoryId,
-            occurredAt: this.state.occurredAt, merchant: this.state.merchant, note: this.state.note,
+            occurredAt: this.state.occurredAt, merchant: this.state.merchant.trim(), note: this.state.note,
             ...(this.props.initial ? { version: this.props.initial.version } : {}),
         };
         try {
             const path = this.props.initial ? `/api/transactions/${this.props.initial.id}` : '/api/transactions';
             const saved = await apiRequest(path, { method: this.props.initial ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
+            this.rememberChoices();
             this.setState({ submitting: false });
             this.props.onSuccess(saved, this.state.type);
         }
@@ -1137,19 +1246,24 @@ class TransactionForm extends React.Component {
             React.createElement("button", { type: "button", className: cn(this.state.type === 'income' && 'active income'), onClick: () => this.setType('income') }, "\u6536\u5165"),
             React.createElement("button", { type: "button", className: cn(this.state.type === 'transfer' && 'active transfer'), onClick: () => this.setType('transfer') }, "\u8F6C\u8D26"));
     }
+    categoryOptions(categories) {
+        return categoryGroups(categories, this.state.type).map((group) => React.createElement("optgroup", { key: group.label, label: group.label }, group.items.map((item) => React.createElement("option", { key: item.id, value: item.id },
+            CATEGORY_EMOJI[item.icon] || '✨',
+            " ",
+            item.name))));
+    }
     renderDesktop(categories) {
-        return React.createElement("div", { className: "desktop-transaction-form" },
+        const merchants = this.merchantSuggestions();
+        return React.createElement("div", { className: "desktop-transaction-form desktop-transaction-form-v039" },
             this.typeSwitch(),
             React.createElement("div", { className: "amount-field" },
                 React.createElement("div", { className: "amount-input-wrap" },
                     React.createElement("span", { className: "currency-symbol" }, "\u00A5"),
                     React.createElement("input", { className: "amount-input", inputMode: "decimal", placeholder: "0.00", value: this.state.amount, onChange: (event) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') }) }))),
-            this.state.type !== 'transfer' ? React.createElement("div", { className: "field form-span", style: { marginBottom: '15px' } },
-                React.createElement("label", null, "\u5206\u7C7B"),
-                React.createElement("div", { className: "category-grid" }, categories.map((item) => React.createElement("button", { type: "button", key: item.id, className: cn('category-chip', this.state.categoryId === item.id && 'active'), onClick: () => this.setState({ categoryId: item.id }) },
-                    React.createElement("span", { className: "emoji" }, CATEGORY_EMOJI[item.icon] || '✨'),
-                    React.createElement("span", null, item.name))))) : null,
-            React.createElement("div", { className: "form-grid" },
+            React.createElement("div", { className: "form-grid compact-choice-grid" },
+                this.state.type !== 'transfer' ? React.createElement("div", { className: "field form-span" },
+                    React.createElement("label", null, "\u5206\u7C7B"),
+                    React.createElement("select", { className: "select", value: this.state.categoryId, onChange: (event) => this.setState({ categoryId: event.target.value }) }, this.categoryOptions(categories))) : null,
                 React.createElement("div", { className: "field" },
                     React.createElement("label", null, this.state.type === 'transfer' ? '转出账户' : '账户'),
                     React.createElement("select", { className: "select", value: this.state.accountId, onChange: (event) => this.setState({ accountId: event.target.value }) }, this.props.bootstrap.accounts.map((item) => React.createElement("option", { key: item.id, value: item.id }, item.name)))),
@@ -1157,72 +1271,143 @@ class TransactionForm extends React.Component {
                     React.createElement("label", null, "\u8F6C\u5165\u8D26\u6237"),
                     React.createElement("select", { className: "select", value: this.state.targetAccountId, onChange: (event) => this.setState({ targetAccountId: event.target.value }) }, this.props.bootstrap.accounts.filter((item) => item.id !== this.state.accountId).map((item) => React.createElement("option", { key: item.id, value: item.id }, item.name)))) : React.createElement("div", { className: "field" },
                     React.createElement("label", null, "\u65E5\u671F"),
-                    React.createElement("input", { className: "input", type: "date", value: this.state.occurredAt, onChange: (event) => this.setState({ occurredAt: event.target.value }) })),
+                    React.createElement("div", { className: "desktop-date-quick" },
+                        React.createElement("button", { type: "button", className: cn(this.state.occurredAt === today() && 'active'), onClick: () => this.setState({ occurredAt: today() }) }, "\u4ECA\u5929"),
+                        React.createElement("button", { type: "button", className: cn(this.state.occurredAt === yesterdayDate() && 'active'), onClick: () => this.setState({ occurredAt: yesterdayDate() }) }, "\u6628\u5929"),
+                        React.createElement("input", { className: "input", type: "date", value: this.state.occurredAt, onChange: (event) => this.setState({ occurredAt: event.target.value }) }))),
                 this.state.type === 'transfer' ? React.createElement("div", { className: "field" },
                     React.createElement("label", null, "\u65E5\u671F"),
                     React.createElement("input", { className: "input", type: "date", value: this.state.occurredAt, onChange: (event) => this.setState({ occurredAt: event.target.value }) })) : React.createElement("div", { className: "field" },
-                    React.createElement("label", null, "\u5546\u6237/\u6765\u6E90\uFF08\u53EF\u9009\uFF09"),
-                    React.createElement("input", { className: "input", maxLength: 80, placeholder: this.state.type === 'income' ? '例如：公司、客户' : '例如：超市、餐厅', value: this.state.merchant, onChange: (event) => this.setState({ merchant: event.target.value }) })),
-                React.createElement("div", { className: cn('field', this.state.type !== 'transfer' && 'form-span') },
-                    React.createElement("label", null, "\u5907\u6CE8\uFF08\u53EF\u9009\uFF09"),
+                    React.createElement("label", null, "\u5546\u6237 / \u6765\u6E90\uFF08\u53EF\u9009\uFF09"),
+                    React.createElement("input", { className: "input", list: "merchant-history-v039", maxLength: 80, placeholder: "\u9009\u62E9\u5386\u53F2\u5546\u6237\uFF0C\u6216\u8F93\u5165\u65B0\u5546\u6237", value: this.state.merchant, onChange: (event) => this.setState({ merchant: event.target.value }) }),
+                    React.createElement("datalist", { id: "merchant-history-v039" }, merchants.map((name) => React.createElement("option", { key: name, value: name }))))),
+            React.createElement("details", { className: "desktop-optional-v039", open: Boolean(this.state.note) },
+                React.createElement("summary", null, "\uFF0B \u6DFB\u52A0\u5907\u6CE8"),
+                React.createElement("div", { className: "field" },
                     React.createElement("textarea", { className: "textarea", maxLength: 300, placeholder: "\u7B80\u5355\u8BB0\u4E00\u4E0B\u8FD9\u7B14\u94B1\u7684\u7528\u9014", value: this.state.note, onChange: (event) => this.setState({ note: event.target.value }) }))),
             this.state.error ? React.createElement("p", { className: "error-text" }, this.state.error) : null,
             React.createElement("div", { className: "form-actions" },
                 this.props.onCancel ? React.createElement("button", { type: "button", className: "btn btn-ghost", onClick: this.props.onCancel }, "\u53D6\u6D88") : null,
                 React.createElement("button", { className: "btn btn-primary", type: "submit", disabled: this.state.submitting }, this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : '收进小账本')));
     }
+    renderSheet(categories) {
+        if (!this.state.sheet)
+            return null;
+        const close = () => this.setState({ sheet: '', merchantInput: false });
+        const groups = categoryGroups(categories, this.state.type);
+        const merchants = this.merchantSuggestions();
+        return React.createElement("div", { className: "mobile-choice-overlay", role: "presentation", onClick: close },
+            React.createElement("section", { className: "mobile-choice-sheet", role: "dialog", "aria-modal": "true", onClick: (event) => event.stopPropagation() },
+                React.createElement("div", { className: "mobile-choice-handle" }),
+                React.createElement("header", null,
+                    React.createElement("div", null,
+                        React.createElement("strong", null, this.state.sheet === 'category' ? '选择分类' : this.state.sheet === 'account' ? '选择账户' : this.state.sheet === 'targetAccount' ? '选择转入账户' : this.state.sheet === 'merchant' ? '选择商户 / 来源' : '选择日期'),
+                        React.createElement("small", null, this.state.sheet === 'category' ? '按生活场景归好类，找到后点一下即可' : '减少输入，直接选择常用项')),
+                    React.createElement("button", { type: "button", onClick: close, "aria-label": "\u5173\u95ED" }, "\u00D7")),
+                this.state.sheet === 'category' ? React.createElement("div", { className: "mobile-choice-scroll" }, groups.map((group) => React.createElement("div", { className: "mobile-choice-group", key: group.label },
+                    React.createElement("h4", null, group.label),
+                    React.createElement("div", { className: "mobile-choice-grid" }, group.items.map((item) => React.createElement("button", { type: "button", key: item.id, className: cn(this.state.categoryId === item.id && 'active'), onClick: () => this.setState({ categoryId: item.id, sheet: '' }) },
+                        React.createElement("span", null, CATEGORY_EMOJI[item.icon] || '✨'),
+                        React.createElement("b", null, item.name))))))) : null,
+                this.state.sheet === 'account' ? React.createElement("div", { className: "mobile-choice-list" }, this.props.bootstrap.accounts.map((item) => React.createElement("button", { type: "button", key: item.id, className: cn(this.state.accountId === item.id && 'active'), onClick: () => this.setState({ accountId: item.id, sheet: '' }) },
+                    React.createElement("span", null, CATEGORY_EMOJI[item.icon] || '💳'),
+                    React.createElement("b", null, item.name),
+                    this.state.accountId === item.id ? React.createElement("em", null, "\u5DF2\u9009") : null))) : null,
+                this.state.sheet === 'targetAccount' ? React.createElement("div", { className: "mobile-choice-list" }, this.props.bootstrap.accounts.filter((item) => item.id !== this.state.accountId).map((item) => React.createElement("button", { type: "button", key: item.id, className: cn(this.state.targetAccountId === item.id && 'active'), onClick: () => this.setState({ targetAccountId: item.id, sheet: '' }) },
+                    React.createElement("span", null, CATEGORY_EMOJI[item.icon] || '💳'),
+                    React.createElement("b", null, item.name),
+                    this.state.targetAccountId === item.id ? React.createElement("em", null, "\u5DF2\u9009") : null))) : null,
+                this.state.sheet === 'merchant' ? React.createElement("div", { className: "mobile-choice-scroll" },
+                    React.createElement("div", { className: "mobile-choice-list" },
+                        merchants.length ? merchants.map((name) => React.createElement("button", { type: "button", key: name, className: cn(this.state.merchant === name && 'active'), onClick: () => this.setState({ merchant: name, sheet: '' }) },
+                            React.createElement("span", null, "\uD83C\uDFEA"),
+                            React.createElement("b", null, name))) : React.createElement("div", { className: "mobile-choice-empty" }, "\u8FD8\u6CA1\u6709\u5386\u53F2\u5546\u6237\uFF0C\u7B2C\u4E00\u6B21\u8F93\u5165\u540E\u4F1A\u81EA\u52A8\u8BB0\u4F4F\u3002"),
+                        React.createElement("button", { type: "button", className: "mobile-choice-new", onClick: () => this.setState({ merchantInput: true }) },
+                            React.createElement("span", null, "\uFF0B"),
+                            React.createElement("b", null, "\u8F93\u5165\u65B0\u5546\u6237"))),
+                    this.state.merchantInput ? React.createElement("div", { className: "mobile-choice-input" },
+                        React.createElement("input", { autoFocus: true, maxLength: 80, placeholder: "\u4F8B\u5982\uFF1A\u76D2\u9A6C\u3001\u6EF4\u6EF4\u3001\u6DD8\u5B9D", value: this.state.merchant, onChange: (event) => this.setState({ merchant: event.target.value }) }),
+                        React.createElement("button", { type: "button", onClick: () => this.setState({ sheet: '', merchantInput: false }) }, "\u786E\u5B9A")) : null) : null,
+                this.state.sheet === 'date' ? React.createElement("div", { className: "mobile-date-sheet" },
+                    React.createElement("button", { type: "button", className: cn(this.state.occurredAt === today() && 'active'), onClick: () => this.setState({ occurredAt: today(), sheet: '' }) },
+                        React.createElement("strong", null, "\u4ECA\u5929"),
+                        React.createElement("small", null, dateLabel(today()))),
+                    React.createElement("button", { type: "button", className: cn(this.state.occurredAt === yesterdayDate() && 'active'), onClick: () => this.setState({ occurredAt: yesterdayDate(), sheet: '' }) },
+                        React.createElement("strong", null, "\u6628\u5929"),
+                        React.createElement("small", null, dateLabel(yesterdayDate()))),
+                    React.createElement("label", null,
+                        React.createElement("span", null, "\u5176\u4ED6\u65E5\u671F"),
+                        React.createElement("input", { type: "date", value: this.state.occurredAt, onChange: (event) => this.setState({ occurredAt: event.target.value, sheet: '' }) }))) : null));
+    }
     renderMobile(categories) {
-        return React.createElement("div", { className: "mobile-transaction-form-v038" },
+        const common = this.commonCategories(categories);
+        const selectedCategory = this.selectedCategory();
+        const selectedAccount = this.selectedAccount();
+        const selectedTarget = this.selectedTargetAccount();
+        return React.createElement("div", { className: "mobile-transaction-form-v039" },
             this.typeSwitch('mobile-add-type-switch'),
-            React.createElement("section", { className: "mobile-add-amount-card" },
-                React.createElement("span", null, "\u91D1\u989D"),
+            React.createElement("section", { className: "mobile-add-amount-card mobile-add-amount-card-v039" },
+                React.createElement("span", null, this.state.type === 'expense' ? '这次花了多少' : this.state.type === 'income' ? '这次收到多少' : '转账金额'),
                 React.createElement("div", { className: "mobile-add-amount-wrap" },
                     React.createElement("b", null, "\u00A5"),
                     React.createElement("input", { inputMode: "decimal", placeholder: "0.00", "aria-label": "\u91D1\u989D", value: this.state.amount, onChange: (event) => this.setState({ amount: event.target.value.replace(/[^\d.]/g, '').replace(/(\.\d{2}).+$/, '$1') }) }))),
-            this.state.type !== 'transfer' ? React.createElement("section", { className: "mobile-add-section" },
+            this.state.type !== 'transfer' ? React.createElement("section", { className: "mobile-add-section mobile-common-category-v039" },
                 React.createElement("div", { className: "mobile-add-section-head" },
-                    React.createElement("strong", null, "\u9009\u62E9\u5206\u7C7B"),
-                    React.createElement("small", null, "\u5DE6\u53F3\u6ED1\u52A8\u67E5\u770B\u66F4\u591A")),
-                React.createElement("div", { className: "mobile-category-scroll" }, categories.map((item) => React.createElement("button", { type: "button", key: item.id, className: cn('mobile-category-chip', this.state.categoryId === item.id && 'active'), onClick: () => this.setState({ categoryId: item.id }) },
+                    React.createElement("strong", null, "\u5E38\u7528\u5206\u7C7B"),
+                    React.createElement("button", { type: "button", className: "mobile-text-action", onClick: () => this.setState({ sheet: 'category' }) }, "\u5168\u90E8\u5206\u7C7B \u203A")),
+                React.createElement("div", { className: "mobile-common-category-grid" }, common.map((item) => React.createElement("button", { type: "button", key: item.id, className: cn(this.state.categoryId === item.id && 'active'), onClick: () => this.setState({ categoryId: item.id }) },
                     React.createElement("span", null, CATEGORY_EMOJI[item.icon] || '✨'),
-                    React.createElement("b", null, item.name))))) : null,
-            React.createElement("section", { className: "mobile-add-section mobile-add-essential" },
+                    React.createElement("b", null, item.name)))),
+                selectedCategory && !common.some((item) => item.id === selectedCategory.id) ? React.createElement("button", { type: "button", className: "mobile-selected-category", onClick: () => this.setState({ sheet: 'category' }) },
+                    React.createElement("span", null, CATEGORY_EMOJI[selectedCategory.icon] || '✨'),
+                    React.createElement("b", null, selectedCategory.name),
+                    React.createElement("small", null, "\u5F53\u524D\u5206\u7C7B \u00B7 \u70B9\u51FB\u66F4\u6362")) : null) : null,
+            React.createElement("section", { className: "mobile-add-section mobile-choice-summary-v039" },
                 React.createElement("div", { className: "mobile-add-section-head" },
                     React.createElement("strong", null, "\u5FC5\u8981\u4FE1\u606F"),
-                    React.createElement("small", null, "\u786E\u8BA4\u8D26\u6237\u548C\u65E5\u671F")),
-                React.createElement("div", { className: "mobile-add-fields-grid" },
-                    React.createElement("label", { className: "mobile-add-field" },
-                        React.createElement("span", null, this.state.type === 'transfer' ? '转出账户' : '账户'),
-                        React.createElement("select", { value: this.state.accountId, onChange: (event) => this.setState({ accountId: event.target.value }) }, this.props.bootstrap.accounts.map((item) => React.createElement("option", { key: item.id, value: item.id }, item.name)))),
-                    this.state.type === 'transfer' ? React.createElement("label", { className: "mobile-add-field" },
-                        React.createElement("span", null, "\u8F6C\u5165\u8D26\u6237"),
-                        React.createElement("select", { value: this.state.targetAccountId, onChange: (event) => this.setState({ targetAccountId: event.target.value }) }, this.props.bootstrap.accounts.filter((item) => item.id !== this.state.accountId).map((item) => React.createElement("option", { key: item.id, value: item.id }, item.name)))) : React.createElement("label", { className: "mobile-add-field" },
-                        React.createElement("span", null, "\u65E5\u671F"),
-                        React.createElement("input", { type: "date", value: this.state.occurredAt, onChange: (event) => this.setState({ occurredAt: event.target.value }) })),
-                    this.state.type === 'transfer' ? React.createElement("label", { className: "mobile-add-field mobile-add-field-wide" },
-                        React.createElement("span", null, "\u65E5\u671F"),
-                        React.createElement("input", { type: "date", value: this.state.occurredAt, onChange: (event) => this.setState({ occurredAt: event.target.value }) })) : null)),
-            React.createElement("details", { className: "mobile-add-optional", open: Boolean(this.state.merchant || this.state.note) },
-                React.createElement("summary", null,
-                    React.createElement("span", null, "\u8865\u5145\u4FE1\u606F"),
-                    React.createElement("small", null, "\u5546\u6237\u548C\u5907\u6CE8\u90FD\u53EF\u4EE5\u7A0D\u540E\u8865")),
-                React.createElement("div", { className: "mobile-add-optional-body" },
-                    this.state.type !== 'transfer' ? React.createElement("label", { className: "mobile-add-field mobile-add-field-wide" },
-                        React.createElement("span", null, "\u5546\u6237 / \u6765\u6E90"),
-                        React.createElement("input", { maxLength: 80, placeholder: this.state.type === 'income' ? '例如：公司、客户' : '例如：超市、餐厅', value: this.state.merchant, onChange: (event) => this.setState({ merchant: event.target.value }) })) : null,
-                    React.createElement("label", { className: "mobile-add-field mobile-add-field-wide" },
-                        React.createElement("span", null, "\u5907\u6CE8"),
-                        React.createElement("textarea", { maxLength: 300, rows: 3, placeholder: "\u7B80\u5355\u8BB0\u4E00\u4E0B\u8FD9\u7B14\u94B1\u7684\u7528\u9014", value: this.state.note, onChange: (event) => this.setState({ note: event.target.value }) })))),
+                    React.createElement("small", null, "\u70B9\u4E00\u4E0B\u76F4\u63A5\u9009\u62E9")),
+                React.createElement("button", { type: "button", className: "mobile-choice-row", onClick: () => this.setState({ sheet: 'account' }) },
+                    React.createElement("span", { className: "mobile-choice-row-icon" }, "\uD83D\uDCB3"),
+                    React.createElement("div", null,
+                        React.createElement("small", null, this.state.type === 'transfer' ? '转出账户' : '账户'),
+                        React.createElement("strong", null, (selectedAccount === null || selectedAccount === void 0 ? void 0 : selectedAccount.name) || '选择账户')),
+                    React.createElement(Icon, { name: "chevron-right", size: 18 })),
+                this.state.type === 'transfer' ? React.createElement("button", { type: "button", className: "mobile-choice-row", onClick: () => this.setState({ sheet: 'targetAccount' }) },
+                    React.createElement("span", { className: "mobile-choice-row-icon" }, "\u2194\uFE0F"),
+                    React.createElement("div", null,
+                        React.createElement("small", null, "\u8F6C\u5165\u8D26\u6237"),
+                        React.createElement("strong", null, (selectedTarget === null || selectedTarget === void 0 ? void 0 : selectedTarget.name) || '选择账户')),
+                    React.createElement(Icon, { name: "chevron-right", size: 18 })) : null,
+                React.createElement("button", { type: "button", className: "mobile-choice-row", onClick: () => this.setState({ sheet: 'date' }) },
+                    React.createElement("span", { className: "mobile-choice-row-icon" }, "\uD83D\uDCC5"),
+                    React.createElement("div", null,
+                        React.createElement("small", null, "\u65E5\u671F"),
+                        React.createElement("strong", null, this.state.occurredAt === today() ? '今天' : this.state.occurredAt === yesterdayDate() ? '昨天' : dateLabel(this.state.occurredAt))),
+                    React.createElement(Icon, { name: "chevron-right", size: 18 })),
+                this.state.type !== 'transfer' ? React.createElement("button", { type: "button", className: "mobile-choice-row", onClick: () => this.setState({ sheet: 'merchant' }) },
+                    React.createElement("span", { className: "mobile-choice-row-icon" }, "\uD83C\uDFEA"),
+                    React.createElement("div", null,
+                        React.createElement("small", null, "\u5546\u6237 / \u6765\u6E90\uFF08\u53EF\u9009\uFF09"),
+                        React.createElement("strong", null, this.state.merchant || '从历史商户中选择')),
+                    React.createElement(Icon, { name: "chevron-right", size: 18 })) : null,
+                React.createElement("button", { type: "button", className: "mobile-choice-row", onClick: () => this.setState({ showNote: !this.state.showNote }) },
+                    React.createElement("span", { className: "mobile-choice-row-icon" }, "\uD83D\uDCDD"),
+                    React.createElement("div", null,
+                        React.createElement("small", null, "\u5907\u6CE8\uFF08\u53EF\u9009\uFF09"),
+                        React.createElement("strong", null, this.state.note ? '已添加备注' : '添加备注')),
+                    React.createElement("span", { className: "mobile-note-toggle" }, this.state.showNote ? '收起' : '展开')),
+                this.state.showNote ? React.createElement("textarea", { className: "mobile-note-input", maxLength: 300, rows: 3, placeholder: "\u7B80\u5355\u8BB0\u4E00\u4E0B\u8FD9\u7B14\u94B1\u7684\u7528\u9014", value: this.state.note, onChange: (event) => this.setState({ note: event.target.value }) }) : null),
             this.state.error ? React.createElement("p", { className: "error-text mobile-add-error" }, this.state.error) : null,
-            React.createElement("div", { className: "mobile-add-submit-bar" },
+            React.createElement("div", { className: "mobile-add-submit-bar mobile-add-submit-bar-v039" },
                 this.props.onCancel ? React.createElement("button", { type: "button", className: "mobile-add-cancel", onClick: this.props.onCancel }, "\u53D6\u6D88") : null,
                 React.createElement("button", { className: "mobile-add-submit", type: "submit", disabled: this.state.submitting },
-                    React.createElement("span", null, this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : '收进小账本'),
-                    React.createElement("small", null, this.state.type === 'expense' ? '记录一笔支出' : this.state.type === 'income' ? '记录一笔收入' : '完成账户转账'))));
+                    React.createElement("span", null, this.state.submitting ? '正在保存…' : this.props.initial ? '保存修改' : this.state.type === 'expense' ? '保存这笔支出' : this.state.type === 'income' ? '保存这笔收入' : '完成转账'),
+                    React.createElement("small", null, this.state.type === 'transfer' ? `${(selectedAccount === null || selectedAccount === void 0 ? void 0 : selectedAccount.name) || ''} → ${(selectedTarget === null || selectedTarget === void 0 ? void 0 : selectedTarget.name) || ''}` : `${(selectedCategory === null || selectedCategory === void 0 ? void 0 : selectedCategory.name) || '请选择分类'} · ${(selectedAccount === null || selectedAccount === void 0 ? void 0 : selectedAccount.name) || '请选择账户'}`))),
+            this.renderSheet(categories));
     }
     render() {
         const categories = this.categories();
-        return React.createElement("form", { className: "transaction-form-v038", onSubmit: (event) => this.submit(event) },
+        return React.createElement("form", { className: "transaction-form-v039", onSubmit: (event) => this.submit(event) },
             this.renderDesktop(categories),
             this.renderMobile(categories));
     }
@@ -1231,7 +1416,7 @@ class AddPage extends React.Component {
     constructor(props) { super(props); this.state = { success: false, savedType: 'expense' }; }
     successHandler(_, type) { this.setState({ success: true, savedType: type }); this.props.onChanged(); window.setTimeout(() => { this.setState({ success: false }); this.props.navigate('home'); }, 1350); }
     render() {
-        return React.createElement("div", { className: "page add-page-v038" },
+        return React.createElement("div", { className: "page add-page-v039" },
             React.createElement("div", { className: "desktop-product-view" },
                 React.createElement(PageHeader, { title: "\u8BB0\u4E00\u7B14", subtitle: "\u4E0D\u7528\u586B\u5F97\u5F88\u590D\u6742\uFF0C\u5148\u628A\u91CD\u8981\u7684\u8BB0\u4E0B\u6765\u3002" }),
                 React.createElement("section", { className: "card card-pad add-form-card", style: { maxWidth: '820px', margin: '0 auto' } },
@@ -1242,7 +1427,7 @@ class AddPage extends React.Component {
                         React.createElement("div", { className: "role-assistant-mascot" },
                             React.createElement(Mascot, { variant: "idle", label: "\u828B\u5934\u62FF\u7740\u94C5\u7B14\u51C6\u5907\u8BB0\u8D26\uFF0C\u5C0F\u70AE\u53F0\u6253\u5F00\u5F52\u6863\u69FD" }))),
                     React.createElement(TransactionForm, { bootstrap: this.props.bootstrap, onSuccess: (saved, type) => this.successHandler(saved, type) }))),
-            React.createElement("div", { className: "mobile-product-view mobile-add-page-v038" },
+            React.createElement("div", { className: "mobile-product-view mobile-add-page-v039" },
                 React.createElement("div", { className: "mobile-add-page-head" },
                     React.createElement("div", null,
                         React.createElement("span", null, "\u5FEB\u901F\u8BB0\u8D26"),

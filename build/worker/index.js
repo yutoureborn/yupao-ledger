@@ -21,18 +21,19 @@ const SECURITY_HEADERS = {
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'x-frame-options': 'DENY',
     'cross-origin-opener-policy': 'same-origin',
+    'cross-origin-resource-policy': 'same-origin',
+    'x-permitted-cross-domain-policies': 'none',
 };
-let cachedJwks = null;
 function json(data, status = 200, extraHeaders = {}) {
     return new Response(JSON.stringify(data), {
         status,
         headers: { ...JSON_HEADERS, ...SECURITY_HEADERS, ...extraHeaders },
     });
 }
-function ok(data, status = 200) {
-    return json({ ok: true, data }, status);
+function ok(data, status = 200, extraHeaders = {}) {
+    return json({ ok: true, data }, status, extraHeaders);
 }
-function fail(error) {
+function fail(error, extraHeaders = {}) {
     return json({
         ok: false,
         error: {
@@ -40,24 +41,27 @@ function fail(error) {
             message: error.message,
             details: error.details ?? null,
         },
-    }, error.status);
+    }, error.status, extraHeaders);
 }
-function applySecurityHeaders(response) {
+function applySecurityHeaders(response, pathname = '/') {
     const headers = new Headers(response.headers);
     Object.entries(SECURITY_HEADERS).forEach(([key, value]) => headers.set(key, value));
-    if (!headers.has('cache-control'))
-        headers.set('cache-control', 'public, max-age=300');
+    if (!headers.has('cache-control')) {
+        const isShell = pathname === '/' || pathname.endsWith('.html') || pathname.endsWith('/sw.js') || pathname.endsWith('.webmanifest');
+        headers.set('cache-control', isShell ? 'no-cache, max-age=0, must-revalidate' : 'public, max-age=3600');
+    }
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
+const SESSION_COOKIE = '__Host-yupao_session';
+const SESSION_SECONDS = 12 * 60 * 60;
+const REMEMBER_SESSION_SECONDS = 30 * 24 * 60 * 60;
+const LOGIN_WINDOW_SECONDS = 15 * 60;
+const LOGIN_EMAIL_LIMIT = 5;
+const LOGIN_IP_LIMIT = 20;
+const RECOVERY_CODE_COUNT = 8;
+const MAX_JSON_BODY_BYTES = 32 * 1024;
 function normalizeEmail(value) {
     return value.trim().toLowerCase();
-}
-function parseAllowedEmails(env) {
-    return (env.ALLOWED_EMAILS ?? '')
-        .split(',')
-        .map(normalizeEmail)
-        .filter(Boolean)
-        .filter((email) => !email.startsWith('replace_with'));
 }
 function base64UrlDecode(value) {
     const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
@@ -68,124 +72,207 @@ function base64UrlDecode(value) {
         output[index] = binary.charCodeAt(index);
     return output;
 }
-function decodeJwtPart(value) {
-    return JSON.parse(new TextDecoder().decode(base64UrlDecode(value)));
+function base64UrlEncode(value) {
+    const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+    let binary = '';
+    for (const byte of bytes)
+        binary += String.fromCharCode(byte);
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
-async function loadAccessJwks(teamDomain) {
-    if (cachedJwks && cachedJwks.expiresAt > Date.now())
-        return cachedJwks.keys;
-    const endpoint = `${teamDomain.replace(/\/$/, '')}/cdn-cgi/access/certs`;
-    const response = await fetch(endpoint, { headers: { accept: 'application/json' } });
-    if (!response.ok)
-        throw new HttpError(503, 'AUTH_KEYS_UNAVAILABLE', '暂时无法验证登录状态');
-    const payload = (await response.json());
-    if (!payload.keys?.length)
-        throw new HttpError(503, 'AUTH_KEYS_INVALID', '登录验证配置不完整');
-    cachedJwks = { keys: payload.keys, expiresAt: Date.now() + 60 * 60 * 1000 };
-    return payload.keys;
+function randomToken(byteLength = 32) {
+    const bytes = new Uint8Array(byteLength);
+    crypto.getRandomValues(bytes);
+    return base64UrlEncode(bytes);
 }
-async function verifyAccessJwt(token, env) {
-    const teamDomain = env.ACCESS_TEAM_DOMAIN?.replace(/\/$/, '');
-    const expectedAudience = env.ACCESS_AUD;
-    if (!teamDomain || !expectedAudience || teamDomain.includes('REPLACE_WITH') || expectedAudience.includes('REPLACE_WITH')) {
-        throw new HttpError(500, 'AUTH_NOT_CONFIGURED', 'Cloudflare Access 尚未完成配置');
+function parseCookies(request) {
+    const cookies = new Map();
+    const raw = request.headers.get('cookie') || '';
+    for (const segment of raw.split(';')) {
+        const index = segment.indexOf('=');
+        if (index <= 0)
+            continue;
+        const name = segment.slice(0, index).trim();
+        const encoded = segment.slice(index + 1).trim();
+        try {
+            cookies.set(name, decodeURIComponent(encoded));
+        }
+        catch {
+            continue;
+        }
     }
-    const parts = token.split('.');
-    if (parts.length !== 3)
-        throw new HttpError(401, 'INVALID_TOKEN', '登录状态无效');
-    const header = decodeJwtPart(parts[0]);
-    const payload = decodeJwtPart(parts[1]);
-    if (header.alg !== 'RS256' || !header.kid)
-        throw new HttpError(401, 'INVALID_TOKEN', '登录状态无效');
-    const keys = await loadAccessJwks(teamDomain);
-    const jwk = keys.find((item) => item.kid === header.kid);
-    if (!jwk) {
-        cachedJwks = null;
-        throw new HttpError(401, 'TOKEN_KEY_NOT_FOUND', '登录状态已更新，请重新进入');
-    }
-    const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
-    const verified = await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, base64UrlDecode(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`));
-    if (!verified)
-        throw new HttpError(401, 'INVALID_TOKEN', '登录状态无效');
-    const now = Math.floor(Date.now() / 1000);
-    if (!payload.exp || payload.exp <= now)
-        throw new HttpError(401, 'TOKEN_EXPIRED', '登录已过期，请重新进入');
-    if (payload.nbf && payload.nbf > now + 30)
-        throw new HttpError(401, 'TOKEN_NOT_ACTIVE', '登录状态暂未生效');
-    const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud].filter(Boolean);
-    if (!audiences.includes(expectedAudience))
-        throw new HttpError(401, 'INVALID_AUDIENCE', '登录应用不匹配');
-    if (payload.iss?.replace(/\/$/, '') !== teamDomain)
-        throw new HttpError(401, 'INVALID_ISSUER', '登录来源不匹配');
-    if (!payload.email)
-        throw new HttpError(401, 'EMAIL_MISSING', '登录信息中缺少邮箱');
-    return { email: normalizeEmail(payload.email) };
+    return cookies;
 }
-async function getAuthenticatedEmail(request, env) {
-    if (env.AUTH_BYPASS === 'true') {
-        return normalizeEmail(request.headers.get('x-dev-user-email') || env.DEV_USER_EMAIL || 'dev1@yupao.local');
+function sessionCookie(token, maxAge) {
+    return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict; Priority=High`;
+}
+function clearSessionCookie() {
+    return `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict; Priority=High`;
+}
+function secretIsReady(value) {
+    const normalized = value?.trim();
+    return Boolean(normalized && !normalized.includes('REPLACE_WITH'));
+}
+function requiredSecret(value, name) {
+    const normalized = value?.trim();
+    if (!normalized || normalized.includes('REPLACE_WITH')) {
+        throw new HttpError(500, 'AUTH_NOT_CONFIGURED', `认证密钥 ${name} 尚未配置`);
     }
-    const token = request.headers.get('cf-access-jwt-assertion');
+    return normalized;
+}
+function passwordIterations(env) {
+    const value = Number(env.PASSWORD_ITERATIONS || 120000);
+    if (!Number.isSafeInteger(value) || value < 100000 || value > 600000)
+        return 120000;
+    return value;
+}
+async function sha256Bytes(value) {
+    return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+}
+async function secretHash(value, env) {
+    const pepper = requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+    return base64UrlEncode(await sha256Bytes(`${value}\u0000${pepper}`));
+}
+function constantTimeEqual(a, b) {
+    let difference = a.length ^ b.length;
+    const length = Math.max(a.length, b.length);
+    for (let index = 0; index < length; index += 1)
+        difference |= (a[index] || 0) ^ (b[index] || 0);
+    return difference === 0;
+}
+async function constantTimeTextEqual(a, b) {
+    return constantTimeEqual(await sha256Bytes(a), await sha256Bytes(b));
+}
+function assertBase64UrlBytes(value, field, expectedBytes) {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/.test(value)) {
+        throw new HttpError(400, 'CREDENTIAL_INVALID', `${field}格式不正确`);
+    }
+    try {
+        if (base64UrlDecode(value).byteLength !== expectedBytes)
+            throw new Error('length');
+    }
+    catch {
+        throw new HttpError(400, 'CREDENTIAL_INVALID', `${field}格式不正确`);
+    }
+    return value;
+}
+function assertClientCredential(value) {
+    if (!value || typeof value !== 'object')
+        throw new HttpError(400, 'CREDENTIAL_INVALID', '密码凭据格式不正确');
+    const input = value;
+    const iterations = Number(input.iterations);
+    if (!Number.isSafeInteger(iterations) || iterations < 100000 || iterations > 600000) {
+        throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数不正确');
+    }
+    return {
+        proof: assertBase64UrlBytes(input.proof, '密码凭据', 32),
+        salt: assertBase64UrlBytes(input.salt, '密码盐值', 16),
+        iterations,
+    };
+}
+async function storedCredentialHash(proof, env) {
+    return secretHash(`credential:${proof}`, env);
+}
+async function verifyCredentialProof(proofValue, credential, env) {
+    let proof = '';
+    try {
+        proof = assertBase64UrlBytes(proofValue, '密码凭据', 32);
+    }
+    catch {
+        proof = base64UrlEncode(await sha256Bytes('invalid-yupao-password-proof'));
+    }
+    const actual = await storedCredentialHash(proof, env);
+    const expected = credential?.password_hash || await storedCredentialHash(base64UrlEncode(await sha256Bytes('missing-yupao-account-proof')), env);
+    return constantTimeTextEqual(actual, expected);
+}
+function normalizeRecoveryCode(value) {
+    return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+function generateRecoveryCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    let text = '';
+    for (let index = 0; index < 16; index += 1)
+        text += alphabet[bytes[index] % alphabet.length];
+    return `YP-${text.slice(0, 4)}-${text.slice(4, 8)}-${text.slice(8, 12)}-${text.slice(12, 16)}`;
+}
+function clientIp(request) {
+    return request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+}
+async function clientIpHash(request, env) {
+    return secretHash(`ip:${clientIp(request)}`, env);
+}
+function currentEpoch() {
+    return Math.floor(Date.now() / 1000);
+}
+async function recordLoginAttempt(db, email, ipHash, success) {
+    await run(db, 'INSERT INTO login_attempts (id, email, ip_hash, success, attempted_at) VALUES (?, ?, ?, ?, ?)', crypto.randomUUID(), email, ipHash, success ? 1 : 0, currentEpoch());
+}
+async function enforceLoginRateLimit(request, env, email) {
+    const now = currentEpoch();
+    const since = now - LOGIN_WINDOW_SECONDS;
+    const ipHash = await clientIpHash(request, env);
+    await run(env.DB, 'DELETE FROM login_attempts WHERE attempted_at < ?', now - 24 * 60 * 60);
+    const emailFailures = await queryFirst(env.DB, 'SELECT COUNT(*) AS count FROM login_attempts WHERE email = ? AND success = 0 AND attempted_at >= ?', email, since);
+    const ipFailures = await queryFirst(env.DB, 'SELECT COUNT(*) AS count FROM login_attempts WHERE ip_hash = ? AND success = 0 AND attempted_at >= ?', ipHash, since);
+    if ((emailFailures?.count ?? 0) >= LOGIN_EMAIL_LIMIT || (ipFailures?.count ?? 0) >= LOGIN_IP_LIMIT) {
+        throw new HttpError(429, 'LOGIN_LOCKED', '尝试次数太多，请 15 分钟后再试');
+    }
+    return ipHash;
+}
+async function replaceRecoveryCodes(userId, env) {
+    const codes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
+    const now = currentEpoch();
+    const statements = [
+        env.DB.prepare('DELETE FROM recovery_codes WHERE user_id = ? AND used_at IS NULL').bind(userId),
+    ];
+    for (const code of codes) {
+        statements.push(env.DB.prepare('INSERT INTO recovery_codes (id, user_id, code_hash, created_at) VALUES (?, ?, ?, ?)').bind(crypto.randomUUID(), userId, await secretHash(`recovery:${normalizeRecoveryCode(code)}`, env), now));
+    }
+    await executeBatch(env.DB, statements);
+    return codes;
+}
+async function createSession(userId, request, env, rememberMe) {
+    const token = randomToken(32);
+    const csrfToken = randomToken(24);
+    const maxAge = rememberMe ? REMEMBER_SESSION_SECONDS : SESSION_SECONDS;
+    const now = currentEpoch();
+    await run(env.DB, 'DELETE FROM auth_sessions WHERE expires_at <= ? OR (revoked_at IS NOT NULL AND revoked_at <= ?)', now, now - 7 * 24 * 60 * 60);
+    await run(env.DB, `INSERT INTO auth_sessions (id, token_hash, user_id, csrf_token, expires_at, created_at, last_seen_at, ip_hash, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, crypto.randomUUID(), await secretHash(`session:${token}`, env), userId, csrfToken, now + maxAge, now, now, await clientIpHash(request, env), (request.headers.get('user-agent') || '').slice(0, 240));
+    return { token, csrfToken, maxAge };
+}
+async function getSessionContext(request, env) {
+    const token = parseCookies(request).get(SESSION_COOKIE);
     if (!token)
-        throw new HttpError(401, 'AUTH_REQUIRED', '请先完成身份验证');
-    return (await verifyAccessJwt(token, env)).email;
+        throw new HttpError(401, 'AUTH_REQUIRED', '请先登录芋炮小账本');
+    const tokenHash = await secretHash(`session:${token}`, env);
+    const now = currentEpoch();
+    const row = await queryFirst(env.DB, `SELECT s.id AS session_id, s.csrf_token, s.expires_at, s.last_seen_at,
+      u.id AS user_id, u.email, u.display_name, h.id AS household_id, h.name AS household_name, hm.role
+    FROM auth_sessions s
+    JOIN users u ON u.id = s.user_id
+    JOIN household_members hm ON hm.user_id = u.id
+    JOIN households h ON h.id = hm.household_id
+    WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ?
+    LIMIT 1`, tokenHash, now);
+    if (!row)
+        throw new HttpError(401, 'AUTH_REQUIRED', '登录已失效，请重新登录');
+    if (now - Number(row.last_seen_at || 0) > 600)
+        await run(env.DB, 'UPDATE auth_sessions SET last_seen_at = ? WHERE id = ?', now, row.session_id);
+    return {
+        userId: row.user_id,
+        email: row.email,
+        displayName: row.display_name,
+        householdId: row.household_id,
+        householdName: row.household_name,
+        role: row.role,
+        sessionId: row.session_id,
+        csrfToken: row.csrf_token,
+    };
 }
-function displayNameFromEmail(email) {
-    const prefix = email.split('@')[0] || '家庭成员';
-    return prefix.length > 12 ? `${prefix.slice(0, 12)}…` : prefix;
-}
-async function queryFirst(db, sql, ...params) {
-    return db.prepare(sql).bind(...params).first();
-}
-async function queryAll(db, sql, ...params) {
-    const result = await db.prepare(sql).bind(...params).all();
-    return result.results ?? [];
-}
-async function run(db, sql, ...params) {
-    return db.prepare(sql).bind(...params).run();
-}
-const DEFAULT_EXPENSE_CATEGORIES = [
-    ['餐饮', 'bowl', '#EFA67C'], ['买菜', 'basket', '#7BBE91'], ['零食饮品', 'cup', '#D89CC8'],
-    ['日用百货', 'bag', '#E4B65E'], ['交通出行', 'car', '#76A9D8'], ['房租房贷', 'home', '#9D8BD7'],
-    ['水电燃气', 'bolt', '#77BFC6'], ['宠物', 'paw', '#C49473'], ['购物', 'shopping', '#E58A9B'],
-    ['娱乐', 'game', '#8F9FDE'], ['医疗', 'medical', '#E57878'], ['旅行', 'plane', '#6FC2B0'],
-    ['人情往来', 'gift', '#D79C64'], ['其他支出', 'dots', '#AAA2B3'],
-];
-const DEFAULT_INCOME_CATEGORIES = [
-    ['工资', 'wallet', '#55A77A'], ['奖金', 'star', '#65B98B'], ['报销', 'receipt', '#6EB399'],
-    ['兼职', 'briefcase', '#8DBB74'], ['生意收入', 'store', '#4E9D7C'], ['理财收益', 'trend', '#73AFA1'],
-    ['其他收入', 'dots', '#9AB4A3'],
-];
-async function seedHousehold(db, householdId) {
-    const categoryCount = await queryFirst(db, 'SELECT COUNT(*) AS count FROM categories WHERE household_id = ?', householdId);
-    if ((categoryCount?.count ?? 0) === 0) {
-        for (const [name, icon, color] of DEFAULT_EXPENSE_CATEGORIES) {
-            await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'expense', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, DEFAULT_EXPENSE_CATEGORIES.findIndex((item) => item[0] === name));
-        }
-        for (const [name, icon, color] of DEFAULT_INCOME_CATEGORIES) {
-            await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'income', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, DEFAULT_INCOME_CATEGORIES.findIndex((item) => item[0] === name));
-        }
-    }
-    const accountCount = await queryFirst(db, 'SELECT COUNT(*) AS count FROM accounts WHERE household_id = ?', householdId);
-    if ((accountCount?.count ?? 0) === 0) {
-        const accounts = [
-            ['现金', 'cash', '#D6A45C'], ['微信', 'wechat', '#61B889'], ['支付宝', 'alipay', '#5B9FE2'], ['银行卡', 'card', '#8D7DD3'],
-        ];
-        for (let index = 0; index < accounts.length; index += 1) {
-            const [name, icon, color] = accounts[index];
-            await run(db, 'INSERT INTO accounts (id, household_id, name, type, currency, opening_balance_cents, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)', crypto.randomUUID(), householdId, name, icon === 'card' ? 'bank' : icon, 'CNY', icon, color, index);
-        }
-    }
-}
-async function ensureUserContext(request, env) {
-    const email = await getAuthenticatedEmail(request, env);
-    const allowed = parseAllowedEmails(env);
-    if (env.AUTH_BYPASS !== 'true' && allowed.length === 0) {
-        throw new HttpError(500, 'EMAIL_ALLOWLIST_NOT_CONFIGURED', '允许访问的邮箱尚未配置');
-    }
-    if (allowed.length > 0 && !allowed.includes(email)) {
-        throw new HttpError(403, 'EMAIL_NOT_ALLOWED', '这个账号没有芋炮小账本的访问权限');
-    }
+async function getDevelopmentContext(request, env) {
+    const email = normalizeEmail(request.headers.get('x-dev-user-email') || env.DEV_USER_EMAIL || 'dev1@yupao.local');
     let user = await queryFirst(env.DB, 'SELECT id, display_name FROM users WHERE email = ?', email);
     if (!user) {
         const userId = crypto.randomUUID();
@@ -204,14 +291,96 @@ async function ensureUserContext(request, env) {
         membership = { role };
     }
     await seedHousehold(env.DB, householdId);
-    return {
-        userId: user.id,
-        email,
-        displayName: user.display_name,
-        householdId,
-        householdName,
-        role: membership.role,
-    };
+    return { userId: user.id, email, displayName: user.display_name, householdId, householdName, role: membership.role };
+}
+function enforceRequestOrigin(request) {
+    const expectedOrigin = new URL(request.url).origin;
+    const origin = request.headers.get('origin');
+    const fetchSite = request.headers.get('sec-fetch-site');
+    if (origin && origin !== expectedOrigin)
+        throw new HttpError(403, 'ORIGIN_MISMATCH', '请求来源不正确');
+    if (!origin && fetchSite && !['same-origin', 'none'].includes(fetchSite)) {
+        throw new HttpError(403, 'ORIGIN_MISMATCH', '请求来源不正确');
+    }
+}
+async function enforceCsrf(request, context) {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method))
+        return;
+    if (!context.csrfToken)
+        return;
+    enforceRequestOrigin(request);
+    const submitted = request.headers.get('x-csrf-token') || '';
+    if (!(await constantTimeTextEqual(submitted, context.csrfToken)))
+        throw new HttpError(403, 'CSRF_INVALID', '页面验证已失效，请刷新后再试');
+}
+function displayNameFromEmail(email) {
+    const prefix = email.split('@')[0] || '家庭成员';
+    return prefix.length > 12 ? `${prefix.slice(0, 12)}…` : prefix;
+}
+async function queryFirst(db, sql, ...params) {
+    return db.prepare(sql).bind(...params).first();
+}
+async function queryAll(db, sql, ...params) {
+    const result = await db.prepare(sql).bind(...params).all();
+    return result.results ?? [];
+}
+async function run(db, sql, ...params) {
+    return db.prepare(sql).bind(...params).run();
+}
+const DEFAULT_EXPENSE_CATEGORIES = [
+    ['餐饮', 'bowl', '#EFA67C'], ['外卖', 'takeaway', '#E99173'], ['买菜', 'basket', '#7BBE91'], ['零食饮品', 'cup', '#D89CC8'],
+    ['日用百货', 'bag', '#E4B65E'], ['水电燃气', 'bolt', '#77BFC6'], ['通讯网络', 'phone', '#79AFC7'], ['订阅会员', 'subscription', '#A996C7'],
+    ['房租房贷', 'home', '#9D8BD7'], ['物业费', 'building', '#8DA5B8'], ['家居家装', 'sofa', '#C3997A'], ['数码家电', 'device', '#879CB6'],
+    ['公共交通', 'metro', '#76A9D8'], ['打车', 'taxi', '#E5B34E'], ['加油', 'fuel', '#D49A5D'], ['停车', 'parking', '#8DA1AD'], ['车辆养护', 'car', '#7C9FB8'], ['旅行', 'plane', '#6FC2B0'],
+    ['服饰鞋包', 'clothes', '#D88FA6'], ['美妆护肤', 'beauty', '#E7A2B3'], ['数码产品', 'tech', '#8793C6'], ['网购', 'shopping', '#E58A9B'],
+    ['医疗', 'medical', '#E57878'], ['药品', 'medicine', '#D88989'], ['健身运动', 'fitness', '#78B690'], ['保健护理', 'care', '#A8B990'],
+    ['宠物食品', 'petfood', '#C49473'], ['猫砂日用品', 'paw', '#BE9C7E'], ['宠物医疗', 'petmedical', '#D49187'], ['宠物玩具', 'pettoy', '#D4A867'],
+    ['娱乐', 'game', '#8F9FDE'], ['电影演出', 'movie', '#B58BC4'], ['兴趣爱好', 'hobby', '#B79B6F'],
+    ['人情往来', 'gift', '#D79C64'], ['礼物', 'gift', '#D69E7D'], ['红包', 'redpacket', '#D88176'],
+    ['学习培训', 'study', '#799AC7'], ['软件工具', 'software', '#8495B8'], ['办公用品', 'office', '#9CA98A'],
+    ['保险', 'insurance', '#79A58D'], ['税费', 'tax', '#B09185'], ['银行手续费', 'fee', '#8A9DA6'], ['其他支出', 'dots', '#AAA2B3'],
+];
+const DEFAULT_INCOME_CATEGORIES = [
+    ['工资', 'wallet', '#55A77A'], ['奖金', 'star', '#65B98B'], ['报销', 'receipt', '#6EB399'],
+    ['兼职', 'briefcase', '#8DBB74'], ['生意收入', 'store', '#4E9D7C'], ['理财收益', 'trend', '#73AFA1'],
+    ['其他收入', 'dots', '#9AB4A3'],
+];
+async function seedHousehold(db, householdId) {
+    const existingCategories = await queryAll(db, 'SELECT type, name FROM categories WHERE household_id = ?', householdId);
+    const existingCategoryKeys = new Set(existingCategories.map((item) => `${item.type}:${item.name}`));
+    for (let index = 0; index < DEFAULT_EXPENSE_CATEGORIES.length; index += 1) {
+        const [name, icon, color] = DEFAULT_EXPENSE_CATEGORIES[index];
+        if (!existingCategoryKeys.has(`expense:${name}`)) {
+            await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'expense', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, index);
+        }
+    }
+    for (let index = 0; index < DEFAULT_INCOME_CATEGORIES.length; index += 1) {
+        const [name, icon, color] = DEFAULT_INCOME_CATEGORIES[index];
+        if (!existingCategoryKeys.has(`income:${name}`)) {
+            await run(db, `INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, 'income', ?, ?, ?, ?)`, crypto.randomUUID(), householdId, name, icon, color, index);
+        }
+    }
+    const accountCount = await queryFirst(db, 'SELECT COUNT(*) AS count FROM accounts WHERE household_id = ?', householdId);
+    if ((accountCount?.count ?? 0) === 0) {
+        const accounts = [
+            ['现金', 'cash', '#D6A45C'], ['微信', 'wechat', '#61B889'], ['支付宝', 'alipay', '#5B9FE2'], ['银行卡', 'card', '#8D7DD3'],
+        ];
+        for (let index = 0; index < accounts.length; index += 1) {
+            const [name, icon, color] = accounts[index];
+            await run(db, 'INSERT INTO accounts (id, household_id, name, type, currency, opening_balance_cents, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)', crypto.randomUUID(), householdId, name, icon === 'card' ? 'bank' : icon, 'CNY', icon, color, index);
+        }
+    }
+}
+function authBypassEnabled(request, env) {
+    if (env.AUTH_BYPASS !== 'true')
+        return false;
+    const hostname = new URL(request.url).hostname.toLowerCase();
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.endsWith('.local');
+}
+async function ensureUserContext(request, env) {
+    if (authBypassEnabled(request, env))
+        return getDevelopmentContext(request, env);
+    return getSessionContext(request, env);
 }
 function assertString(value, field, maxLength = 120, required = true) {
     if (value == null || value === '') {
@@ -240,7 +409,12 @@ function assertDate(value, field = '日期') {
     if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/.test(date)) {
         throw new HttpError(400, 'VALIDATION_ERROR', `${field}格式不正确`, { field });
     }
-    return date.length === 10 ? `${date}T12:00:00` : date;
+    const normalized = date.length === 10 ? `${date}T12:00:00` : date;
+    const parsed = new Date(`${normalized}Z`);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== normalized.slice(0, 10)) {
+        throw new HttpError(400, 'VALIDATION_ERROR', `${field}不是有效日期`, { field });
+    }
+    return normalized;
 }
 function assertEnum(value, field, allowed) {
     if (typeof value !== 'string' || !allowed.includes(value)) {
@@ -248,22 +422,37 @@ function assertEnum(value, field, allowed) {
     }
     return value;
 }
+function assertColor(value, field = '颜色') {
+    const color = assertString(value, field, 7);
+    if (!/^#[0-9A-Fa-f]{6}$/.test(color))
+        throw new HttpError(400, 'VALIDATION_ERROR', `${field}格式不正确`, { field });
+    return color.toUpperCase();
+}
 async function readJson(request) {
     const contentType = request.headers.get('content-type') || '';
     if (!contentType.includes('application/json'))
         throw new HttpError(415, 'CONTENT_TYPE_REQUIRED', '请使用 JSON 格式提交数据');
+    const declaredLength = Number(request.headers.get('content-length') || 0);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+        throw new HttpError(413, 'PAYLOAD_TOO_LARGE', '提交内容过大');
+    }
     try {
-        const data = await request.json();
+        const text = await request.text();
+        if (new TextEncoder().encode(text).byteLength > MAX_JSON_BODY_BYTES)
+            throw new HttpError(413, 'PAYLOAD_TOO_LARGE', '提交内容过大');
+        const data = JSON.parse(text);
         if (!data || typeof data !== 'object' || Array.isArray(data))
             throw new Error('invalid');
         return data;
     }
-    catch {
+    catch (error) {
+        if (error instanceof HttpError)
+            throw error;
         throw new HttpError(400, 'INVALID_JSON', '提交内容无法读取');
     }
 }
 function parseMonth(value) {
-    if (value && /^\d{4}-\d{2}$/.test(value))
+    if (value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value))
         return value;
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit' });
@@ -372,7 +561,8 @@ async function listTransactions(env, context, url) {
     }
     const rows = await queryAll(env.DB, `SELECT t.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
             a.name AS account_name, ta.name AS target_account_name,
-            u.display_name AS creator_name
+            u.display_name AS creator_name,
+            (SELECT COUNT(*) FROM invoices i WHERE i.household_id = t.household_id AND i.transaction_id = t.id AND i.status = 'recorded') AS invoice_count
      FROM transactions t
      LEFT JOIN categories c ON c.id = t.category_id
      LEFT JOIN accounts a ON a.id = t.account_id
@@ -418,7 +608,8 @@ async function createTransaction(request, env, context) {
     return ok(created, 201);
 }
 async function getTransaction(env, context, id) {
-    const item = await queryFirst(env.DB, `SELECT t.*, c.name AS category_name, a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name
+    const item = await queryFirst(env.DB, `SELECT t.*, c.name AS category_name, a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name,
+            (SELECT COUNT(*) FROM invoices i WHERE i.household_id = t.household_id AND i.transaction_id = t.id AND i.status = 'recorded') AS invoice_count
      FROM transactions t
      LEFT JOIN categories c ON c.id = t.category_id
      LEFT JOIN accounts a ON a.id = t.account_id
@@ -463,6 +654,173 @@ async function restoreTransaction(env, context, id) {
     await audit(env, context, 'restore', 'transaction', id, before, after);
     return ok(after);
 }
+function invoiceExpectedTransactionType(type) {
+    return type === 'received' ? 'expense' : 'income';
+}
+async function validateInvoiceTransaction(env, context, type, transactionId) {
+    if (!transactionId)
+        return;
+    const transaction = await queryFirst(env.DB, 'SELECT type FROM transactions WHERE id = ? AND household_id = ? AND deleted_at IS NULL', transactionId, context.householdId);
+    if (!transaction)
+        throw new HttpError(400, 'TRANSACTION_NOT_FOUND', '所选收支记录不存在或已删除');
+    const expected = invoiceExpectedTransactionType(type);
+    if (transaction.type !== expected) {
+        throw new HttpError(400, 'INVOICE_TRANSACTION_TYPE_MISMATCH', type === 'received' ? '收到的发票只能关联支出记录' : '开出的发票只能关联收入记录');
+    }
+}
+function parseInvoiceBody(body) {
+    const type = assertEnum(body.type, '发票类型', ['received', 'issued']);
+    const invoiceNumber = assertString(body.invoiceNumber, '发票号码', 80);
+    const invoiceCode = assertString(body.invoiceCode, '发票代码', 80, false) || null;
+    const title = assertString(body.title, '发票抬头/内容', 120);
+    const counterpartyName = assertString(body.counterpartyName, type === 'received' ? '开票方' : '客户名称', 120);
+    const amountCents = assertInteger(body.amountCents, '发票金额', 1, 999_999_999_99);
+    const taxAmountCents = assertInteger(body.taxAmountCents ?? 0, '税额', 0, amountCents);
+    const invoiceDate = assertDate(body.invoiceDate, '开票日期');
+    const transactionId = assertString(body.transactionId, '关联记录', 80, false) || null;
+    const note = assertString(body.note, '备注', 500, false) || null;
+    return { type, invoiceNumber, invoiceCode, title, counterpartyName, amountCents, taxAmountCents, invoiceDate, transactionId, note };
+}
+async function getInvoice(env, context, id) {
+    const item = await queryFirst(env.DB, `SELECT i.*, t.type AS transaction_type, t.amount_cents AS transaction_amount_cents,
+      t.occurred_at AS transaction_occurred_at, t.merchant AS transaction_merchant,
+      c.name AS transaction_category_name, a.name AS transaction_account_name
+     FROM invoices i
+     LEFT JOIN transactions t ON t.id = i.transaction_id AND t.household_id = i.household_id
+     LEFT JOIN categories c ON c.id = t.category_id
+     LEFT JOIN accounts a ON a.id = t.account_id
+     WHERE i.id = ? AND i.household_id = ?`, id, context.householdId);
+    if (!item)
+        throw new HttpError(404, 'INVOICE_NOT_FOUND', '没有找到这张发票');
+    return item;
+}
+async function listInvoices(env, context, url) {
+    const month = url.searchParams.get('month');
+    const type = url.searchParams.get('type');
+    const status = url.searchParams.get('status');
+    const linked = url.searchParams.get('linked');
+    const search = (url.searchParams.get('search') || '').trim();
+    const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 100, 1), 300);
+    const offset = Math.max(Number(url.searchParams.get('offset')) || 0, 0);
+    const clauses = ['i.household_id = ?'];
+    const params = [context.householdId];
+    if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+        const range = monthRange(month);
+        clauses.push('i.invoice_date >= ? AND i.invoice_date < ?');
+        params.push(range.start, range.end);
+    }
+    if (type && ['received', 'issued'].includes(type)) {
+        clauses.push('i.type = ?');
+        params.push(type);
+    }
+    if (status && ['recorded', 'void'].includes(status)) {
+        clauses.push('i.status = ?');
+        params.push(status);
+    }
+    else
+        clauses.push("i.status = 'recorded'");
+    if (linked === 'true')
+        clauses.push('i.transaction_id IS NOT NULL');
+    if (linked === 'false')
+        clauses.push('i.transaction_id IS NULL');
+    if (search) {
+        clauses.push("(i.invoice_number LIKE ? OR COALESCE(i.invoice_code, '') LIKE ? OR i.title LIKE ? OR i.counterparty_name LIKE ? OR COALESCE(i.note, '') LIKE ?)");
+        const pattern = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+        params.push(pattern, pattern, pattern, pattern, pattern);
+    }
+    const select = `SELECT i.*, t.type AS transaction_type, t.amount_cents AS transaction_amount_cents,
+      t.occurred_at AS transaction_occurred_at, t.merchant AS transaction_merchant,
+      c.name AS transaction_category_name, a.name AS transaction_account_name
+    FROM invoices i
+    LEFT JOIN transactions t ON t.id = i.transaction_id AND t.household_id = i.household_id
+    LEFT JOIN categories c ON c.id = t.category_id
+    LEFT JOIN accounts a ON a.id = t.account_id`;
+    const rows = await queryAll(env.DB, `${select} WHERE ${clauses.join(' AND ')} ORDER BY i.invoice_date DESC, i.created_at DESC LIMIT ? OFFSET ?`, ...params, limit, offset);
+    const count = await queryFirst(env.DB, `SELECT COUNT(*) AS count FROM invoices i WHERE ${clauses.join(' AND ')}`, ...params);
+    return ok({ items: rows, total: count?.count ?? rows.length, limit, offset });
+}
+async function createInvoice(request, env, context) {
+    const body = await readJson(request);
+    const data = parseInvoiceBody(body);
+    await validateInvoiceTransaction(env, context, data.type, data.transactionId);
+    const id = crypto.randomUUID();
+    try {
+        await run(env.DB, `INSERT INTO invoices
+      (id, household_id, type, status, invoice_number, invoice_code, title, counterparty_name, amount_cents, tax_amount_cents, currency, invoice_date, transaction_id, note, created_by, updated_by)
+      VALUES (?, ?, ?, 'recorded', ?, ?, ?, ?, ?, ?, 'CNY', ?, ?, ?, ?, ?)`, id, context.householdId, data.type, data.invoiceNumber, data.invoiceCode, data.title, data.counterpartyName, data.amountCents, data.taxAmountCents, data.invoiceDate, data.transactionId, data.note, context.userId, context.userId);
+    }
+    catch (error) {
+        if (String(error).toLowerCase().includes('unique'))
+            throw new HttpError(409, 'INVOICE_NUMBER_EXISTS', '同类型下已经记录过这个发票号码');
+        throw error;
+    }
+    const created = await getInvoice(env, context, id);
+    await audit(env, context, 'create', 'invoice', id, null, created);
+    return ok(created, 201);
+}
+async function updateInvoice(request, env, context, id) {
+    const before = await getInvoice(env, context, id);
+    if (before.status === 'void')
+        throw new HttpError(409, 'INVOICE_VOID', '这张发票已经作废');
+    const body = await readJson(request);
+    const data = parseInvoiceBody(body);
+    const version = assertInteger(body.version, '版本', 1);
+    await validateInvoiceTransaction(env, context, data.type, data.transactionId);
+    let result;
+    try {
+        result = await run(env.DB, `UPDATE invoices SET type = ?, invoice_number = ?, invoice_code = ?, title = ?, counterparty_name = ?,
+      amount_cents = ?, tax_amount_cents = ?, invoice_date = ?, transaction_id = ?, note = ?, updated_by = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND household_id = ? AND version = ? AND status = 'recorded'`, data.type, data.invoiceNumber, data.invoiceCode, data.title, data.counterpartyName, data.amountCents, data.taxAmountCents, data.invoiceDate, data.transactionId, data.note, context.userId, id, context.householdId, version);
+    }
+    catch (error) {
+        if (String(error).toLowerCase().includes('unique'))
+            throw new HttpError(409, 'INVOICE_NUMBER_EXISTS', '同类型下已经记录过这个发票号码');
+        throw error;
+    }
+    if ((result.meta?.changes ?? 0) === 0)
+        throw new HttpError(409, 'VERSION_CONFLICT', '这张发票刚刚被另一台设备修改，请刷新后再试');
+    const after = await getInvoice(env, context, id);
+    await audit(env, context, 'update', 'invoice', id, before, after);
+    return ok(after);
+}
+async function voidInvoice(env, context, id) {
+    const before = await getInvoice(env, context, id);
+    if (before.status !== 'void') {
+        await run(env.DB, "UPDATE invoices SET status = 'void', updated_by = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?", context.userId, id, context.householdId);
+        await audit(env, context, 'void', 'invoice', id, before, null);
+    }
+    return ok({ id, void: true });
+}
+async function restoreInvoice(env, context, id) {
+    const before = await getInvoice(env, context, id);
+    if (before.status === 'void') {
+        try {
+            await run(env.DB, "UPDATE invoices SET status = 'recorded', updated_by = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?", context.userId, id, context.householdId);
+        }
+        catch (error) {
+            if (String(error).toLowerCase().includes('unique'))
+                throw new HttpError(409, 'INVOICE_NUMBER_EXISTS', '同类型下已经存在相同发票号码，无法恢复');
+            throw error;
+        }
+    }
+    const after = await getInvoice(env, context, id);
+    await audit(env, context, 'restore', 'invoice', id, before, after);
+    return ok(after);
+}
+async function invoiceSummary(env, context, url) {
+    const month = parseMonth(url.searchParams.get('month'));
+    const range = monthRange(month);
+    const rows = await queryAll(env.DB, `SELECT type,
+      COALESCE(SUM(amount_cents), 0) AS amount_cents, COUNT(*) AS count,
+      COALESCE(SUM(CASE WHEN transaction_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS linked_count
+    FROM invoices WHERE household_id = ? AND status = 'recorded' AND invoice_date >= ? AND invoice_date < ? GROUP BY type`, context.householdId, range.start, range.end);
+    const received = rows.find((item) => item.type === 'received');
+    const issued = rows.find((item) => item.type === 'issued');
+    return ok({ month,
+        received: { amountCents: Number(received?.amount_cents || 0), count: Number(received?.count || 0), linkedCount: Number(received?.linked_count || 0) },
+        issued: { amountCents: Number(issued?.amount_cents || 0), count: Number(issued?.count || 0), linkedCount: Number(issued?.linked_count || 0) },
+    });
+}
 async function handleAccounts(request, env, context, id) {
     if (request.method === 'GET' && !id)
         return ok(await getAccounts(env, context, new URL(request.url).searchParams.get('includeArchived') === 'true'));
@@ -472,7 +830,7 @@ async function handleAccounts(request, env, context, id) {
         const type = assertEnum(body.type, '账户类型', ['cash', 'wechat', 'alipay', 'bank', 'credit', 'stored', 'other']);
         const openingBalanceCents = assertInteger(body.openingBalanceCents ?? 0, '期初余额', -999_999_999_99, 999_999_999_99);
         const icon = assertString(body.icon || type, '图标', 30);
-        const color = assertString(body.color || '#8E7CDA', '颜色', 20);
+        const color = assertColor(body.color || '#8E7CDA');
         const sort = await queryFirst(env.DB, 'SELECT MAX(sort_order) AS max_sort FROM accounts WHERE household_id = ?', context.householdId);
         const newId = crypto.randomUUID();
         await run(env.DB, 'INSERT INTO accounts (id, household_id, name, type, currency, opening_balance_cents, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', newId, context.householdId, name, type, 'CNY', openingBalanceCents, icon, color, (sort?.max_sort ?? -1) + 1);
@@ -491,7 +849,7 @@ async function handleAccounts(request, env, context, id) {
         const type = assertEnum(body.type ?? before.type, '账户类型', ['cash', 'wechat', 'alipay', 'bank', 'credit', 'stored', 'other']);
         const openingBalanceCents = assertInteger(body.openingBalanceCents ?? before.opening_balance_cents, '期初余额', -999_999_999_99, 999_999_999_99);
         const icon = assertString(body.icon ?? before.icon, '图标', 30);
-        const color = assertString(body.color ?? before.color, '颜色', 20);
+        const color = assertColor(body.color ?? before.color);
         await run(env.DB, 'UPDATE accounts SET name = ?, type = ?, opening_balance_cents = ?, icon = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?', name, type, openingBalanceCents, icon, color, id, context.householdId);
         const after = await queryFirst(env.DB, 'SELECT * FROM accounts WHERE id = ?', id);
         await audit(env, context, 'update', 'account', id, before, after);
@@ -513,7 +871,7 @@ async function handleCategories(request, env, context, id) {
         const type = assertEnum(body.type, '分类类型', ['expense', 'income']);
         const name = assertString(body.name, '分类名称', 20);
         const icon = assertString(body.icon || 'dots', '图标', 30);
-        const color = assertString(body.color || '#8E7CDA', '颜色', 20);
+        const color = assertColor(body.color || '#8E7CDA');
         const sort = await queryFirst(env.DB, 'SELECT MAX(sort_order) AS max_sort FROM categories WHERE household_id = ? AND type = ?', context.householdId, type);
         const newId = crypto.randomUUID();
         await run(env.DB, 'INSERT INTO categories (id, household_id, type, name, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)', newId, context.householdId, type, name, icon, color, (sort?.max_sort ?? -1) + 1);
@@ -530,7 +888,7 @@ async function handleCategories(request, env, context, id) {
         const body = await readJson(request);
         const name = assertString(body.name ?? before.name, '分类名称', 20);
         const icon = assertString(body.icon ?? before.icon, '图标', 30);
-        const color = assertString(body.color ?? before.color, '颜色', 20);
+        const color = assertColor(body.color ?? before.color);
         await run(env.DB, 'UPDATE categories SET name = ?, icon = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?', name, icon, color, id, context.householdId);
         const after = await queryFirst(env.DB, 'SELECT * FROM categories WHERE id = ?', id);
         await audit(env, context, 'update', 'category', id, before, after);
@@ -597,7 +955,8 @@ async function overviewStats(env, context, url) {
     COALESCE(SUM(CASE WHEN type = 'expense' THEN amount_cents ELSE 0 END), 0) AS expense_cents
     FROM transactions WHERE household_id = ? AND deleted_at IS NULL AND occurred_at >= ? AND occurred_at < ?`, context.householdId, previousRange.start, previousRange.end);
     const recent = await queryAll(env.DB, `SELECT t.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
-      a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name
+      a.name AS account_name, ta.name AS target_account_name, u.display_name AS creator_name,
+      (SELECT COUNT(*) FROM invoices i WHERE i.household_id = t.household_id AND i.transaction_id = t.id AND i.status = 'recorded') AS invoice_count
     FROM transactions t LEFT JOIN categories c ON c.id = t.category_id LEFT JOIN accounts a ON a.id = t.account_id
     LEFT JOIN accounts ta ON ta.id = t.target_account_id LEFT JOIN users u ON u.id = t.created_by
     WHERE t.household_id = ? AND t.deleted_at IS NULL ORDER BY t.occurred_at DESC, t.created_at DESC LIMIT 6`, context.householdId);
@@ -678,7 +1037,9 @@ async function exportData(env, context, format) {
     WHERE t.household_id = ? AND t.deleted_at IS NULL ORDER BY t.occurred_at DESC`, context.householdId);
     const timestamp = new Date().toISOString().slice(0, 10);
     if (format === 'json') {
-        return new Response(JSON.stringify({ exportedAt: new Date().toISOString(), household: context.householdName, transactions: rows }, null, 2), {
+        const invoices = await queryAll(env.DB, `SELECT i.type, i.status, i.invoice_number, i.invoice_code, i.title, i.counterparty_name, i.amount_cents, i.tax_amount_cents, i.currency, i.invoice_date, i.transaction_id, i.note, i.created_at, i.updated_at
+      FROM invoices i WHERE i.household_id = ? ORDER BY i.invoice_date DESC, i.created_at DESC`, context.householdId);
+        return new Response(JSON.stringify({ exportedAt: new Date().toISOString(), household: context.householdName, transactions: rows, invoices }, null, 2), {
             headers: { ...SECURITY_HEADERS, 'content-type': 'application/json; charset=utf-8', 'content-disposition': `attachment; filename="yupao-ledger-${timestamp}.json"`, 'cache-control': 'no-store' },
         });
     }
@@ -688,13 +1049,269 @@ async function exportData(env, context, format) {
         headers: { ...SECURITY_HEADERS, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="yupao-ledger-${timestamp}.csv"`, 'cache-control': 'no-store' },
     });
 }
+function assertEmail(value, field = '邮箱') {
+    const email = normalizeEmail(assertString(value, field, 160));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        throw new HttpError(400, 'VALIDATION_ERROR', `${field}格式不正确`, { field });
+    return email;
+}
+async function authConfigured(env) {
+    const row = await queryFirst(env.DB, `SELECT COUNT(*) AS count
+    FROM auth_credentials c
+    JOIN household_members hm ON hm.user_id = c.user_id
+    WHERE hm.household_id = 'home'`);
+    return (row?.count ?? 0) >= 2;
+}
+async function executeBatch(db, statements) {
+    if (db.batch) {
+        const results = await db.batch(statements);
+        if (results.some((result) => result.success === false))
+            throw new HttpError(500, 'DATABASE_ERROR', '账号初始化失败，请稍后再试');
+        return;
+    }
+    for (const statement of statements)
+        await statement.run();
+}
+async function handleSetupStatus(request, env) {
+    let schemaReady = true;
+    let configured = false;
+    try {
+        configured = authBypassEnabled(request, env) || await authConfigured(env);
+    }
+    catch {
+        schemaReady = false;
+    }
+    const pepperReady = secretIsReady(env.PASSWORD_PEPPER);
+    const setupTokenReady = secretIsReady(env.SETUP_TOKEN);
+    return ok({
+        schemaReady,
+        configured,
+        secretsReady: pepperReady && (configured || setupTokenReady),
+        setupTokenReady,
+        pepperReady,
+        passwordIterations: passwordIterations(env),
+    });
+}
+async function handleAuthSetup(request, env) {
+    if (await authConfigured(env))
+        throw new HttpError(409, 'SETUP_COMPLETE', '小账本已经完成初始化');
+    requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+    const configuredSetupToken = requiredSecret(env.SETUP_TOKEN, 'SETUP_TOKEN');
+    const body = await readJson(request);
+    const submittedToken = assertString(body.setupToken, '初始化密钥', 256);
+    const setupIdentity = 'setup@yupao.local';
+    const setupIpHash = await enforceLoginRateLimit(request, env, setupIdentity);
+    const setupTokenValid = await constantTimeTextEqual(submittedToken, configuredSetupToken);
+    await recordLoginAttempt(env.DB, setupIdentity, setupIpHash, setupTokenValid);
+    if (!setupTokenValid)
+        throw new HttpError(403, 'SETUP_TOKEN_INVALID', '初始化密钥不正确');
+    await run(env.DB, 'DELETE FROM login_attempts WHERE email = ? AND success = 0', setupIdentity);
+    const householdName = assertString(body.householdName || env.HOUSEHOLD_NAME || '芋炮之家', '家庭名称', 40);
+    const ownerEmail = assertEmail(body.ownerEmail, '管理员邮箱');
+    const memberEmail = assertEmail(body.memberEmail, '家庭成员邮箱');
+    if (ownerEmail === memberEmail)
+        throw new HttpError(400, 'VALIDATION_ERROR', '两个账号需要使用不同邮箱');
+    const ownerName = assertString(body.ownerName, '管理员昵称', 24);
+    const memberName = assertString(body.memberName, '家庭成员昵称', 24);
+    if (!body.ownerCredential || !body.memberCredential) {
+        throw new HttpError(409, 'CLIENT_UPDATE_REQUIRED', '页面仍在使用旧版本，请清除该网站缓存并重新打开后再创建账号');
+    }
+    const ownerCredential = assertClientCredential(body.ownerCredential);
+    const memberCredential = assertClientCredential(body.memberCredential);
+    if (ownerCredential.iterations !== passwordIterations(env) || memberCredential.iterations !== passwordIterations(env)) {
+        throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数已变化，请刷新页面后重试');
+    }
+    const existingOwner = await queryFirst(env.DB, 'SELECT id FROM users WHERE email = ?', ownerEmail);
+    const existingMember = await queryFirst(env.DB, 'SELECT id FROM users WHERE email = ?', memberEmail);
+    const ownerId = existingOwner?.id || crypto.randomUUID();
+    const memberId = existingMember?.id || crypto.randomUUID();
+    const householdId = 'home';
+    const ownerPasswordRecord = { hash: await storedCredentialHash(ownerCredential.proof, env), salt: ownerCredential.salt, iterations: ownerCredential.iterations };
+    const memberPasswordRecord = { hash: await storedCredentialHash(memberCredential.proof, env), salt: memberCredential.salt, iterations: memberCredential.iterations };
+    const ownerCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
+    const memberCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRecoveryCode());
+    const now = currentEpoch();
+    const statements = [
+        env.DB.prepare(`INSERT INTO users (id, email, display_name) VALUES (?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET display_name = excluded.display_name, updated_at = CURRENT_TIMESTAMP`).bind(ownerId, ownerEmail, ownerName),
+        env.DB.prepare(`INSERT INTO users (id, email, display_name) VALUES (?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET display_name = excluded.display_name, updated_at = CURRENT_TIMESTAMP`).bind(memberId, memberEmail, memberName),
+        env.DB.prepare(`INSERT INTO households (id, name, base_currency, timezone) VALUES (?, ?, 'CNY', 'Asia/Shanghai')
+      ON CONFLICT(id) DO UPDATE SET name = excluded.name, updated_at = CURRENT_TIMESTAMP`).bind(householdId, householdName),
+        env.DB.prepare(`INSERT INTO household_members (id, household_id, user_id, role) VALUES (?, ?, ?, 'owner')
+      ON CONFLICT(household_id, user_id) DO UPDATE SET role = 'owner'`).bind(crypto.randomUUID(), householdId, ownerId),
+        env.DB.prepare(`INSERT INTO household_members (id, household_id, user_id, role) VALUES (?, ?, ?, 'member')
+      ON CONFLICT(household_id, user_id) DO UPDATE SET role = 'member'`).bind(crypto.randomUUID(), householdId, memberId),
+        env.DB.prepare(`INSERT INTO auth_credentials (user_id, password_hash, password_salt, password_iterations, password_changed_at)
+      VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET password_hash = excluded.password_hash,
+      password_salt = excluded.password_salt, password_iterations = excluded.password_iterations, password_changed_at = excluded.password_changed_at`).bind(ownerId, ownerPasswordRecord.hash, ownerPasswordRecord.salt, ownerPasswordRecord.iterations, now),
+        env.DB.prepare(`INSERT INTO auth_credentials (user_id, password_hash, password_salt, password_iterations, password_changed_at)
+      VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET password_hash = excluded.password_hash,
+      password_salt = excluded.password_salt, password_iterations = excluded.password_iterations, password_changed_at = excluded.password_changed_at`).bind(memberId, memberPasswordRecord.hash, memberPasswordRecord.salt, memberPasswordRecord.iterations, now),
+        env.DB.prepare('DELETE FROM recovery_codes WHERE user_id IN (?, ?)').bind(ownerId, memberId),
+    ];
+    for (const [userId, codes] of [[ownerId, ownerCodes], [memberId, memberCodes]]) {
+        for (const code of codes) {
+            statements.push(env.DB.prepare('INSERT INTO recovery_codes (id, user_id, code_hash, created_at) VALUES (?, ?, ?, ?)').bind(crypto.randomUUID(), userId, await secretHash(`recovery:${normalizeRecoveryCode(code)}`, env), now));
+        }
+    }
+    await executeBatch(env.DB, statements);
+    await seedHousehold(env.DB, householdId);
+    return ok({
+        householdName,
+        accounts: [
+            { email: ownerEmail, displayName: ownerName, role: 'owner', recoveryCodes: ownerCodes },
+            { email: memberEmail, displayName: memberName, role: 'member', recoveryCodes: memberCodes },
+        ],
+    }, 201);
+}
+async function authUserSummary(env, userId) {
+    const row = await queryFirst(env.DB, `SELECT u.id, u.email, u.display_name, hm.role, h.name AS household_name
+    FROM users u JOIN household_members hm ON hm.user_id = u.id JOIN households h ON h.id = hm.household_id
+    WHERE u.id = ? LIMIT 1`, userId);
+    if (!row)
+        throw new HttpError(401, 'AUTH_REQUIRED', '账号尚未加入家庭空间');
+    return { id: row.id, email: row.email, displayName: row.display_name, role: row.role, householdName: row.household_name };
+}
+async function handlePasswordParams(request, env) {
+    requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+    const body = await readJson(request);
+    const email = assertEmail(body.email);
+    const row = await queryFirst(env.DB, `SELECT c.password_salt, c.password_iterations
+    FROM users u JOIN auth_credentials c ON c.user_id = u.id WHERE u.email = ?`, email);
+    if (row)
+        return ok({ salt: row.password_salt, iterations: Number(row.password_iterations) });
+    const fakeBytes = base64UrlDecode(await secretHash(`password-params:${email}`, env)).slice(0, 16);
+    return ok({ salt: base64UrlEncode(fakeBytes), iterations: passwordIterations(env) });
+}
+async function handleLogin(request, env) {
+    requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+    if (!(await authConfigured(env)))
+        throw new HttpError(409, 'SETUP_REQUIRED', '请先完成小账本初始化');
+    const body = await readJson(request);
+    const email = assertEmail(body.email);
+    const passwordProof = body.passwordProof;
+    const rememberMe = body.rememberMe === true;
+    const ipHash = await enforceLoginRateLimit(request, env, email);
+    const row = await queryFirst(env.DB, `SELECT u.id AS user_id, c.password_hash
+    FROM users u JOIN auth_credentials c ON c.user_id = u.id WHERE u.email = ?`, email);
+    const valid = await verifyCredentialProof(passwordProof, row || null, env);
+    await recordLoginAttempt(env.DB, email, ipHash, valid);
+    if (!valid || !row)
+        throw new HttpError(401, 'LOGIN_FAILED', '邮箱或密码不正确');
+    await run(env.DB, 'DELETE FROM login_attempts WHERE email = ? AND success = 0', email);
+    const session = await createSession(row.user_id, request, env, rememberMe);
+    const user = await authUserSummary(env, row.user_id);
+    return ok({ user, csrfToken: session.csrfToken }, 200, { 'set-cookie': sessionCookie(session.token, session.maxAge) });
+}
+async function handleAuthSession(request, env) {
+    if (authBypassEnabled(request, env)) {
+        const context = await getDevelopmentContext(request, env);
+        return ok({ user: { id: context.userId, email: context.email, displayName: context.displayName, role: context.role, householdName: context.householdName }, csrfToken: '' });
+    }
+    const context = await getSessionContext(request, env);
+    return ok({ user: { id: context.userId, email: context.email, displayName: context.displayName, role: context.role, householdName: context.householdName }, csrfToken: context.csrfToken });
+}
+async function handleLogout(env, context) {
+    if (context.sessionId)
+        await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE id = ?', currentEpoch(), context.sessionId);
+    return ok({ loggedOut: true }, 200, { 'set-cookie': clearSessionCookie() });
+}
+async function handleChangePassword(request, env, context) {
+    const body = await readJson(request);
+    const credential = await queryFirst(env.DB, 'SELECT password_hash FROM auth_credentials WHERE user_id = ?', context.userId);
+    if (!(await verifyCredentialProof(body.currentPasswordProof, credential, env)))
+        throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
+    const next = assertClientCredential(body.newCredential);
+    if (next.iterations !== passwordIterations(env))
+        throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数已变化，请刷新页面后重试');
+    const existingSession = context.sessionId ? await queryFirst(env.DB, 'SELECT created_at, expires_at FROM auth_sessions WHERE id = ?', context.sessionId) : null;
+    const rememberMe = Boolean(existingSession && Number(existingSession.expires_at) - Number(existingSession.created_at) > SESSION_SECONDS);
+    const record = { hash: await storedCredentialHash(next.proof, env), salt: next.salt, iterations: next.iterations };
+    const now = currentEpoch();
+    await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, now, context.userId);
+    await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL', now, context.userId);
+    const session = await createSession(context.userId, request, env, rememberMe);
+    await audit(env, context, 'security.password_changed', 'user', context.userId, null, { sessionsRotated: true });
+    return ok({ changed: true, csrfToken: session.csrfToken }, 200, { 'set-cookie': sessionCookie(session.token, session.maxAge) });
+}
+async function handleRevokeOtherSessions(env, context) {
+    const result = await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', currentEpoch(), context.userId, context.sessionId || '');
+    await audit(env, context, 'security.sessions_revoked', 'user', context.userId, null, { revokedCount: Number(result.meta?.changes || 0) });
+    return ok({ revoked: true, revokedCount: Number(result.meta?.changes || 0) });
+}
+async function handleRegenerateRecoveryCodes(request, env, context) {
+    const body = await readJson(request);
+    const credential = await queryFirst(env.DB, 'SELECT password_hash FROM auth_credentials WHERE user_id = ?', context.userId);
+    if (!(await verifyCredentialProof(body.currentPasswordProof, credential, env)))
+        throw new HttpError(401, 'CURRENT_PASSWORD_INVALID', '当前密码不正确');
+    const recoveryCodes = await replaceRecoveryCodes(context.userId, env);
+    await audit(env, context, 'security.recovery_codes_regenerated', 'user', context.userId, null, { count: recoveryCodes.length });
+    return ok({ recoveryCodes });
+}
+async function handleRecover(request, env) {
+    requiredSecret(env.PASSWORD_PEPPER, 'PASSWORD_PEPPER');
+    const body = await readJson(request);
+    const email = assertEmail(body.email);
+    const code = normalizeRecoveryCode(assertString(body.recoveryCode, '恢复码', 80));
+    const next = assertClientCredential(body.newCredential);
+    if (next.iterations !== passwordIterations(env))
+        throw new HttpError(400, 'CREDENTIAL_INVALID', '密码计算参数已变化，请刷新页面后重试');
+    const ipHash = await enforceLoginRateLimit(request, env, email);
+    const user = await queryFirst(env.DB, 'SELECT id FROM users WHERE email = ?', email);
+    let matchedId = '';
+    if (user) {
+        const expected = await secretHash(`recovery:${code}`, env);
+        const codes = await queryAll(env.DB, 'SELECT id, code_hash FROM recovery_codes WHERE user_id = ? AND used_at IS NULL', user.id);
+        for (const item of codes) {
+            if (await constantTimeTextEqual(item.code_hash, expected)) {
+                matchedId = item.id;
+                break;
+            }
+        }
+    }
+    const valid = Boolean(user && matchedId);
+    await recordLoginAttempt(env.DB, email, ipHash, valid);
+    if (!user || !matchedId)
+        throw new HttpError(401, 'RECOVERY_FAILED', '邮箱或恢复码不正确');
+    const record = { hash: await storedCredentialHash(next.proof, env), salt: next.salt, iterations: next.iterations };
+    const now = currentEpoch();
+    await run(env.DB, 'UPDATE auth_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?', record.hash, record.salt, record.iterations, now, user.id);
+    await run(env.DB, 'UPDATE recovery_codes SET used_at = ? WHERE id = ?', now, matchedId);
+    await run(env.DB, 'UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL', now, user.id);
+    await run(env.DB, 'DELETE FROM login_attempts WHERE email = ?', email);
+    return ok({ recovered: true }, 200, { 'set-cookie': clearSessionCookie() });
+}
 async function routeApi(request, env) {
     const url = new URL(request.url);
     if (request.method === 'OPTIONS')
         return new Response(null, { status: 204, headers: SECURITY_HEADERS });
     if (url.pathname === '/api/health')
-        return ok({ service: 'yupao-ledger', time: new Date().toISOString() });
+        return ok({ service: 'yupao-ledger', auth: 'internal-session', time: new Date().toISOString() });
+    if (url.pathname === '/api/auth/setup-status' && request.method === 'GET')
+        return handleSetupStatus(request, env);
+    if (request.method === 'POST' && ['/api/auth/setup', '/api/auth/password-params', '/api/auth/login', '/api/auth/recover'].includes(url.pathname))
+        enforceRequestOrigin(request);
+    if (url.pathname === '/api/auth/setup' && request.method === 'POST')
+        return handleAuthSetup(request, env);
+    if (url.pathname === '/api/auth/password-params' && request.method === 'POST')
+        return handlePasswordParams(request, env);
+    if (url.pathname === '/api/auth/login' && request.method === 'POST')
+        return handleLogin(request, env);
+    if (url.pathname === '/api/auth/recover' && request.method === 'POST')
+        return handleRecover(request, env);
+    if (url.pathname === '/api/auth/session' && request.method === 'GET')
+        return handleAuthSession(request, env);
     const context = await ensureUserContext(request, env);
+    await enforceCsrf(request, context);
+    if (url.pathname === '/api/auth/logout' && request.method === 'POST')
+        return handleLogout(env, context);
+    if (url.pathname === '/api/auth/change-password' && request.method === 'POST')
+        return handleChangePassword(request, env, context);
+    if (url.pathname === '/api/auth/revoke-other-sessions' && request.method === 'POST')
+        return handleRevokeOtherSessions(env, context);
+    if (url.pathname === '/api/auth/recovery-codes' && request.method === 'POST')
+        return handleRegenerateRecoveryCodes(request, env, context);
     if (url.pathname === '/api/me' && request.method === 'GET')
         return ok({ id: context.userId, email: context.email, displayName: context.displayName, role: context.role, householdName: context.householdName });
     if (url.pathname === '/api/bootstrap' && request.method === 'GET')
@@ -714,6 +1331,24 @@ async function routeApi(request, env) {
             return updateTransaction(request, env, context, id);
         if (request.method === 'DELETE')
             return deleteTransaction(env, context, id);
+    }
+    if (url.pathname === '/api/invoices/summary' && request.method === 'GET')
+        return invoiceSummary(env, context, url);
+    if (url.pathname === '/api/invoices' && request.method === 'GET')
+        return listInvoices(env, context, url);
+    if (url.pathname === '/api/invoices' && request.method === 'POST')
+        return createInvoice(request, env, context);
+    const invoiceMatch = url.pathname.match(/^\/api\/invoices\/([^/]+)(?:\/(restore))?$/);
+    if (invoiceMatch) {
+        const id = decodeURIComponent(invoiceMatch[1]);
+        if (invoiceMatch[2] === 'restore' && request.method === 'POST')
+            return restoreInvoice(env, context, id);
+        if (request.method === 'GET')
+            return ok(await getInvoice(env, context, id));
+        if (request.method === 'PATCH')
+            return updateInvoice(request, env, context, id);
+        if (request.method === 'DELETE')
+            return voidInvoice(env, context, id);
     }
     const accountMatch = url.pathname.match(/^\/api\/accounts(?:\/([^/]+))?$/);
     if (accountMatch)
@@ -746,7 +1381,7 @@ export async function handleRequest(request, env) {
         if (url.pathname.startsWith('/api/'))
             return await routeApi(request, env);
         const response = await env.ASSETS.fetch(request);
-        return applySecurityHeaders(response);
+        return applySecurityHeaders(response, url.pathname);
     }
     catch (error) {
         if (error instanceof HttpError)

@@ -27,10 +27,56 @@ function seedDemoData() {
   db.prepare('INSERT OR IGNORE INTO household_members (id,household_id,user_id,role) VALUES (?,?,?,?)').run('member-1', household, user1, 'owner');
   db.prepare('INSERT OR IGNORE INTO household_members (id,household_id,user_id,role) VALUES (?,?,?,?)').run('member-2', household, user2, 'member');
   const categories = [
-    ['cat-food','expense','餐饮','bowl','#EFA67C',0],['cat-grocery','expense','买菜','basket','#7BBE91',1],['cat-drink','expense','零食饮品','cup','#D89CC8',2],
-    ['cat-pet','expense','宠物','paw','#C49473',3],['cat-shopping','expense','购物','shopping','#E58A9B',4],['cat-transport','expense','交通出行','car','#76A9D8',5],
-    ['cat-home','expense','水电燃气','bolt','#77BFC6',6],['cat-entertainment','expense','娱乐','game','#8F9FDE',7],['cat-other-e','expense','其他支出','dots','#AAA2B3',8],
-    ['cat-salary','income','工资','wallet','#55A77A',0],['cat-business','income','生意收入','store','#4E9D7C',1],['cat-refund','income','报销','receipt','#6EB399',2],['cat-other-i','income','其他收入','dots','#9AB4A3',3]
+    ['cat-food','expense','餐饮','bowl','#EFA67C',0],
+    ['cat-takeaway','expense','外卖','takeaway','#E99173',1],
+    ['cat-grocery','expense','买菜','basket','#7BBE91',2],
+    ['cat-drink','expense','零食饮品','cup','#D89CC8',3],
+    ['cat-daily','expense','日用百货','bag','#E4B65E',4],
+    ['cat-utility','expense','水电燃气','bolt','#77BFC6',5],
+    ['cat-phone','expense','通讯网络','phone','#79AFC7',6],
+    ['cat-subscription','expense','订阅会员','subscription','#A996C7',7],
+    ['cat-rent','expense','房租房贷','home','#9D8BD7',8],
+    ['cat-property','expense','物业费','building','#8DA5B8',9],
+    ['cat-homegoods','expense','家居家装','sofa','#C3997A',10],
+    ['cat-device','expense','数码家电','device','#879CB6',11],
+    ['cat-metro','expense','公共交通','metro','#76A9D8',12],
+    ['cat-taxi','expense','打车','taxi','#E5B34E',13],
+    ['cat-fuel','expense','加油','fuel','#D49A5D',14],
+    ['cat-parking','expense','停车','parking','#8DA1AD',15],
+    ['cat-carcare','expense','车辆养护','car','#7C9FB8',16],
+    ['cat-travel','expense','旅行','plane','#6FC2B0',17],
+    ['cat-clothes','expense','服饰鞋包','clothes','#D88FA6',18],
+    ['cat-beauty','expense','美妆护肤','beauty','#E7A2B3',19],
+    ['cat-tech','expense','数码产品','tech','#8793C6',20],
+    ['cat-shopping','expense','网购','shopping','#E58A9B',21],
+    ['cat-medical','expense','医疗','medical','#E57878',22],
+    ['cat-medicine','expense','药品','medicine','#D88989',23],
+    ['cat-fitness','expense','健身运动','fitness','#78B690',24],
+    ['cat-care','expense','保健护理','care','#A8B990',25],
+    ['cat-petfood','expense','宠物食品','petfood','#C49473',26],
+    ['cat-petdaily','expense','猫砂日用品','paw','#BE9C7E',27],
+    ['cat-petmedical','expense','宠物医疗','petmedical','#D49187',28],
+    ['cat-pettoy','expense','宠物玩具','pettoy','#D4A867',29],
+    ['cat-entertainment','expense','娱乐','game','#8F9FDE',30],
+    ['cat-movie','expense','电影演出','movie','#B58BC4',31],
+    ['cat-hobby','expense','兴趣爱好','hobby','#B79B6F',32],
+    ['cat-social','expense','人情往来','gift','#D79C64',33],
+    ['cat-gift','expense','礼物','gift','#D69E7D',34],
+    ['cat-redpacket','expense','红包','redpacket','#D88176',35],
+    ['cat-study','expense','学习培训','study','#799AC7',36],
+    ['cat-software','expense','软件工具','software','#8495B8',37],
+    ['cat-office','expense','办公用品','office','#9CA98A',38],
+    ['cat-insurance','expense','保险','insurance','#79A58D',39],
+    ['cat-tax','expense','税费','tax','#B09185',40],
+    ['cat-fee','expense','银行手续费','fee','#8A9DA6',41],
+    ['cat-other-e','expense','其他支出','dots','#AAA2B3',42],
+    ['cat-salary','income','工资','wallet','#55A77A',0],
+    ['cat-bonus','income','奖金','star','#65B98B',1],
+    ['cat-refund','income','报销','receipt','#6EB399',2],
+    ['cat-parttime','income','兼职','briefcase','#8DBB74',3],
+    ['cat-business','income','生意收入','store','#4E9D7C',4],
+    ['cat-invest','income','理财收益','trend','#73AFA1',5],
+    ['cat-other-i','income','其他收入','dots','#9AB4A3',6]
   ];
   for (const row of categories) db.prepare('INSERT OR IGNORE INTO categories (id,household_id,type,name,icon,color,sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)').run(row[0], household, ...row.slice(1));
   const accounts = [
@@ -49,7 +95,7 @@ function seedDemoData() {
     ['expense',6800,'acc-wechat',null,'cat-food','巷口面馆','晚餐',local(0,19),user1],
     ['expense',3290,'acc-alipay',null,'cat-drink','咖啡店','下午咖啡',local(1,15),user2],
     ['expense',15680,'acc-wechat',null,'cat-grocery','社区超市','买菜和水果',local(2,18),user1],
-    ['expense',8990,'acc-alipay',null,'cat-pet','宠物店','猫砂',local(3,12),user2],
+    ['expense',8990,'acc-alipay',null,'cat-petdaily','宠物店','猫砂',local(3,12),user2],
     ['income',1280000,'acc-bank',null,'cat-salary','公司','本月工资',local(5,10),user1],
     ['expense',26800,'acc-bank',null,'cat-shopping','家居店','收纳用品',local(6,14),user2],
     ['transfer',200000,'acc-bank','acc-wechat',null,null,'生活费转入微信',local(7,9),user1],
@@ -75,7 +121,7 @@ function seedDemoData() {
   db.prepare('INSERT OR IGNORE INTO budgets (id,household_id,period,category_id,amount_cents) VALUES (?,?,?,?,?)').run('budget-total', household, month, null, 500000);
   db.prepare('INSERT OR IGNORE INTO budgets (id,household_id,period,category_id,amount_cents) VALUES (?,?,?,?,?)').run('budget-food', household, month, 'cat-food', 120000);
   db.prepare('INSERT OR IGNORE INTO budgets (id,household_id,period,category_id,amount_cents) VALUES (?,?,?,?,?)').run('budget-grocery', household, month, 'cat-grocery', 80000);
-  db.prepare('INSERT OR IGNORE INTO budgets (id,household_id,period,category_id,amount_cents) VALUES (?,?,?,?,?)').run('budget-pet', household, month, 'cat-pet', 50000);
+  db.prepare('INSERT OR IGNORE INTO budgets (id,household_id,period,category_id,amount_cents) VALUES (?,?,?,?,?)').run('budget-pet', household, month, 'cat-petdaily', 50000);
 }
 seedDemoData();
 
