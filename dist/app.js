@@ -1,7 +1,7 @@
 "use strict";
 /* global React, ReactDOM */
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.10';
+const APP_VERSION = '0.3.11';
 let authExpiredHandler = null;
 function setClientAuth(csrfToken = '') {
     currentCsrfToken = csrfToken;
@@ -73,14 +73,14 @@ function yesterdayDate() {
 }
 const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8', '#9BCED4', '#E9A58F'];
 const MASCOT_ASSETS = {
-    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
-    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
-    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.10', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.10' },
-    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.10' },
-    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.10' },
-    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.10' },
-    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.10' },
-    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.10' },
+    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.11', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.11' },
+    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.11', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.11' },
+    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.11', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.11' },
+    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.11', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.11' },
+    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.11', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.11' },
+    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.11', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.11' },
+    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.11', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.11' },
+    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.11', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.11' },
 };
 function MascotPicture(props) {
     const asset = MASCOT_ASSETS[props.asset] || MASCOT_ASSETS.hero;
@@ -411,10 +411,10 @@ function HeroMascots(props = {}) {
         React.createElement("span", { className: "hero-life-dot hero-life-dot-two", "aria-hidden": "true" }));
 }
 function LogoMark() {
-    return React.createElement("img", { className: "brand-logo-img", src: "/brand/brand-mark-v038.svg?v=0.3.10", alt: "", "aria-hidden": "true", decoding: "async" });
+    return React.createElement("img", { className: "brand-logo-img", src: "/brand/brand-mark-v038.svg?v=0.3.11", alt: "", "aria-hidden": "true", decoding: "async" });
 }
 function BrandLockup() {
-    return React.createElement("img", { className: "brand-lockup-img", src: "/brand/brand-lockup-v038.svg?v=0.3.10", alt: "\u828B\u70AE\u5C0F\u8D26\u672C\uFF0C\u4E24\u4E2A\u4EBA\u7684\u5C0F\u65E5\u5B50", decoding: "async" });
+    return React.createElement("img", { className: "brand-lockup-img", src: "/brand/brand-lockup-v038.svg?v=0.3.11", alt: "\u828B\u70AE\u5C0F\u8D26\u672C\uFF0C\u4E24\u4E2A\u4EBA\u7684\u5C0F\u65E5\u5B50", decoding: "async" });
 }
 function Mascot(props) {
     const variant = (props.variant || 'idle');
@@ -898,6 +898,28 @@ function MobileTransactionsView(props) {
             React.createElement("button", { className: props.type === 'income' ? 'active' : '', onClick: () => props.onType('income') }, "\u6536\u5165"),
             React.createElement("button", { className: props.type === 'expense' ? 'active' : '', onClick: () => props.onType('expense') }, "\u652F\u51FA"),
             React.createElement("button", { className: props.type === 'transfer' ? 'active' : '', onClick: () => props.onType('transfer') }, "\u8F6C\u8D26")),
+        props.type !== 'transfer' ? React.createElement("label", { className: "mobile-detail-category-filter" },
+            React.createElement("span", null,
+                React.createElement(Icon, { name: "category", size: 17 }),
+                "\u5206\u7C7B"),
+            React.createElement("select", { value: props.categoryId || '', onChange: (event) => props.onCategory(event.target.value) },
+                React.createElement("option", { value: "" }, "\u5168\u90E8\u5206\u7C7B"),
+                props.type === 'expense' ? categoryGroups((props.categories || []).filter((item) => item.type === 'expense' && !item.is_archived), 'expense').map((group) => React.createElement("optgroup", { key: group.label, label: group.label }, group.items.map((item) => React.createElement("option", { key: item.id, value: item.id },
+                    CATEGORY_EMOJI[item.icon] || '✨',
+                    " ",
+                    item.name)))) : props.type === 'income' ? React.createElement("optgroup", { label: "\u6536\u5165\u5206\u7C7B" }, (props.categories || []).filter((item) => item.type === 'income' && !item.is_archived).map((item) => React.createElement("option", { key: item.id, value: item.id },
+                    CATEGORY_EMOJI[item.icon] || '✨',
+                    " ",
+                    item.name))) : React.createElement(React.Fragment, null,
+                    React.createElement("optgroup", { label: "\u652F\u51FA\u5206\u7C7B" }, (props.categories || []).filter((item) => item.type === 'expense' && !item.is_archived).map((item) => React.createElement("option", { key: item.id, value: item.id },
+                        CATEGORY_EMOJI[item.icon] || '✨',
+                        " ",
+                        item.name))),
+                    React.createElement("optgroup", { label: "\u6536\u5165\u5206\u7C7B" }, (props.categories || []).filter((item) => item.type === 'income' && !item.is_archived).map((item) => React.createElement("option", { key: item.id, value: item.id },
+                        CATEGORY_EMOJI[item.icon] || '✨',
+                        " ",
+                        item.name))))),
+            React.createElement(Icon, { name: "chevron-right", size: 16 })) : null,
         React.createElement("div", { className: "mobile-search-row" },
             React.createElement("div", { className: "search-wrap" },
                 React.createElement(Icon, { name: "search", size: 18 }),
@@ -1447,7 +1469,7 @@ class TransactionsPage extends React.Component {
     constructor(props) {
         super(props);
         this.timer = null;
-        this.state = { loading: true, items: [], total: 0, month: props.month, type: '', accountId: '', search: '', edit: null };
+        this.state = { loading: true, items: [], total: 0, month: props.month, type: '', categoryId: '', accountId: '', search: '', edit: null };
     }
     componentDidMount() { this.load(); }
     componentDidUpdate(prevProps) { if (prevProps.refreshToken !== this.props.refreshToken)
@@ -1459,6 +1481,8 @@ class TransactionsPage extends React.Component {
             params.set('type', this.state.type);
         if (this.state.accountId)
             params.set('accountId', this.state.accountId);
+        if (this.state.categoryId)
+            params.set('categoryId', this.state.categoryId);
         if (this.state.search.trim())
             params.set('search', this.state.search.trim());
         try {
@@ -1499,9 +1523,11 @@ class TransactionsPage extends React.Component {
         const expenseCents = items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + Number(item.amount_cents || 0), 0);
         const incomeCents = items.filter((item) => item.type === 'income').reduce((sum, item) => sum + Number(item.amount_cents || 0), 0);
         const transferCount = items.filter((item) => item.type === 'transfer').length;
+        const expenseFilterCategories = this.props.bootstrap.categories.filter((item) => item.type === 'expense' && !item.is_archived);
+        const incomeFilterCategories = this.props.bootstrap.categories.filter((item) => item.type === 'income' && !item.is_archived);
         return React.createElement("div", { className: "page transactions-page-v037" },
             React.createElement("div", { className: "desktop-product-view" },
-                React.createElement(PageHeader, { title: "\u6536\u652F\u660E\u7EC6", subtitle: "\u6309\u6708\u4EFD\u3001\u7C7B\u578B\u6216\u8D26\u6237\u67E5\u627E\u6BCF\u4E00\u7B14\u8BB0\u5F55\u3002" },
+                React.createElement(PageHeader, { title: "\u6536\u652F\u660E\u7EC6", subtitle: "\u6309\u6708\u4EFD\u3001\u7C7B\u578B\u3001\u5206\u7C7B\u6216\u8D26\u6237\u67E5\u627E\u6BCF\u4E00\u7B14\u8BB0\u5F55\u3002" },
                     React.createElement(MonthSwitcher, { month: this.state.month, onChange: (month) => this.changeFilter({ month }) }),
                     React.createElement("button", { className: "btn btn-primary", onClick: () => this.props.navigate('add') },
                         React.createElement(Icon, { name: "plus", size: 18 }),
@@ -1538,13 +1564,30 @@ class TransactionsPage extends React.Component {
                     React.createElement("div", { className: "card-title-row detail-filter-head" },
                         React.createElement("div", null,
                             React.createElement("h3", { className: "card-title" }, "\u7B5B\u9009\u4E0E\u67E5\u627E"),
-                            React.createElement("p", { className: "card-subtitle" }, "\u5148\u6309\u6708\u4EFD\u770B\uFF0C\u518D\u7528\u7C7B\u578B\u3001\u8D26\u6237\u548C\u5173\u952E\u8BCD\u6536\u7A84\u8303\u56F4\u3002"))),
+                            React.createElement("p", { className: "card-subtitle" }, "\u5148\u6309\u6708\u4EFD\u770B\uFF0C\u518D\u7528\u7C7B\u578B\u3001\u5206\u7C7B\u3001\u8D26\u6237\u548C\u5173\u952E\u8BCD\u6536\u7A84\u8303\u56F4\u3002"))),
                     React.createElement("div", { className: "filter-bar detail-filter-bar" },
-                        React.createElement("select", { className: "select", value: this.state.type, onChange: (event) => this.changeFilter({ type: event.target.value }) },
+                        React.createElement("select", { className: "select", value: this.state.type, onChange: (event) => this.changeFilter({ type: event.target.value, categoryId: '' }) },
                             React.createElement("option", { value: "" }, "\u5168\u90E8\u7C7B\u578B"),
                             React.createElement("option", { value: "expense" }, "\u652F\u51FA"),
                             React.createElement("option", { value: "income" }, "\u6536\u5165"),
                             React.createElement("option", { value: "transfer" }, "\u8F6C\u8D26")),
+                        React.createElement("select", { className: "select detail-category-select", value: this.state.categoryId, disabled: this.state.type === 'transfer', onChange: (event) => this.changeFilter({ categoryId: event.target.value }) },
+                            React.createElement("option", { value: "" }, this.state.type === 'transfer' ? '转账无分类' : '全部分类'),
+                            this.state.type === 'expense' ? categoryGroups(expenseFilterCategories, 'expense').map((group) => React.createElement("optgroup", { key: group.label, label: group.label }, group.items.map((item) => React.createElement("option", { key: item.id, value: item.id },
+                                CATEGORY_EMOJI[item.icon] || '✨',
+                                " ",
+                                item.name)))) : this.state.type === 'income' ? React.createElement("optgroup", { label: "\u6536\u5165\u5206\u7C7B" }, incomeFilterCategories.map((item) => React.createElement("option", { key: item.id, value: item.id },
+                                CATEGORY_EMOJI[item.icon] || '✨',
+                                " ",
+                                item.name))) : React.createElement(React.Fragment, null,
+                                React.createElement("optgroup", { label: "\u652F\u51FA\u5206\u7C7B" }, expenseFilterCategories.map((item) => React.createElement("option", { key: item.id, value: item.id },
+                                    CATEGORY_EMOJI[item.icon] || '✨',
+                                    " ",
+                                    item.name))),
+                                React.createElement("optgroup", { label: "\u6536\u5165\u5206\u7C7B" }, incomeFilterCategories.map((item) => React.createElement("option", { key: item.id, value: item.id },
+                                    CATEGORY_EMOJI[item.icon] || '✨',
+                                    " ",
+                                    item.name))))),
                         React.createElement("select", { className: "select", value: this.state.accountId, onChange: (event) => this.changeFilter({ accountId: event.target.value }) },
                             React.createElement("option", { value: "" }, "\u5168\u90E8\u8D26\u6237"),
                             this.props.bootstrap.accounts.map((item) => React.createElement("option", { key: item.id, value: item.id }, item.name))),
@@ -1565,7 +1608,7 @@ class TransactionsPage extends React.Component {
                         React.createElement("div", { className: "skeleton", style: { height: '68px' } }),
                         React.createElement("div", { className: "skeleton", style: { height: '68px' } }),
                         React.createElement("div", { className: "skeleton", style: { height: '68px' } })) : this.state.items.length ? React.createElement("div", { className: "list detail-list" }, this.state.items.map((item, index) => React.createElement(TransactionItem, { key: item.id, item: item, index: index, editable: true, onEdit: (entry) => this.setState({ edit: entry }), onDelete: (entry) => this.remove(entry) }))) : React.createElement(EmptyState, { title: "\u6CA1\u6709\u627E\u5230\u8BB0\u5F55", message: "\u6362\u4E2A\u7B5B\u9009\u6761\u4EF6\uFF0C\u6216\u8005\u8BB0\u4E0B\u65B0\u7684\u4E00\u7B14\u3002", action: React.createElement("button", { className: "btn btn-primary", onClick: () => this.props.navigate('add') }, "\u8BB0\u4E00\u7B14") }))),
-            React.createElement(MobileTransactionsView, { items: items, loading: this.state.loading, month: this.state.month, type: this.state.type, search: this.state.search, navigate: this.props.navigate, onMonthChange: (month) => this.changeFilter({ month }), onType: (type) => this.changeFilter({ type }), onSearch: (search) => this.setState({ search }), onSubmitSearch: () => this.load(), onEdit: (entry) => this.setState({ edit: entry }), onDelete: (entry) => this.remove(entry) }),
+            React.createElement(MobileTransactionsView, { items: items, loading: this.state.loading, month: this.state.month, type: this.state.type, categoryId: this.state.categoryId, categories: this.props.bootstrap.categories, search: this.state.search, navigate: this.props.navigate, onMonthChange: (month) => this.changeFilter({ month }), onType: (type) => this.changeFilter({ type, categoryId: '' }), onCategory: (categoryId) => this.changeFilter({ categoryId }), onSearch: (search) => this.setState({ search }), onSubmitSearch: () => this.load(), onEdit: (entry) => this.setState({ edit: entry }), onDelete: (entry) => this.remove(entry) }),
             React.createElement(Modal, { open: Boolean(this.state.edit), title: "\u7F16\u8F91\u8FD9\u7B14\u8BB0\u5F55", onClose: () => this.setState({ edit: null }) }, this.state.edit ? React.createElement(TransactionForm, { bootstrap: this.props.bootstrap, initial: this.state.edit, onCancel: () => this.setState({ edit: null }), onSuccess: () => { this.setState({ edit: null }); this.load(); this.props.onChanged(); this.props.onToast('已经保存修改', 'success'); } }) : null));
     }
 }

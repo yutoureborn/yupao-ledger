@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.10';
+const APP_VERSION = '0.3.11';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -97,14 +97,14 @@ const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8'
 type MascotAssetKey = 'hero' | 'idle' | 'empty' | 'success' | 'summary' | 'safe' | 'warning' | 'invoice';
 
 const MASCOT_ASSETS: Record<MascotAssetKey, { png: string; webp: string }> = {
-  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
-  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
-  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.10', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.10' },
-  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.10' },
-  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.10' },
-  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.10' },
-  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.10' },
-  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.10' },
+  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.11', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.11' },
+  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.11', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.11' },
+  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.11', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.11' },
+  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.11', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.11' },
+  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.11', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.11' },
+  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.11', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.11' },
+  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.11', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.11' },
+  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.11', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.11' },
 };
 
 function MascotPicture(props: { asset: MascotAssetKey; alt?: string; className?: string; eager?: boolean }): any {
@@ -387,11 +387,11 @@ function HeroMascots(props: any = {}): any {
 }
 
 function LogoMark(): any {
-  return <img className="brand-logo-img" src="/brand/brand-mark-v038.svg?v=0.3.10" alt="" aria-hidden="true" decoding="async"/>;
+  return <img className="brand-logo-img" src="/brand/brand-mark-v038.svg?v=0.3.11" alt="" aria-hidden="true" decoding="async"/>;
 }
 
 function BrandLockup(): any {
-  return <img className="brand-lockup-img" src="/brand/brand-lockup-v038.svg?v=0.3.10" alt="芋炮小账本，两个人的小日子" decoding="async"/>;
+  return <img className="brand-lockup-img" src="/brand/brand-lockup-v038.svg?v=0.3.11" alt="芋炮小账本，两个人的小日子" decoding="async"/>;
 }
 
 function Mascot(props: any): any {
@@ -716,6 +716,7 @@ function MobileTransactionsView(props: any): any {
     <div className="mobile-page-title"><div><h1>明细</h1><p>每一笔都按日期整理好了。</p></div><button className="mobile-square-btn" type="button" onClick={() => props.navigate('add')} aria-label="记一笔"><Icon name="plus"/></button></div>
     <div className="mobile-month-bar"><MonthSwitcher month={props.month} onChange={props.onMonthChange}/></div>
     <div className="mobile-segmented" role="tablist" aria-label="收支类型"><button className={!props.type ? 'active' : ''} onClick={() => props.onType('')}>全部</button><button className={props.type === 'income' ? 'active' : ''} onClick={() => props.onType('income')}>收入</button><button className={props.type === 'expense' ? 'active' : ''} onClick={() => props.onType('expense')}>支出</button><button className={props.type === 'transfer' ? 'active' : ''} onClick={() => props.onType('transfer')}>转账</button></div>
+    {props.type !== 'transfer' ? <label className="mobile-detail-category-filter"><span><Icon name="category" size={17}/>分类</span><select value={props.categoryId || ''} onChange={(event: any) => props.onCategory(event.target.value)}><option value="">全部分类</option>{props.type === 'expense' ? categoryGroups((props.categories || []).filter((item: any) => item.type === 'expense' && !item.is_archived), 'expense').map((group) => <optgroup key={group.label} label={group.label}>{group.items.map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup>) : props.type === 'income' ? <optgroup label="收入分类">{(props.categories || []).filter((item: any) => item.type === 'income' && !item.is_archived).map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup> : <><optgroup label="支出分类">{(props.categories || []).filter((item: any) => item.type === 'expense' && !item.is_archived).map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup><optgroup label="收入分类">{(props.categories || []).filter((item: any) => item.type === 'income' && !item.is_archived).map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup></>}</select><Icon name="chevron-right" size={16}/></label> : null}
     <div className="mobile-search-row"><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索商户或备注" value={props.search} onChange={(event: any) => props.onSearch(event.target.value)} onKeyDown={(event: any) => { if (event.key === 'Enter') props.onSubmitSearch(); }}/></div><button className="mobile-filter-btn" type="button" onClick={props.onSubmitSearch}><Icon name="search" size={18}/></button></div>
     {props.loading ? <div className="stack"><div className="skeleton" style={{ height: '82px' }}/><div className="skeleton" style={{ height: '82px' }}/></div> : items.length ? <div className="mobile-date-groups">{Object.entries(groups).map(([date, groupItems]: any) => {
       const expense = groupItems.filter((item: any) => item.type === 'expense').reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
@@ -949,7 +950,7 @@ class AddPage extends React.Component<any, any> {
 
 class TransactionsPage extends React.Component<any, any> {
   timer: number | null = null;
-  constructor(props: any) { super(props); this.state = { loading: true, items: [], total: 0, month: props.month, type: '', accountId: '', search: '', edit: null }; }
+  constructor(props: any) { super(props); this.state = { loading: true, items: [], total: 0, month: props.month, type: '', categoryId: '', accountId: '', search: '', edit: null }; }
   componentDidMount(): void { this.load(); }
   componentDidUpdate(prevProps: any): void { if (prevProps.refreshToken !== this.props.refreshToken) this.load(); }
   async load(): Promise<void> {
@@ -957,6 +958,7 @@ class TransactionsPage extends React.Component<any, any> {
     const params = new URLSearchParams({ month: this.state.month, limit: '200' });
     if (this.state.type) params.set('type', this.state.type);
     if (this.state.accountId) params.set('accountId', this.state.accountId);
+    if (this.state.categoryId) params.set('categoryId', this.state.categoryId);
     if (this.state.search.trim()) params.set('search', this.state.search.trim());
     try { const data = await apiRequest(`/api/transactions?${params.toString()}`); this.setState({ loading: false, items: data.items, total: data.total }); }
     catch (error: any) { this.setState({ loading: false }); this.props.onError(error.message); }
@@ -979,11 +981,13 @@ class TransactionsPage extends React.Component<any, any> {
     const expenseCents = items.filter((item: any) => item.type === 'expense').reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
     const incomeCents = items.filter((item: any) => item.type === 'income').reduce((sum: number, item: any) => sum + Number(item.amount_cents || 0), 0);
     const transferCount = items.filter((item: any) => item.type === 'transfer').length;
-    return <div className="page transactions-page-v037"><div className="desktop-product-view"><PageHeader title="收支明细" subtitle="按月份、类型或账户查找每一笔记录。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.changeFilter({ month })}/><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/><span className="btn-label">记一笔</span></button></PageHeader>
+    const expenseFilterCategories = this.props.bootstrap.categories.filter((item: any) => item.type === 'expense' && !item.is_archived);
+    const incomeFilterCategories = this.props.bootstrap.categories.filter((item: any) => item.type === 'income' && !item.is_archived);
+    return <div className="page transactions-page-v037"><div className="desktop-product-view"><PageHeader title="收支明细" subtitle="按月份、类型、分类或账户查找每一笔记录。"><MonthSwitcher month={this.state.month} onChange={(month: string) => this.changeFilter({ month })}/><button className="btn btn-primary" onClick={() => this.props.navigate('add')}><Icon name="plus" size={18}/><span className="btn-label">记一笔</span></button></PageHeader>
       <section className="card detail-hero-card"><div className="detail-hero-copy"><span className="detail-kicker">{monthLabel(this.state.month)} · 记录台账</span><h2>这一个月的收支，都能顺手翻出来</h2><p>大芋头负责把新记录记下来，小炮台负责把它们排得清清楚楚。筛一筛，就能快速找到要看的那一笔。</p></div><div className="detail-hero-stats" role="list" aria-label="明细页摘要"><div className="detail-stat" role="listitem"><span>记录数</span><strong>{this.state.total}</strong><small>当前筛选结果</small></div><div className="detail-stat" role="listitem"><span>支出合计</span><strong>{formatCompactMoney(expenseCents)}</strong><small>{items.filter((item: any) => item.type === 'expense').length} 笔</small></div><div className="detail-stat" role="listitem"><span>收入合计</span><strong>{formatCompactMoney(incomeCents)}</strong><small>{items.filter((item: any) => item.type === 'income').length} 笔</small></div><div className="detail-stat" role="listitem"><span>转账记录</span><strong>{transferCount}</strong><small>账户之间调拨</small></div></div></section>
-      <section className="card card-pad detail-filter-card"><div className="card-title-row detail-filter-head"><div><h3 className="card-title">筛选与查找</h3><p className="card-subtitle">先按月份看，再用类型、账户和关键词收窄范围。</p></div></div><div className="filter-bar detail-filter-bar"><select className="select" value={this.state.type} onChange={(event: any) => this.changeFilter({ type: event.target.value })}><option value="">全部类型</option><option value="expense">支出</option><option value="income">收入</option><option value="transfer">转账</option></select><select className="select" value={this.state.accountId} onChange={(event: any) => this.changeFilter({ accountId: event.target.value })}><option value="">全部账户</option>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索商户或备注" value={this.state.search} onChange={(event: any) => this.setState({ search: event.target.value })} onKeyDown={(event: any) => { if (event.key === 'Enter') this.load(); }}/></div><button className="btn btn-secondary" onClick={() => this.load()}>搜索</button></div></section>
+      <section className="card card-pad detail-filter-card"><div className="card-title-row detail-filter-head"><div><h3 className="card-title">筛选与查找</h3><p className="card-subtitle">先按月份看，再用类型、分类、账户和关键词收窄范围。</p></div></div><div className="filter-bar detail-filter-bar"><select className="select" value={this.state.type} onChange={(event: any) => this.changeFilter({ type: event.target.value, categoryId: '' })}><option value="">全部类型</option><option value="expense">支出</option><option value="income">收入</option><option value="transfer">转账</option></select><select className="select detail-category-select" value={this.state.categoryId} disabled={this.state.type === 'transfer'} onChange={(event: any) => this.changeFilter({ categoryId: event.target.value })}><option value="">{this.state.type === 'transfer' ? '转账无分类' : '全部分类'}</option>{this.state.type === 'expense' ? categoryGroups(expenseFilterCategories, 'expense').map((group) => <optgroup key={group.label} label={group.label}>{group.items.map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup>) : this.state.type === 'income' ? <optgroup label="收入分类">{incomeFilterCategories.map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup> : <><optgroup label="支出分类">{expenseFilterCategories.map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup><optgroup label="收入分类">{incomeFilterCategories.map((item: any) => <option key={item.id} value={item.id}>{CATEGORY_EMOJI[item.icon] || '✨'} {item.name}</option>)}</optgroup></>}</select><select className="select" value={this.state.accountId} onChange={(event: any) => this.changeFilter({ accountId: event.target.value })}><option value="">全部账户</option>{this.props.bootstrap.accounts.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><div className="search-wrap"><Icon name="search" size={18}/><input className="input" placeholder="搜索商户或备注" value={this.state.search} onChange={(event: any) => this.setState({ search: event.target.value })} onKeyDown={(event: any) => { if (event.key === 'Enter') this.load(); }}/></div><button className="btn btn-secondary" onClick={() => this.load()}>搜索</button></div></section>
       <section className="card card-pad detail-list-card"><div className="card-title-row detail-list-head"><div><h3 className="card-title">{monthLabel(this.state.month)}</h3><p className="card-subtitle">共 {this.state.total} 笔记录，按时间倒序排列。</p></div></div>{this.state.loading ? <div className="stack"><div className="skeleton" style={{ height: '68px' }}/><div className="skeleton" style={{ height: '68px' }}/><div className="skeleton" style={{ height: '68px' }}/></div> : this.state.items.length ? <div className="list detail-list">{this.state.items.map((item: any, index: number) => <TransactionItem key={item.id} item={item} index={index} editable onEdit={(entry: any) => this.setState({ edit: entry })} onDelete={(entry: any) => this.remove(entry)}/>)}</div> : <EmptyState title="没有找到记录" message="换个筛选条件，或者记下新的一笔。" action={<button className="btn btn-primary" onClick={() => this.props.navigate('add')}>记一笔</button>}/>}</section></div>
-      <MobileTransactionsView items={items} loading={this.state.loading} month={this.state.month} type={this.state.type} search={this.state.search} navigate={this.props.navigate} onMonthChange={(month: string) => this.changeFilter({ month })} onType={(type: string) => this.changeFilter({ type })} onSearch={(search: string) => this.setState({ search })} onSubmitSearch={() => this.load()} onEdit={(entry: any) => this.setState({ edit: entry })} onDelete={(entry: any) => this.remove(entry)}/>
+      <MobileTransactionsView items={items} loading={this.state.loading} month={this.state.month} type={this.state.type} categoryId={this.state.categoryId} categories={this.props.bootstrap.categories} search={this.state.search} navigate={this.props.navigate} onMonthChange={(month: string) => this.changeFilter({ month })} onType={(type: string) => this.changeFilter({ type, categoryId: '' })} onCategory={(categoryId: string) => this.changeFilter({ categoryId })} onSearch={(search: string) => this.setState({ search })} onSubmitSearch={() => this.load()} onEdit={(entry: any) => this.setState({ edit: entry })} onDelete={(entry: any) => this.remove(entry)}/>
       <Modal open={Boolean(this.state.edit)} title="编辑这笔记录" onClose={() => this.setState({ edit: null })}>{this.state.edit ? <TransactionForm bootstrap={this.props.bootstrap} initial={this.state.edit} onCancel={() => this.setState({ edit: null })} onSuccess={() => { this.setState({ edit: null }); this.load(); this.props.onChanged(); this.props.onToast('已经保存修改', 'success'); }}/> : null}</Modal>
     </div>;
   }

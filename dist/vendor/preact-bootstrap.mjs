@@ -4,6 +4,6 @@ window.React = { Component, createElement };
 window.ReactDOM = { render };
 
 const script = document.createElement('script');
-script.src = '/app.js?v=0.3.10';
+script.src = '/app.js?v=0.3.11';
 script.defer = false;
 document.body.appendChild(script);

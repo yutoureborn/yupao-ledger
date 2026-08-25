@@ -47,15 +47,15 @@ test('应用产物包含动态 API 调用而非纯静态页面', async () => {
   assert.match(app, /\/api\/invoices/);
 });
 
-test('关键前端资源预加载且版本统一为 0.3.10', async () => {
+test('关键前端资源预加载且版本统一为 0.3.11', async () => {
   const html = await readFile(path.join(dist, 'index.html'), 'utf8');
   const bootstrap = await readFile(path.join(dist, 'vendor/preact-bootstrap.mjs'), 'utf8');
   const worker = await readFile(path.join(dist, 'sw.js'), 'utf8');
-  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.10/);
-  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.10/);
-  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.10/);
-  assert.match(bootstrap, /app\.js\?v=0\.3\.10/);
-  assert.match(worker, /yupao-shell-v17/);
+  assert.match(html, /rel=["']preload["'][^>]+app\.js\?v=0\.3\.11/);
+  assert.match(html, /rel=["']modulepreload["'][^>]+preact-bootstrap\.mjs\?v=0\.3\.11/);
+  assert.match(html, /preact-bootstrap\.mjs\?v=0\.3\.11/);
+  assert.match(bootstrap, /app\.js\?v=0\.3\.11/);
+  assert.match(worker, /yupao-shell-v18/);
 });
 
 test('PWA 缓存按导航、版本资源和普通静态资源分层处理', async () => {
@@ -148,7 +148,7 @@ test('发票页面与轻量生活感主题进入构建产物', async () => {
 });
 
 
-test('v0.3.10 保留已确认联名品牌资产并升级选择式记账交互', async () => {
+test('v0.3.11 保留已确认联名品牌资产并升级选择式记账交互', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
   await access(path.join(dist, 'brand/brand-mark-v038.svg'));
@@ -179,7 +179,7 @@ test('v0.3.10 保留已确认联名品牌资产并升级选择式记账交互', 
 });
 
 
-test('v0.3.10 桌面与移动记账表单严格互斥，避免双套表单同时渲染', async () => {
+test('v0.3.11 桌面与移动记账表单严格互斥，避免双套表单同时渲染', async () => {
   const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
   const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
   assert.match(app, /desktop-transaction-form-v039/);
@@ -188,4 +188,16 @@ test('v0.3.10 桌面与移动记账表单严格互斥，避免双套表单同时
   assert.match(css, /\.desktop-transaction-form-v039\s*\{\s*display:\s*block/);
   assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.desktop-transaction-form-v039\s*\{\s*display:\s*none/);
   assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.mobile-transaction-form-v039\s*\{\s*display:\s*grid/);
+});
+
+test('v0.3.11 明细页在桌面与移动端均接入分类筛选', async () => {
+  const app = await readFile(path.join(root, 'src/frontend/app.tsx'), 'utf8');
+  const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
+  assert.match(app, /categoryId:\s*''/);
+  assert.match(app, /params\.set\('categoryId', this\.state\.categoryId\)/);
+  assert.match(app, /detail-category-select/);
+  assert.match(app, /mobile-detail-category-filter/);
+  assert.match(app, /onCategory=\{\(categoryId: string\) => this\.changeFilter\(\{ categoryId \}\)\}/);
+  assert.match(app, /type, categoryId: ''/);
+  assert.match(css, /\.mobile-detail-category-filter/);
 });

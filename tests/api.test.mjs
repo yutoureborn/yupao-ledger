@@ -387,3 +387,23 @@ test('发票汇总按收到和开出分别计算', async () => {
   assert.equal(summary.payload.data.issued.amountCents, 9000);
   assert.equal(summary.payload.data.received.linkedCount, 0);
 });
+
+test('明细查询支持按分类 categoryId 筛选', async () => {
+  const { call } = await setup();
+  const bootstrap = (await call('/api/bootstrap?month=2026-07')).payload.data;
+  const account = bootstrap.accounts[0];
+  const expenseCategories = bootstrap.categories.filter((item) => item.type === 'expense');
+  const firstCategory = expenseCategories[0];
+  const secondCategory = expenseCategories.find((item) => item.id !== firstCategory.id);
+  assert.ok(firstCategory);
+  assert.ok(secondCategory);
+
+  await call('/api/transactions', { method: 'POST', body: { type: 'expense', amountCents: 1200, accountId: account.id, categoryId: firstCategory.id, occurredAt: '2026-07-12', merchant: '分类筛选A' } });
+  await call('/api/transactions', { method: 'POST', body: { type: 'expense', amountCents: 2300, accountId: account.id, categoryId: secondCategory.id, occurredAt: '2026-07-13', merchant: '分类筛选B' } });
+
+  const result = await call(`/api/transactions?month=2026-07&categoryId=${encodeURIComponent(firstCategory.id)}`);
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.total, 1);
+  assert.equal(result.payload.data.items[0].category_id, firstCategory.id);
+  assert.equal(result.payload.data.items[0].merchant, '分类筛选A');
+});
