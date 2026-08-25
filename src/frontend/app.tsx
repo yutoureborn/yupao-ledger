@@ -26,7 +26,7 @@ type ClientCredential = { proof: string; salt: string; iterations: number };
 type AuthUser = { id: string; email: string; displayName: string; role: string; householdName: string };
 
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.9';
+const APP_VERSION = '0.3.10';
 let authExpiredHandler: (() => void) | null = null;
 
 function setClientAuth(csrfToken = ''): void {
@@ -97,14 +97,14 @@ const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8'
 type MascotAssetKey = 'hero' | 'idle' | 'empty' | 'success' | 'summary' | 'safe' | 'warning' | 'invoice';
 
 const MASCOT_ASSETS: Record<MascotAssetKey, { png: string; webp: string }> = {
-  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
-  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
-  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.9', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.9' },
-  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.9' },
-  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.9' },
-  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.9' },
-  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.9' },
-  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.9' },
+  hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
+  idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
+  empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.10', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.10' },
+  success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.10' },
+  summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.10' },
+  safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.10' },
+  warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.10' },
+  invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.10' },
 };
 
 function MascotPicture(props: { asset: MascotAssetKey; alt?: string; className?: string; eager?: boolean }): any {
@@ -387,11 +387,11 @@ function HeroMascots(props: any = {}): any {
 }
 
 function LogoMark(): any {
-  return <img className="brand-logo-img" src="/brand/brand-mark-v038.svg?v=0.3.9" alt="" aria-hidden="true" decoding="async"/>;
+  return <img className="brand-logo-img" src="/brand/brand-mark-v038.svg?v=0.3.10" alt="" aria-hidden="true" decoding="async"/>;
 }
 
 function BrandLockup(): any {
-  return <img className="brand-lockup-img" src="/brand/brand-lockup-v038.svg?v=0.3.9" alt="芋炮小账本，两个人的小日子" decoding="async"/>;
+  return <img className="brand-lockup-img" src="/brand/brand-lockup-v038.svg?v=0.3.10" alt="芋炮小账本，两个人的小日子" decoding="async"/>;
 }
 
 function Mascot(props: any): any {

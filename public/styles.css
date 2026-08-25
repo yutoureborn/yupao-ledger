@@ -4437,3 +4437,48 @@ body.reduce-motion .dashboard-hero .hero-character-duo { will-change: auto; }
 @media (prefers-reduced-motion: reduce) {
   .mobile-choice-sheet { animation: none !important; }
 }
+
+/* ===== v0.3.10 responsive bookkeeping isolation hotfix ===== */
+/* Critical: the v0.3.9 mobile transaction form must never participate in desktop layout. */
+.mobile-transaction-form-v039 {
+  display: none;
+}
+.desktop-transaction-form-v039 {
+  display: block;
+}
+
+/* Desktop bookkeeping card cleanup after removing the accidental duplicate mobile form. */
+.desktop-transaction-form-v039 {
+  max-width: 100%;
+}
+.desktop-transaction-form-v039 .type-switch {
+  margin-bottom: 20px;
+}
+.desktop-transaction-form-v039 .amount-field {
+  margin-bottom: 20px;
+}
+.desktop-transaction-form-v039 .compact-choice-grid {
+  margin-top: 0;
+}
+.desktop-transaction-form-v039 .form-actions {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+.desktop-transaction-form-v039 .form-actions .btn-primary {
+  min-width: 138px;
+}
+
+@media (max-width: 720px) {
+  .desktop-transaction-form-v039 {
+    display: none;
+  }
+  .mobile-transaction-form-v039 {
+    display: grid;
+    gap: 12px;
+  }
+}

@@ -1,8 +1,8 @@
 {
   "name": "yupao-ledger",
   "private": true,
-  "version": "0.3.9",
-  "description": "芋炮小账本：双人家庭动态在线记账 PWA（v0.3.9 少输入选择式记账 + 丰富支出分类）",
+  "version": "0.3.10",
+  "description": "芋炮小账本：双人家庭动态在线记账 PWA（v0.3.10 记账页响应式隔离热修复）",
   "type": "module",
   "scripts": {
     "clean": "node scripts/clean.mjs",

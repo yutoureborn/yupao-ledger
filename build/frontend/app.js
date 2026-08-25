@@ -1,7 +1,7 @@
 "use strict";
 /* global React, ReactDOM */
 let currentCsrfToken = '';
-const APP_VERSION = '0.3.9';
+const APP_VERSION = '0.3.10';
 let authExpiredHandler = null;
 function setClientAuth(csrfToken = '') {
     currentCsrfToken = csrfToken;
@@ -73,14 +73,14 @@ function yesterdayDate() {
 }
 const WARM_CHART_COLORS = ['#F29AB5', '#B9D99A', '#AAB6C0', '#F5C77D', '#BDA8D8', '#9BCED4', '#E9A58F'];
 const MASCOT_ASSETS = {
-    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
-    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.9', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.9' },
-    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.9', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.9' },
-    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.9' },
-    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.9' },
-    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.9' },
-    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.9', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.9' },
-    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.9', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.9' },
+    hero: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
+    idle: { png: '/illustrations/mascots/hero-duo-v033.png?v=0.3.10', webp: '/illustrations/mascots/hero-duo-v033.webp?v=0.3.10' },
+    empty: { png: '/illustrations/mascots/taro-entry-v033.png?v=0.3.10', webp: '/illustrations/mascots/taro-entry-v033.webp?v=0.3.10' },
+    success: { png: '/illustrations/mascots/duo-success-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-success-v033.webp?v=0.3.10' },
+    summary: { png: '/illustrations/mascots/tank-summary-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-summary-v033.webp?v=0.3.10' },
+    safe: { png: '/illustrations/mascots/tank-safe-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-safe-v033.webp?v=0.3.10' },
+    warning: { png: '/illustrations/mascots/tank-warning-v033.png?v=0.3.10', webp: '/illustrations/mascots/tank-warning-v033.webp?v=0.3.10' },
+    invoice: { png: '/illustrations/mascots/duo-invoice-v033.png?v=0.3.10', webp: '/illustrations/mascots/duo-invoice-v033.webp?v=0.3.10' },
 };
 function MascotPicture(props) {
     const asset = MASCOT_ASSETS[props.asset] || MASCOT_ASSETS.hero;
@@ -411,10 +411,10 @@ function HeroMascots(props = {}) {
         React.createElement("span", { className: "hero-life-dot hero-life-dot-two", "aria-hidden": "true" }));
 }
 function LogoMark() {
-    return React.createElement("img", { className: "brand-logo-img", src: "/brand/brand-mark-v038.svg?v=0.3.9", alt: "", "aria-hidden": "true", decoding: "async" });
+    return React.createElement("img", { className: "brand-logo-img", src: "/brand/brand-mark-v038.svg?v=0.3.10", alt: "", "aria-hidden": "true", decoding: "async" });
 }
 function BrandLockup() {
-    return React.createElement("img", { className: "brand-lockup-img", src: "/brand/brand-lockup-v038.svg?v=0.3.9", alt: "\u828B\u70AE\u5C0F\u8D26\u672C\uFF0C\u4E24\u4E2A\u4EBA\u7684\u5C0F\u65E5\u5B50", decoding: "async" });
+    return React.createElement("img", { className: "brand-lockup-img", src: "/brand/brand-lockup-v038.svg?v=0.3.10", alt: "\u828B\u70AE\u5C0F\u8D26\u672C\uFF0C\u4E24\u4E2A\u4EBA\u7684\u5C0F\u65E5\u5B50", decoding: "async" });
 }
 function Mascot(props) {
     const variant = (props.variant || 'idle');
